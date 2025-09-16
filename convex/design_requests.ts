@@ -309,3 +309,17 @@ export const assignDesignRequest = mutation({
   },
 });
 
+export const getRequestsByIds = query({
+  args: { ids: v.array(v.id("design_requests")) },
+  handler: async (ctx, { ids }) => {
+    if (!ids || ids.length === 0) return [];
+    const requests = await Promise.all(
+      ids.map(async (id) => {
+        const req = await ctx.db.get(id);
+        if (!req) return null;
+        return req;
+      })
+    );
+    return requests.filter(Boolean);
+  },
+});

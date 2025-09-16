@@ -24,9 +24,13 @@ interface DesignRecord {
   client_id: Id<"users">;
   designer_id: Id<"users">;
   status: "in_progress" | "finished" | "billed" | "approved";
-  preview_image?: string;
   created_at?: number;
   _creationTime?: number;
+}
+
+interface DesignRequest {
+  _id: Id<"design_requests">;
+  request_title: string;
 }
 
 function formatTimeAgo(timestamp?: number) {
@@ -44,9 +48,7 @@ const UserDesigns: React.FC = () => {
   const navigate = useNavigate();
   const { user: clerkUser } = useUser();
   const [user, setUser] = useState<ConvexUser | null>(null);
-  const [activeTab, setActiveTab] = useState<
-    "all" | "in_progress" | "finished" | "billed" | "approved"
-  >("all");
+  const [activeTab, setActiveTab] = useState<"all" | "in_progress" | "finished" | "billed" | "approved">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({
     key: "created_at",
@@ -69,15 +71,25 @@ const UserDesigns: React.FC = () => {
     setUser(currentUser);
   }, [currentUser, navigate]);
 
-  // Fetch only the designs for the logged-in client
+  // Fetch designs for the logged-in client
   const clientDesigns = useQuery(
     api.designs.getDesignsByClient,
     user ? { clientId: user._id } : "skip"
   ) as DesignRecord[] | undefined;
 
+  // Fetch all related design requests
+  const requestIds = clientDesigns?.map((d) => d.request_id) ?? [];
+  const designRequests = useQuery(api.design_requests.getRequestsByIds, { ids: requestIds }) ?? [];
+
+  // Build a lookup map of request_id → request data
+  const requestsMap: Record<string, DesignRequest> = {};
+  designRequests.forEach((r: DesignRequest | null) => {
+    if (r) requestsMap[r._id] = r;
+  });
+
   useEffect(() => {
-    if (clientDesigns !== undefined) setIsLoading(false);
-  }, [clientDesigns]);
+    if (clientDesigns !== undefined && designRequests.length >= 0) setIsLoading(false);
+  }, [clientDesigns, designRequests]);
 
   const handleSort = (key: string) => {
     let direction: "asc" | "desc" = "asc";
@@ -90,10 +102,8 @@ const UserDesigns: React.FC = () => {
       if (activeTab !== "all" && d.status !== activeTab) return false;
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
-        return (
-          d.status.toLowerCase().includes(term) ||
-          (d.preview_image?.toLowerCase().includes(term) ?? false)
-        );
+        const requestName = requestsMap[d.request_id]?.request_title.toLowerCase() ?? "";
+        return d.status.toLowerCase().includes(term) || requestName.includes(term);
       }
       return true;
     })
@@ -181,18 +191,16 @@ const UserDesigns: React.FC = () => {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        {["preview_image", "status", "created_at"].map((key) => (
+                        {["request_title", "status", "created_at", "actions"].map((key) => (
                           <th
                             key={key}
                             scope="col"
                             className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                            onClick={() => handleSort(key)}
+                            onClick={key !== "actions" ? () => handleSort(key) : undefined}
                           >
                             <div className="flex items-center">
                               {key.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                              {sortConfig.key === key && (
-                                <ArrowUpDown className="ml-1 h-4 w-4" />
-                              )}
+                              {sortConfig.key === key && <ArrowUpDown className="ml-1 h-4 w-4" />}
                             </div>
                           </th>
                         ))}
@@ -202,21 +210,21 @@ const UserDesigns: React.FC = () => {
                       {filteredDesigns.map((d) => (
                         <tr key={d._id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {d.preview_image ? (
-                              <img
-                                src={d.preview_image}
-                                alt="Preview"
-                                className="w-12 h-12 object-cover rounded"
-                              />
-                            ) : (
-                              "No preview"
-                            )}
+                            {requestsMap[d.request_id]?.request_title ?? "No Name"}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <StatusBadge status={d.status} />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {formatTimeAgo(d.created_at ?? d._creationTime)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <button
+                              onClick={() => navigate(`/designs/${d._id}`)}
+                              className="px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-teal-600 transition"
+                            >
+                              View Details
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -233,20 +241,19 @@ const UserDesigns: React.FC = () => {
                     >
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="text-base font-medium text-gray-900 break-words">
-                          {d.status}
+                          {requestsMap[d.request_id]?.request_title ?? "No Name"}
                         </h3>
                         <StatusBadge status={d.status} />
                       </div>
                       <div className="space-y-1 text-sm text-gray-900">
                         <p>Date: {formatTimeAgo(d.created_at ?? d._creationTime)}</p>
                       </div>
-                      {d.preview_image && (
-                        <img
-                          src={d.preview_image}
-                          alt="Preview"
-                          className="w-full h-40 object-cover rounded-lg mt-2"
-                        />
-                      )}
+                      <button
+                        onClick={() => navigate(`/designs/${d._id}`)}
+                        className="mt-2 px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-teal-600 transition w-full"
+                      >
+                        View Details
+                      </button>
                     </div>
                   ))}
                 </div>
