@@ -1,22 +1,62 @@
-// src/components/designCanvasComponents/CanvasTools.tsx
 import * as fabric from "fabric";
 
 /** internal types */
-type ToolName = "brush" | "eraser" | null;
+type ToolName = "brush" | "eraser" | "bucket" | "eyedropper" | null;
 type AnyCanvas = fabric.Canvas & {
   _activeTool?: ToolName;
   _brushColor?: string;
   _brushSize?: number;
   _eraserSize?: number;
+  _defaultColor?: string; // ✅ global default color
+  _bucketHandler?: (opts: any) => void;
+  _eyedropperHandler?: (opts: any) => void;
 };
 
+/* ---------- global color helpers ---------- */
+export function getDefaultColor(canvas: fabric.Canvas): string {
+  return (canvas as AnyCanvas)._defaultColor ?? "#ff0000"; // ✅ default red
+}
+
+export function setDefaultColor(canvas: fabric.Canvas, color: string) {
+  const c = canvas as AnyCanvas;
+  c._defaultColor = color;
+  c._brushColor = color;
+  if (canvas.freeDrawingBrush) {
+    (canvas.freeDrawingBrush as any).color = color;
+  }
+}
+
+/* ---------- detect & set object color ---------- */
+export function getObjectColor(obj: fabric.Object): string | undefined {
+  if ("fill" in obj && obj.fill && typeof obj.fill === "string") {
+    return obj.fill;
+  }
+  if ("stroke" in obj && obj.stroke && typeof obj.stroke === "string") {
+    return obj.stroke;
+  }
+  return undefined;
+}
+
+export function setObjectColor(obj: fabric.Object, color: string) {
+  if (obj.type === "line" || obj.type === "path") {
+    obj.set("stroke", color);
+  } else {
+    obj.set("fill", color);
+  }
+}
+
 /* ---------- basic shapes/text ---------- */
-export function addText(canvas: fabric.Canvas) {
-  const text = new fabric.Textbox("New Text", {
+export function addText(
+  canvas: fabric.Canvas,
+  textString: string = "New Text",
+  fontSize: number = 20,
+  color?: string
+) {
+  const text = new fabric.Textbox(textString, {
     left: 100,
     top: 100,
-    fontSize: 20,
-    fill: "#000",
+    fontSize,
+    fill: color ?? getDefaultColor(canvas),
     erasable: true,
   });
   canvas.add(text);
@@ -28,7 +68,7 @@ export function addRectangle(canvas: fabric.Canvas) {
   const rect = new fabric.Rect({
     left: 100,
     top: 100,
-    fill: "red",
+    fill: getDefaultColor(canvas),
     width: 100,
     height: 100,
     erasable: true,
@@ -43,7 +83,7 @@ export function addCircle(canvas: fabric.Canvas) {
     left: 150,
     top: 150,
     radius: 50,
-    fill: "blue",
+    fill: getDefaultColor(canvas),
     erasable: true,
   });
   canvas.add(circle);
@@ -53,7 +93,7 @@ export function addCircle(canvas: fabric.Canvas) {
 
 export function addLine(canvas: fabric.Canvas) {
   const line = new fabric.Line([50, 100, 200, 100], {
-    stroke: "black",
+    stroke: getDefaultColor(canvas),
     strokeWidth: 2,
     erasable: true,
   });
@@ -69,7 +109,7 @@ export function disableDrawingMode(canvas: fabric.Canvas) {
   c._activeTool = null;
   c.selection = true;
   c.defaultCursor = "default";
-  if ((canvas as any).discardActiveObject) canvas.discardActiveObject();
+  (canvas as any).discardActiveObject?.();
   canvas.requestRenderAll();
 }
 
@@ -83,7 +123,7 @@ export function addBrush(canvas: fabric.Canvas, color?: string, width?: number) 
   const PencilBrush = (fabric as any).PencilBrush ?? (fabric as any).Brush;
   const brush = new PencilBrush(canvas);
 
-  const chosenColor = color ?? c._brushColor ?? "#000000";
+  const chosenColor = color ?? c._brushColor ?? getDefaultColor(canvas);
   const chosenWidth =
     typeof width === "number"
       ? width
@@ -101,15 +141,25 @@ export function addBrush(canvas: fabric.Canvas, color?: string, width?: number) 
   c._brushSize = chosenWidth;
   c.selection = false;
   c.defaultCursor = "crosshair";
-  if ((canvas as any).discardActiveObject) canvas.discardActiveObject();
+  (canvas as any).discardActiveObject?.();
   canvas.requestRenderAll();
 }
 
-export function setBrushColor(canvas: fabric.Canvas, color: string) {
+export function setBrushColor(
+  canvas: fabric.Canvas,
+  color: string,
+  size?: number
+) {
   const c = canvas as AnyCanvas;
   c._brushColor = color;
   const brush = (canvas as any).freeDrawingBrush;
-  if (brush) (brush as any).color = color;
+  if (brush) {
+    (brush as any).color = color;
+    if (typeof size === "number") {
+      brush.width = size;
+      c._brushSize = size;
+    }
+  }
 }
 
 export function setBrushSize(canvas: fabric.Canvas, size: number) {
@@ -122,7 +172,6 @@ export function setBrushSize(canvas: fabric.Canvas, size: number) {
 /* ---------- eraser ---------- */
 export function addEraser(canvas: fabric.Canvas, size: number = 20) {
   const c = canvas as AnyCanvas;
-
   if (c._activeTool === "eraser") {
     disableDrawingMode(canvas);
     return;
@@ -131,7 +180,6 @@ export function addEraser(canvas: fabric.Canvas, size: number = 20) {
   const chosenSize = typeof c._eraserSize === "number" ? c._eraserSize : size;
   c._eraserSize = chosenSize;
 
-  // ✅ Use Fabric’s built-in EraserBrush
   const EraserBrush = (fabric as any).EraserBrush;
   if (EraserBrush) {
     const eraser = new EraserBrush(canvas);
@@ -143,10 +191,7 @@ export function addEraser(canvas: fabric.Canvas, size: number = 20) {
   c._activeTool = "eraser";
   c.selection = false;
   c.defaultCursor = "crosshair";
-
-  if ((canvas as any).discardActiveObject) {
-    canvas.discardActiveObject();
-  }
+  (canvas as any).discardActiveObject?.();
   canvas.requestRenderAll();
 }
 
@@ -162,7 +207,7 @@ export function addFreeform(canvas: fabric.Canvas) {
   const path = new fabric.Path("M 0 0 Q 50 100 100 0 T 200 0", {
     left: 100,
     top: 200,
-    stroke: "green",
+    stroke: getDefaultColor(canvas),
     fill: "",
     strokeWidth: 2,
     erasable: true,
@@ -172,23 +217,112 @@ export function addFreeform(canvas: fabric.Canvas) {
   canvas.requestRenderAll();
 }
 
-/* ---------- image picker ---------- */
-// src/components/designCanvasComponents/CanvasTools.tsx
+/* ---------- bucket fill ---------- */
+export function addBucketTool(canvas: fabric.Canvas, color?: string) {
+  const c = canvas as AnyCanvas;
+  disableDrawingMode(canvas);
+  c._activeTool = "bucket";
+  c.defaultCursor = "cell";
 
-/** compress image files to base64 with size limits */
+  const chosenColor = color ?? getDefaultColor(canvas);
+
+  const handleClick = (opts: any) => {
+    const target = opts?.target as fabric.Object | undefined;
+    if (target) {
+      try {
+        setObjectColor(target, chosenColor); // ✅ use fill OR stroke correctly
+        canvas.requestRenderAll();
+      } catch {}
+    }
+  };
+
+  canvas.off("mouse:down", c._bucketHandler as any);
+  c._bucketHandler = handleClick;
+  canvas.on("mouse:down", handleClick);
+}
+
+/* ---------- eyedropper ---------- */
+function extractColorFromTarget(target: fabric.Object): string {
+  const color = getObjectColor(target);
+  if (color) return color;
+
+  if (target.type === "image" && target instanceof fabric.Image) {
+    try {
+      const el = target.getElement() as HTMLImageElement;
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d")!;
+      canvas.width = el.width;
+      canvas.height = el.height;
+      ctx.drawImage(el, 0, 0);
+      const imgData = ctx.getImageData(
+        Math.floor(el.width / 2),
+        Math.floor(el.height / 2),
+        1,
+        1
+      ).data;
+      return `rgb(${imgData[0]}, ${imgData[1]}, ${imgData[2]})`;
+    } catch {
+      return "#000000";
+    }
+  }
+  return "#000000";
+}
+
+export function addEyedropperTool(
+  canvas: fabric.Canvas,
+  onColorPicked: (color: string) => void
+) {
+  const c = canvas as AnyCanvas;
+  disableDrawingMode(canvas);
+  c._activeTool = "eyedropper";
+  c.defaultCursor = "crosshair";
+  canvas.selection = false;
+  canvas.forEachObject((obj) => (obj.selectable = false));
+
+  const handleClick = (opts: any) => {
+    const target = opts?.target as fabric.Object | undefined;
+    if (target) {
+      const pickedColor = extractColorFromTarget(target);
+      setDefaultColor(canvas, pickedColor);
+      setBrushColor(canvas, pickedColor);
+
+      try {
+        onColorPicked(pickedColor);
+      } catch {}
+
+      canvas.off("mouse:down", handleClick);
+      canvas.selection = true;
+      canvas.forEachObject((obj) => (obj.selectable = true));
+      c._activeTool = null;
+      c.defaultCursor = "default";
+    }
+  };
+
+  canvas.off("mouse:down", c._eyedropperHandler as any);
+  c._eyedropperHandler = handleClick;
+  canvas.on("mouse:down", handleClick);
+}
 export async function compressImageFile(
   file: File,
   maxWidth = 800,
   maxHeight = 800,
-  quality = 0.7
+  quality = 0.7,
+  skipThreshold = 200_000
 ) {
   return new Promise<string>((resolve) => {
+    if (file.size <= skipThreshold) {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+      return;
+    }
+
     const img = new Image();
     img.src = URL.createObjectURL(file);
+
     img.onload = () => {
       let { width, height } = img;
 
-      // Scale proportionally
       if (width > maxWidth || height > maxHeight) {
         const scale = Math.min(maxWidth / width, maxHeight / height);
         width = width * scale;
@@ -201,14 +335,19 @@ export async function compressImageFile(
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Compress to JPEG base64
-      let dataUrl = canvas.toDataURL("image/jpeg", quality);
+      const isPng = file.type === "image/png";
+      let dataUrl: string;
 
-      // If still too large, reduce quality iteratively
-      let q = quality;
-      while (dataUrl.length > 700_000 && q > 0.3) {
-        q -= 0.1;
-        dataUrl = canvas.toDataURL("image/jpeg", q);
+      if (isPng) {
+        dataUrl = canvas.toDataURL("image/png");
+      } else {
+        dataUrl = canvas.toDataURL("image/jpeg", quality);
+
+        let q = quality;
+        while (dataUrl.length > 700_000 && q > 0.3) {
+          q -= 0.1;
+          dataUrl = canvas.toDataURL("image/jpeg", q);
+        }
       }
 
       resolve(dataUrl);
@@ -216,7 +355,6 @@ export async function compressImageFile(
   });
 }
 
-/** Add image with automatic compression */
 export async function addImage(canvas: fabric.Canvas) {
   if (typeof document === "undefined") return;
   const input = document.createElement("input");
@@ -234,7 +372,6 @@ export async function addImage(canvas: fabric.Canvas) {
 
     try {
       const compressedDataUrl = await compressImageFile(file, 800, 800, 0.7);
-
       const imgEl = new Image();
       imgEl.crossOrigin = "anonymous";
       imgEl.src = compressedDataUrl;
@@ -262,8 +399,10 @@ export async function addImage(canvas: fabric.Canvas) {
             (canvas as any).centerObject(imgInstance);
           } else {
             imgInstance.set({
-              left: (cw - (imgEl.width || 100) * (imgInstance.scaleX || 1)) / 2,
-              top: (ch - (imgEl.height || 100) * (imgInstance.scaleY || 1)) / 2,
+              left:
+                (cw - (imgEl.width || 100) * (imgInstance.scaleX || 1)) / 2,
+              top:
+                (ch - (imgEl.height || 100) * (imgInstance.scaleY || 1)) / 2,
             });
           }
         } catch {
@@ -284,4 +423,3 @@ export async function addImage(canvas: fabric.Canvas) {
   document.body.appendChild(input);
   input.click();
 }
-

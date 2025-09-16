@@ -9,7 +9,7 @@ import { ArrowLeft } from "lucide-react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-
+import * as fabric from "fabric";
 interface DesignRequest {
   _id: Id<"design_requests">;
   designId: Id<"design">;
@@ -72,6 +72,28 @@ const DesignerCanvasPage: React.FC = () => {
     );
   }
 
+  
+function jsonToCanvasElement(json?: string): HTMLCanvasElement | undefined {
+  if (!json) return undefined;
+  const el = document.createElement("canvas");
+  el.width = 500;
+  el.height = 500;
+  const f = new fabric.Canvas(el, { backgroundColor: "#f5f5f5" });
+  try {
+    f.loadFromJSON(JSON.parse(json), () => f.renderAll());
+  } catch {
+    f.renderAll();
+  }
+  return el;
+}
+const partCanvases = React.useMemo(() => {
+  if (!canvases) return {};
+  const map: Record<string, HTMLCanvasElement | undefined> = {};
+  canvases.forEach((c) => {
+    map[c.category] = jsonToCanvasElement(c.canvas_json);
+  });
+  return map;
+}, [canvases]);
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -119,6 +141,10 @@ const DesignerCanvasPage: React.FC = () => {
                 fabricCanvas={fabricCanvas}
                 canvasModifiedKey={canvasModifiedKey}
                 shirtType={request?.tshirt_type || "tshirt"}
+                partCanvases={partCanvases}
+                currentCategory={category} // 🔹 add this
+                
+                
               />
             </Stage>
           </PresentationControls>
