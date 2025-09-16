@@ -232,6 +232,7 @@ export const createRequest = mutation({
 });
 
 // Assign design request to a designer
+// Assign design request to a designer
 export const assignDesignRequest = mutation({
   args: {
     request_id: v.id("design_requests"),
@@ -239,19 +240,28 @@ export const assignDesignRequest = mutation({
     admin_notes: v.optional(v.string()),
   },
   handler: async (ctx, { request_id, designer_id, admin_notes }) => {
+    // ✅ Fetch request by ID only
     const request = await ctx.db.get(request_id);
     if (!request) throw new Error("Design request not found");
 
+    // ✅ Fetch designer directly
     const designer = await ctx.db.get(designer_id);
-    if (!designer || designer.role !== "designer")
+    if (!designer || designer.role !== "designer") {
       throw new Error("Designer not found or invalid role");
+    }
 
-    const client = await ctx.db.get(request.client_id);
+    // ✅ Fetch client directly
+    const client = request.client_id
+      ? await ctx.db.get(request.client_id)
+      : null;
     if (!client) throw new Error("Client not found");
 
     // ✅ Compute default deadline (15 days from now)
-    const deadline = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString();
+    const deadline = new Date(
+      Date.now() + 15 * 24 * 60 * 60 * 1000
+    ).toISOString();
 
+    // ✅ Insert new design first
     const designId = await ctx.db.insert("design", {
       client_id: request.client_id,
       designer_id,
@@ -259,23 +269,24 @@ export const assignDesignRequest = mutation({
       preview_image: undefined,
       source_files: [],
       deadline,
-      status: "in_progress", // ✅ default status
+      status: "in_progress",
       created_at: Date.now(),
     });
 
-    // ✅ Auto-create canvases
-    await ctx.runMutation(api.fabric_canvases.createFabricCanvasesForDesign, {
+    // ✅ Create fabric canvas (separate table)
+    await ctx.runMutation(api.fabric_canvases.createFabricCanvasForDesign, {
       designId,
-      requestId: request_id,
-      shirtType: request.tshirt_type || "tshirt",
     });
 
+    // ✅ Patch request status last
     await ctx.db.patch(request_id, { status: "approved" });
 
+    // Prepare names safely
     const requestTitle = request.request_title || "Design Request";
-    const designerName = `${designer.firstName} ${designer.lastName}`;
-    const clientName = `${client.firstName} ${client.lastName}`;
+    const designerName = `${designer.firstName ?? ""} ${designer.lastName ?? ""}`;
+    const clientName = `${client.firstName ?? ""} ${client.lastName ?? ""}`;
 
+    // ✅ Insert notifications
     await ctx.db.insert("notifications", {
       recipient_user_id: request.client_id,
       recipient_user_type: "client",
@@ -297,3 +308,4 @@ export const assignDesignRequest = mutation({
     return { request_id, designId };
   },
 });
+

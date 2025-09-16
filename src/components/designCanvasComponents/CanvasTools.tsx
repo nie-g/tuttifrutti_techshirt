@@ -170,8 +170,10 @@ export function setBrushSize(canvas: fabric.Canvas, size: number) {
 }
 
 /* ---------- eraser ---------- */
+/* ---------- eraser ---------- */
 export function addEraser(canvas: fabric.Canvas, size: number = 20) {
   const c = canvas as AnyCanvas;
+
   if (c._activeTool === "eraser") {
     disableDrawingMode(canvas);
     return;
@@ -180,11 +182,15 @@ export function addEraser(canvas: fabric.Canvas, size: number = 20) {
   const chosenSize = typeof c._eraserSize === "number" ? c._eraserSize : size;
   c._eraserSize = chosenSize;
 
-  const EraserBrush = (fabric as any).EraserBrush;
-  if (EraserBrush) {
-    const eraser = new EraserBrush(canvas);
+  // ✅ Make sure EraserBrush exists in fabric
+  if ((fabric as any).EraserBrush) {
+    const eraser = new (fabric as any).EraserBrush(canvas);
+
     eraser.width = chosenSize;
+    eraser.color = "rgba(0,0,0,1)"; // doesn't matter, ignored by eraser
     canvas.freeDrawingBrush = eraser;
+  } else {
+    console.warn("EraserBrush is not available in this version of Fabric.js");
   }
 
   c.isDrawingMode = true;
@@ -302,6 +308,7 @@ export function addEyedropperTool(
   c._eyedropperHandler = handleClick;
   canvas.on("mouse:down", handleClick);
 }
+
 export async function compressImageFile(
   file: File,
   maxWidth = 800,

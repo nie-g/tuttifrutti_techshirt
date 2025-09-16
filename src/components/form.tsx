@@ -32,7 +32,7 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
   const user = useQuery(api.userQueries.getUserByClerkId, { clerkId: clerkUser ? clerkUser.id : ("skip" as any) });
 
 
-  const createNewRequestMutation = useMutation(api.design_requests.createNewRequest);
+  const createNewRequestMutation = useMutation(api.design_requests.createRequest);
   const saveMultipleReferencesMutation = useMutation(api.designReferences.saveMultipleReferences);
   const saveSelectedColorsMutation = useMutation(api.colors.saveSelectedColors);
 

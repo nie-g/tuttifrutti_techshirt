@@ -16,6 +16,7 @@ import Templates from './pages/Templates';
 import InventoryPage from './pages/Inventory';
 import Users from './pages/Users';
 import DesignerCanvasPage from './pages/DesignCanvasPage';
+import UserDesigns from './pages/UserDesigns';
 
 
 
@@ -41,6 +42,7 @@ function App() {
         <Route path="/admin/inventory" element={<InventoryPage />} />
         <Route path="/admin/users" element={<Users />} />
         <Route path="/designer/canvas/:requestId" element={<DesignerCanvasPage />} />
+        <Route path="/client/designs" element={<UserDesigns />} />
       </Routes>
     </BrowserRouter>
   );

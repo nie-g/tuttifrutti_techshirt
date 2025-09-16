@@ -5,7 +5,7 @@ import {
   addRectangle,
   addCircle,
   addLine,
-  addImage, // ✅ import addImage
+  addImage,
 } from "./designCanvasComponents/CanvasTools";
 import CanvasSettings from "./designCanvasComponents/CanvasSettings";
 import { Type, Square, Circle as CircleIcon, Minus, Save } from "lucide-react";
@@ -21,22 +21,6 @@ interface FabricCanvasProps {
   initialCanvasJson?: string | null;
   onReady?: (canvasEl: HTMLCanvasElement) => void;
   onModified?: () => void;
-  category:
-    | "front"
-    | "back"
-    | "left_sleeve"
-    | "right_sleeve"
-    | "collar"
-    | "other";
-  setCategory: (
-    category:
-      | "front"
-      | "back"
-      | "left_sleeve"
-      | "right_sleeve"
-      | "collar"
-      | "other"
-  ) => void;
 }
 
 const FabricCanvas: React.FC<FabricCanvasProps> = ({
@@ -44,8 +28,6 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
   initialCanvasJson,
   onReady,
   onModified,
-  category,
-  setCategory,
 }) => {
   const canvasElRef = useRef<HTMLCanvasElement | null>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
@@ -65,7 +47,6 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
         const current = c || fabricRef.current || canvas;
         if (!current) return;
         current.renderAll();
-        current.calcOffset && current.calcOffset();
         if (onModified) onModified();
         if (onReady && current.lowerCanvasEl) onReady(current.lowerCanvasEl);
       } catch {}
@@ -100,7 +81,9 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
 
     return () => {
       eventTypes.forEach((ev) => c.off(ev as any, handler));
-      try { c.dispose && c.dispose(); } catch {}
+      try {
+        c.dispose && c.dispose();
+      } catch {}
       fabricRef.current = null;
       setCanvas(null);
       if (notifyTimeoutRef.current) window.clearTimeout(notifyTimeoutRef.current);
@@ -112,33 +95,29 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
     if (!canvas) return;
     if (initialCanvasJson) {
       try {
-        const parsed = typeof initialCanvasJson === "string"
-          ? JSON.parse(initialCanvasJson)
-          : initialCanvasJson;
+        const parsed =
+          typeof initialCanvasJson === "string"
+            ? JSON.parse(initialCanvasJson)
+            : initialCanvasJson;
         canvas.loadFromJSON(parsed, () => {
           try {
             canvas.backgroundColor = "#f5f5f5";
             canvas.renderAll();
-            canvas.calcOffset && canvas.calcOffset();
-            setTimeout(() => notifyParent(canvas), 40);
-          } catch (err) {
-            console.error("Error after loadFromJSON render:", err);
+            notifyParent(canvas);
+          } catch {
             notifyParent(canvas);
           }
         });
-      } catch (err) {
-        console.error("Error parsing canvas JSON:", err);
+      } catch {
         canvas.clear();
         canvas.backgroundColor = "#f5f5f5";
         canvas.renderAll();
-        canvas.calcOffset && canvas.calcOffset();
         notifyParent(canvas);
       }
     } else {
       canvas.clear();
       canvas.backgroundColor = "#f5f5f5";
       canvas.renderAll();
-      canvas.calcOffset && canvas.calcOffset();
       notifyParent(canvas);
     }
   }, [canvas, initialCanvasJson]);
@@ -147,8 +126,8 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
     if (!canvas) return;
     const json = JSON.stringify(canvas.toJSON());
     try {
-      await saveCanvas({ designId, category, canvasJson: json });
-      alert(`Canvas (${category}) saved successfully!`);
+      await saveCanvas({ designId, canvasJson: json });
+      alert("Canvas saved successfully!");
       notifyParent(canvas);
     } catch (err) {
       console.error("Failed to save canvas", err);
@@ -159,45 +138,51 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
   return (
     <div className="p-4">
       <div className="flex gap-2 mb-4 items-center">
-        <button type="button" title="Add text" className="p-2 bg-gray-200 rounded hover:bg-gray-300"
-          onClick={() => canvas && addText(canvas)}>
+        <button
+          type="button"
+          title="Add text"
+          className="p-2 bg-gray-200 rounded hover:bg-gray-300"
+          onClick={() => canvas && addText(canvas)}
+        >
           <Type size={20} />
         </button>
-        <button type="button" title="Add rectangle" className="p-2 bg-gray-200 rounded hover:bg-gray-300"
-          onClick={() => canvas && addRectangle(canvas)}>
+        <button
+          type="button"
+          title="Add rectangle"
+          className="p-2 bg-gray-200 rounded hover:bg-gray-300"
+          onClick={() => canvas && addRectangle(canvas)}
+        >
           <Square size={20} />
         </button>
-        <button type="button" title="Add circle" className="p-2 bg-gray-200 rounded hover:bg-gray-300"
-          onClick={() => canvas && addCircle(canvas)}>
+        <button
+          type="button"
+          title="Add circle"
+          className="p-2 bg-gray-200 rounded hover:bg-gray-300"
+          onClick={() => canvas && addCircle(canvas)}
+        >
           <CircleIcon size={20} />
         </button>
-        <button type="button" title="Add line" className="p-2 bg-gray-200 rounded hover:bg-gray-300"
-          onClick={() => canvas && addLine(canvas)}>
+        <button
+          type="button"
+          title="Add line"
+          className="p-2 bg-gray-200 rounded hover:bg-gray-300"
+          onClick={() => canvas && addLine(canvas)}
+        >
           <Minus size={20} />
         </button>
-        <button type="button" title="Add image" className="p-2 bg-gray-200 rounded hover:bg-gray-300"
-          onClick={() => canvas && addImage(canvas)}>
+        <button
+          type="button"
+          title="Add image"
+          className="p-2 bg-gray-200 rounded hover:bg-gray-300"
+          onClick={() => canvas && addImage(canvas)}
+        >
           📷
         </button>
-
-        <select
-          aria-label="Select design category"
-          value={category}
-          onChange={(e) => setCategory(e.target.value as any)}
-          className="ml-4 p-2 border rounded"
-        >
-          <option value="front">Front</option>
-          <option value="back">Back</option>
-          <option value="left_sleeve">Left Sleeve</option>
-          <option value="right_sleeve">Right Sleeve</option>
-          <option value="collar">Collar</option>
-          <option value="other">Other</option>
-        </select>
 
         <button
           type="button"
           title="Save design"
-          className="p-2 bg-green-500 text-white rounded hover:bg-green-600"
+          className="p-2 bg-green-500 text-white rounded hover:bg-green-600 ml-4"
           onClick={handleSave}
         >
           <Save size={20} />

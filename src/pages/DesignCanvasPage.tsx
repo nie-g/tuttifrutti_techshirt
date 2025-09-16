@@ -10,6 +10,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import * as fabric from "fabric";
+
 interface DesignRequest {
   _id: Id<"design_requests">;
   designId: Id<"design">;
@@ -20,7 +21,6 @@ interface DesignRequest {
 type FabricCanvasRecord = {
   _id: Id<"fabric_canvases">;
   canvas_json?: string;
-  category: "front" | "back" | "left_sleeve" | "right_sleeve" | "collar" | "other";
   design_id: Id<"design">;
   created_at: number;
   updated_at: number;
@@ -35,65 +35,56 @@ const DesignerCanvasPage: React.FC = () => {
 
   const [fabricCanvas, setFabricCanvas] = useState<HTMLCanvasElement | undefined>(undefined);
   const [canvasModifiedKey, setCanvasModifiedKey] = useState(0);
-  const [category, setCategory] = useState<FabricCanvasRecord["category"]>("front");
 
   const handleCanvasModified = useCallback(() => {
     setCanvasModifiedKey((prev) => prev + 1);
   }, []);
 
-  // Fetch all canvases for this design (skip if no designId)
-  const canvases = useQuery(
-    api.fabric_canvases.listByDesign,
+  // Fetch the single canvas for this design
+  const canvasDoc = useQuery(
+    api.fabric_canvases.getByDesign,
     request?.designId ? { designId: request.designId } : "skip"
-  ) as FabricCanvasRecord[] | undefined;
+  ) as FabricCanvasRecord | undefined;
 
-  // Determine left panel content
+  // Left panel content
   let canvasContent;
   if (!request) {
     canvasContent = <p className="text-gray-600">No design request provided</p>;
   } else if (!request.designId) {
     canvasContent = <p className="text-gray-500">No design available yet.</p>;
-  } else if (!canvases) {
+  } else if (!canvasDoc) {
     canvasContent = <p className="text-gray-400 text-center">Loading canvas...</p>;
-  } else if (canvases.length === 0) {
-    canvasContent = <p className="text-gray-500 text-center">No canvases yet. Please create a design.</p>;
   } else {
-    const currentCanvas = canvases.find((c) => c.category === category) || canvases[0];
-
     canvasContent = (
       <FabricCanvas
         designId={request.designId}
-        initialCanvasJson={currentCanvas?.canvas_json ?? undefined}
+        initialCanvasJson={canvasDoc?.canvas_json ?? undefined}
         onReady={setFabricCanvas}
         onModified={handleCanvasModified}
-        category={category}
-        setCategory={setCategory}
       />
     );
   }
 
-  
-function jsonToCanvasElement(json?: string): HTMLCanvasElement | undefined {
-  if (!json) return undefined;
-  const el = document.createElement("canvas");
-  el.width = 500;
-  el.height = 500;
-  const f = new fabric.Canvas(el, { backgroundColor: "#f5f5f5" });
-  try {
-    f.loadFromJSON(JSON.parse(json), () => f.renderAll());
-  } catch {
-    f.renderAll();
+  // Convert JSON → <canvas> for preview
+  function jsonToCanvasElement(json?: string): HTMLCanvasElement | undefined {
+    if (!json) return undefined;
+    const el = document.createElement("canvas");
+    el.width = 500;
+    el.height = 500;
+    const f = new fabric.Canvas(el, { backgroundColor: "#f5f5f5" });
+    try {
+      f.loadFromJSON(JSON.parse(json), () => f.renderAll());
+    } catch {
+      f.renderAll();
+    }
+    return el;
   }
-  return el;
-}
-const partCanvases = React.useMemo(() => {
-  if (!canvases) return {};
-  const map: Record<string, HTMLCanvasElement | undefined> = {};
-  canvases.forEach((c) => {
-    map[c.category] = jsonToCanvasElement(c.canvas_json);
-  });
-  return map;
-}, [canvases]);
+
+  const partCanvases = React.useMemo(() => {
+    if (!canvasDoc) return {};
+    return { full: jsonToCanvasElement(canvasDoc.canvas_json) };
+  }, [canvasDoc]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -137,15 +128,13 @@ const partCanvases = React.useMemo(() => {
           <color attach="background" args={["#F8F9FA"]} />
           <PresentationControls>
             <Stage>
+              // Removed partCanvases + currentCategory
               <FabricTexturedTShirt
                 fabricCanvas={fabricCanvas}
                 canvasModifiedKey={canvasModifiedKey}
                 shirtType={request?.tshirt_type || "tshirt"}
-                partCanvases={partCanvases}
-                currentCategory={category} // 🔹 add this
-                
-                
               />
+
             </Stage>
           </PresentationControls>
         </ThreeCanvas>

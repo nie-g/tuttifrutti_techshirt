@@ -2,19 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useClerk, useUser } from "@clerk/clerk-react";
 import {
-  Home,
-  Clock,
-  Settings,
-  LogOut,
-  Palette,
-  Images,
-  Bell as BellIcon,
-  Users,
-  FileText,
-  BarChart,
-  Layers,
-  Box,
-  NotebookPenIcon
+  Home, Clock, Settings, LogOut, Palette, Images, Bell as BellIcon, Users, FileText, BarChart, Layers, Box, NotebookPenIcon
 } from "lucide-react";
 import logoIcon from "../images/cutiepie.png";
 import { useUnreadNotificationCount } from "../hooks/UnreadNotificationsCount";
