@@ -290,7 +290,7 @@ export const assignDesignRequest = mutation({
     await ctx.db.insert("notifications", {
       recipient_user_id: request.client_id,
       recipient_user_type: "client",
-      notif_content: `Great news! Your design request "${requestTitle}" has been assigned to ${designerName} and approved.`,
+      notif_content: `Great news! Your design request for "${requestTitle}" has been approved and assigned to ${designerName}.`,
       created_at: Date.now(),
       is_read: false,
     });
@@ -298,7 +298,7 @@ export const assignDesignRequest = mutation({
     await ctx.db.insert("notifications", {
       recipient_user_id: designer_id,
       recipient_user_type: "designer",
-      notif_content: `You have been assigned a new design request: "${requestTitle}" from ${clientName}. ${
+      notif_content: `You have been assigned to a new design request: "${requestTitle}" by ${clientName}. ${
         admin_notes ? `Notes: ${admin_notes}` : ""
       }`,
       created_at: Date.now(),

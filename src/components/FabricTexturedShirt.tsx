@@ -38,20 +38,39 @@ const FabricTexturedTShirt: React.FC<Props> = ({
 
   useEffect(() => {
     if (!fabricCanvas) return;
+
+    // 🔄 Flip the canvas horizontally
+    const flippedCanvas = document.createElement("canvas");
+    flippedCanvas.width = fabricCanvas.width;
+    flippedCanvas.height = fabricCanvas.height;
+    const ctx = flippedCanvas.getContext("2d");
+
+    if (ctx) {
+      ctx.translate(fabricCanvas.width, 0); // move to right edge
+      ctx.scale(-1, 1); // flip horizontally
+      ctx.drawImage(fabricCanvas, 0, 0); // draw the original
+    }
+
+    // Use the flipped canvas as texture
+    const tex = new THREE.CanvasTexture(flippedCanvas);
+
+    tex.wrapS = THREE.ClampToEdgeWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+    tex.flipY = false;
+
+    // Adjust scaling/alignment
+    tex.center.set(0.5, 0.5);
+    tex.repeat.set(0.5, 0.5);
+    tex.offset.set(0.25, 0.0);
+
+    tex.anisotropy = 8;
+    tex.needsUpdate = true;
+
     scene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         const mat = mesh.material as THREE.MeshStandardMaterial;
 
-        const tex = new THREE.CanvasTexture(fabricCanvas);
-        tex.wrapS = THREE.RepeatWrapping;
-        tex.wrapT = THREE.RepeatWrapping;
-        tex.center.set(0.5, 0.5);
-        tex.rotation = 0;
-        tex.repeat.set(1, 1);
-        tex.offset.set(0, 0);
-
-        tex.needsUpdate = true;
         mat.map = tex;
         mat.needsUpdate = true;
       }
