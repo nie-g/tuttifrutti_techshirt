@@ -10,6 +10,7 @@ import DynamicSidebar from "../components/Sidebar";
 import StatusBadge from "../components/StatusBadge";
 import { FileText, ArrowUpDown, Search } from "lucide-react";
 import type { Id } from "../../convex/_generated/dataModel";
+import UserDesignModal from "../components/UserDesignModal";
 
 interface ConvexUser {
   _id: Id<"users">;
@@ -48,13 +49,34 @@ const UserDesigns: React.FC = () => {
   const navigate = useNavigate();
   const { user: clerkUser } = useUser();
   const [user, setUser] = useState<ConvexUser | null>(null);
-  const [activeTab, setActiveTab] = useState<"all" | "in_progress" | "finished" | "billed" | "approved">("all");
+  const [activeTab, setActiveTab] = useState<
+    "all" | "in_progress" | "finished" | "billed" | "approved"
+  >("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: "asc" | "desc";
+  }>({
     key: "created_at",
     direction: "desc",
   });
   const [isLoading, setIsLoading] = useState(true);
+
+  // Modal state
+  const [selectedRequestId, setSelectedRequestId] = useState<
+    Id<"design_requests"> | null
+  >(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const openModal = (design: DesignRecord) => {
+    setSelectedRequestId(design.request_id);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setSelectedRequestId(null);
+    setIsModalOpen(false);
+  };
 
   // Get current Convex user
   const currentUser = useQuery(
@@ -79,7 +101,8 @@ const UserDesigns: React.FC = () => {
 
   // Fetch all related design requests
   const requestIds = clientDesigns?.map((d) => d.request_id) ?? [];
-  const designRequests = useQuery(api.design_requests.getRequestsByIds, { ids: requestIds }) ?? [];
+  const designRequests =
+    useQuery(api.design_requests.getRequestsByIds, { ids: requestIds }) ?? [];
 
   // Build a lookup map of request_id → request data
   const requestsMap: Record<string, DesignRequest> = {};
@@ -88,12 +111,14 @@ const UserDesigns: React.FC = () => {
   });
 
   useEffect(() => {
-    if (clientDesigns !== undefined && designRequests.length >= 0) setIsLoading(false);
+    if (clientDesigns !== undefined && designRequests.length >= 0)
+      setIsLoading(false);
   }, [clientDesigns, designRequests]);
 
   const handleSort = (key: string) => {
     let direction: "asc" | "desc" = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") direction = "desc";
+    if (sortConfig.key === key && sortConfig.direction === "asc")
+      direction = "desc";
     setSortConfig({ key, direction });
   };
 
@@ -102,15 +127,22 @@ const UserDesigns: React.FC = () => {
       if (activeTab !== "all" && d.status !== activeTab) return false;
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
-        const requestName = requestsMap[d.request_id]?.request_title.toLowerCase() ?? "";
+        const requestName =
+          requestsMap[d.request_id]?.request_title.toLowerCase() ?? "";
         return d.status.toLowerCase().includes(term) || requestName.includes(term);
       }
       return true;
     })
     .sort((a, b) => {
       const { key, direction } = sortConfig;
-      let aVal: any = key === "created_at" ? a.created_at ?? a._creationTime ?? 0 : (a as any)[key] ?? "";
-      let bVal: any = key === "created_at" ? b.created_at ?? b._creationTime ?? 0 : (b as any)[key] ?? "";
+      let aVal: any =
+        key === "created_at"
+          ? a.created_at ?? a._creationTime ?? 0
+          : (a as any)[key] ?? "";
+      let bVal: any =
+        key === "created_at"
+          ? b.created_at ?? b._creationTime ?? 0
+          : (b as any)[key] ?? "";
       if (aVal < bVal) return direction === "asc" ? -1 : 1;
       if (aVal > bVal) return direction === "asc" ? 1 : -1;
       return 0;
@@ -158,19 +190,23 @@ const UserDesigns: React.FC = () => {
           {/* Filter Tabs */}
           <div className="flex overflow-x-auto pb-2 hide-scrollbar">
             <div className="flex space-x-2 min-w-max">
-              {["all", "in_progress", "finished", "billed", "approved"].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab as typeof activeTab)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${
-                    activeTab === tab
-                      ? "bg-teal-100 text-teal-800"
-                      : "bg-white text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  {tab.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                </button>
-              ))}
+              {["all", "in_progress", "finished", "billed", "approved"].map(
+                (tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab as typeof activeTab)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${
+                      activeTab === tab
+                        ? "bg-teal-100 text-teal-800"
+                        : "bg-white text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    {tab
+                      .replace("_", " ")
+                      .replace(/\b\w/g, (l) => l.toUpperCase())}
+                  </button>
+                )
+              )}
             </div>
           </div>
 
@@ -191,26 +227,37 @@ const UserDesigns: React.FC = () => {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        {["request_title", "status", "created_at", "actions"].map((key) => (
-                          <th
-                            key={key}
-                            scope="col"
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                            onClick={key !== "actions" ? () => handleSort(key) : undefined}
-                          >
-                            <div className="flex items-center">
-                              {key.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                              {sortConfig.key === key && <ArrowUpDown className="ml-1 h-4 w-4" />}
-                            </div>
-                          </th>
-                        ))}
+                        {["request_title", "status", "created_at", "actions"].map(
+                          (key) => (
+                            <th
+                              key={key}
+                              scope="col"
+                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                              onClick={
+                                key !== "actions"
+                                  ? () => handleSort(key)
+                                  : undefined
+                              }
+                            >
+                              <div className="flex items-center">
+                                {key
+                                  .replace("_", " ")
+                                  .replace(/\b\w/g, (l) => l.toUpperCase())}
+                                {sortConfig.key === key && (
+                                  <ArrowUpDown className="ml-1 h-4 w-4" />
+                                )}
+                              </div>
+                            </th>
+                          )
+                        )}
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredDesigns.map((d) => (
                         <tr key={d._id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {requestsMap[d.request_id]?.request_title ?? "No Name"}
+                            {requestsMap[d.request_id]?.request_title ??
+                              "No Name"}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <StatusBadge status={d.status} />
@@ -220,7 +267,7 @@ const UserDesigns: React.FC = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <button
-                              onClick={() => navigate(`/designs/${d._id}`)}
+                              onClick={() => openModal(d)}
                               className="px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-teal-600 transition"
                             >
                               View Details
@@ -246,10 +293,13 @@ const UserDesigns: React.FC = () => {
                         <StatusBadge status={d.status} />
                       </div>
                       <div className="space-y-1 text-sm text-gray-900">
-                        <p>Date: {formatTimeAgo(d.created_at ?? d._creationTime)}</p>
+                        <p>
+                          Date:{" "}
+                          {formatTimeAgo(d.created_at ?? d._creationTime)}
+                        </p>
                       </div>
                       <button
-                        onClick={() => navigate(`/designs/${d._id}`)}
+                        onClick={() => openModal(d)}
                         className="mt-2 px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-teal-600 transition w-full"
                       >
                         View Details
@@ -262,6 +312,11 @@ const UserDesigns: React.FC = () => {
           </div>
         </main>
       </div>
+
+      {/* Modal */}
+      {selectedRequestId && isModalOpen && (
+        <UserDesignModal requestId={selectedRequestId} onClose={closeModal} />
+      )}
     </motion.div>
   );
 };

@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { useGLTF } from "@react-three/drei";
+import ThreeScreenshotHelper from "./ThreeScreenshotHelper"; // make sure path is correct
 
 interface Props {
   fabricCanvas?: HTMLCanvasElement;
   canvasModifiedKey: number;
   shirtType?: string;
+  onScreenshotReady?: (fn: () => string) => void; // optional callback
 }
 
 const shirtModels: Record<string, string> = {
@@ -30,6 +32,7 @@ const FabricTexturedTShirt: React.FC<Props> = ({
   fabricCanvas,
   canvasModifiedKey,
   shirtType = "tshirt",
+  onScreenshotReady,
 }) => {
   const modelPath = shirtModels[shirtType] || shirtModels["tshirt"];
   const { scene: loadedScene } = useGLTF(modelPath);
@@ -58,7 +61,7 @@ const FabricTexturedTShirt: React.FC<Props> = ({
     tex.wrapT = THREE.ClampToEdgeWrapping;
     tex.flipY = false;
 
-    // Adjust scaling/alignment
+    // ⚡ Keep existing scaling/alignment untouched
     tex.center.set(0.5, 0.5);
     tex.repeat.set(0.5, 0.5);
     tex.offset.set(0.25, 0.0);
@@ -80,7 +83,13 @@ const FabricTexturedTShirt: React.FC<Props> = ({
   const rotation = shirtRotations[shirtType] || [0, 0, 0];
   const position = shirtPositions[shirtType] || [0, -1.2, 0];
 
-  return <primitive object={scene} rotation={rotation} position={position} />;
+  return (
+    <>
+      <primitive object={scene} rotation={rotation} position={position} />
+      {/* Screenshot helper included */}
+      <ThreeScreenshotHelper onReady={onScreenshotReady ?? (() => {})} />
+    </>
+  );
 };
 
 export default FabricTexturedTShirt;

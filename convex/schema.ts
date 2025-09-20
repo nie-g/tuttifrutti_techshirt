@@ -147,23 +147,22 @@ export default defineSchema({
 
   design_preview: defineTable({
     design_id: v.id("design"),
-    size_id: v.id("shirt_sizes"),
-    preview_image_url: v.string(),
+    preview_image: v.id("_storage"), // ✅ now stores Convex storage file ref
     created_at: v.optional(v.number()),
-  }),
+    }).index("by_design", ["design_id"]),
 
   // fabric_canvases: canvas_json is optional so canvases can start empty
  // fabric_canvases: simplified (no categories)
-fabric_canvases: defineTable({
-  design_id: v.id("design"),
-  canvas_json: v.optional(v.string()),
-  thumbnail: v.optional(v.string()),
-  version: v.optional(v.string()),
-  images: v.optional(v.array(v.id("_storage"))), // 🔹 store uploaded image refs
-  created_at: v.number(),
-  updated_at: v.number(),
-})
-  .index("by_design", ["design_id"]),
+  fabric_canvases: defineTable({
+    design_id: v.id("design"),
+    canvas_json: v.optional(v.string()),
+    thumbnail: v.optional(v.string()),
+    version: v.optional(v.string()),
+    images: v.optional(v.array(v.id("_storage"))), // 🔹 store uploaded image refs
+    created_at: v.number(),
+    updated_at: v.number(),
+  })
+    .index("by_design", ["design_id"]),
 
 
   inventory_categories: defineTable({
@@ -184,4 +183,12 @@ fabric_canvases: defineTable({
   })
     .index("by_name", ["name"])
     .index("by_category", ["category_id"]),
+  comments: defineTable({
+    preview_id: v.id("design_preview"), // 🔗 link to design_preview instead of design
+    user_id: v.id("users"),             // who wrote the comment
+    comment: v.string(),
+    created_at: v.number(),
+  })
+    .index("by_preview", ["preview_id"])
+    .index("by_user", ["user_id"]),
 });

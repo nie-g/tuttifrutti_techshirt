@@ -1,10 +1,11 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import FabricCanvas from "../components/FabricCanvas";
 import { Canvas as ThreeCanvas } from "@react-three/fiber";
 import { PresentationControls, Stage } from "@react-three/drei";
 import FabricTexturedTShirt from "../components/FabricTexturedShirt";
+import ThreeScreenshotHelper from "../components/ThreeScreenshotHelper";
 import { ArrowLeft } from "lucide-react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useQuery } from "convex/react";
@@ -40,6 +41,8 @@ const DesignerCanvasPage: React.FC = () => {
     setCanvasModifiedKey((prev) => prev + 1);
   }, []);
 
+  const screenshotRef = useRef<() => string>(() => "");
+
   // Fetch the single canvas for this design
   const canvasDoc = useQuery(
     api.fabric_canvases.getByDesign,
@@ -61,29 +64,10 @@ const DesignerCanvasPage: React.FC = () => {
         initialCanvasJson={canvasDoc?.canvas_json ?? undefined}
         onReady={setFabricCanvas}
         onModified={handleCanvasModified}
+        getThreeScreenshot={() => screenshotRef.current()}
       />
     );
   }
-
-  // Convert JSON → <canvas> for preview
-  function jsonToCanvasElement(json?: string): HTMLCanvasElement | undefined {
-    if (!json) return undefined;
-    const el = document.createElement("canvas");
-    el.width = 500;
-    el.height = 500;
-    const f = new fabric.Canvas(el, { backgroundColor: "#f5f5f5" });
-    try {
-      f.loadFromJSON(JSON.parse(json), () => f.renderAll());
-    } catch {
-      f.renderAll();
-    }
-    return el;
-  }
-
-  const partCanvases = React.useMemo(() => {
-    if (!canvasDoc) return {};
-    return { full: jsonToCanvasElement(canvasDoc.canvas_json) };
-  }, [canvasDoc]);
 
   return (
     <motion.div
@@ -123,20 +107,21 @@ const DesignerCanvasPage: React.FC = () => {
       >
         <ThreeCanvas
           camera={{ position: [0, 1, 2.5], fov: 45 }}
-          className="w-full h-full rounded-lg"
+          className="r3f-canvas w-full h-full rounded-lg"
         >
           <color attach="background" args={["#F8F9FA"]} />
           <PresentationControls>
             <Stage>
-              // Removed partCanvases + currentCategory
               <FabricTexturedTShirt
                 fabricCanvas={fabricCanvas}
                 canvasModifiedKey={canvasModifiedKey}
                 shirtType={request?.tshirt_type || "tshirt"}
               />
-
             </Stage>
           </PresentationControls>
+
+          {/* Screenshot helper inside Canvas */}
+          <ThreeScreenshotHelper onReady={(fn) => (screenshotRef.current = fn)} />
         </ThreeCanvas>
       </motion.div>
     </motion.div>
