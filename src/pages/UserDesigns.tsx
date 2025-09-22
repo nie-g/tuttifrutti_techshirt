@@ -62,10 +62,8 @@ const UserDesigns: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  // Modal state
-  const [selectedRequestId, setSelectedRequestId] = useState<
-    Id<"design_requests"> | null
-  >(null);
+  const [selectedRequestId, setSelectedRequestId] =
+    useState<Id<"design_requests"> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const openModal = (design: DesignRecord) => {
@@ -78,7 +76,6 @@ const UserDesigns: React.FC = () => {
     setIsModalOpen(false);
   };
 
-  // Get current Convex user
   const currentUser = useQuery(
     api.userQueries.getUserByClerkId,
     clerkUser ? { clerkId: clerkUser.id } : "skip"
@@ -93,18 +90,15 @@ const UserDesigns: React.FC = () => {
     setUser(currentUser);
   }, [currentUser, navigate]);
 
-  // Fetch designs for the logged-in client
   const clientDesigns = useQuery(
     api.designs.getDesignsByClient,
     user ? { clientId: user._id } : "skip"
   ) as DesignRecord[] | undefined;
 
-  // Fetch all related design requests
   const requestIds = clientDesigns?.map((d) => d.request_id) ?? [];
   const designRequests =
     useQuery(api.design_requests.getRequestsByIds, { ids: requestIds }) ?? [];
 
-  // Build a lookup map of request_id → request data
   const requestsMap: Record<string, DesignRequest> = {};
   designRequests.forEach((r: DesignRequest | null) => {
     if (r) requestsMap[r._id] = r;
@@ -165,13 +159,18 @@ const UserDesigns: React.FC = () => {
       transition={{ duration: 0.5 }}
       className="flex min-h-screen bg-gradient-to-br from-white to-teal-50"
     >
+      {/* Sidebar always visible */}
       <DynamicSidebar />
-      <div className="flex-1 flex flex-col">
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0">
         <AdminNavbar />
-        <main className="p-6 md:p-8 flex flex-col gap-6 overflow-auto">
+        <main className="p-4 sm:p-6 md:p-8 flex flex-col gap-6 w-full max-w-7xl mx-auto overflow-x-hidden">
           {/* Header */}
-          <div className="p-6 bg-white rounded-2xl shadow-md">
-            <h1 className="text-2xl font-bold text-gray-900">My Designs</h1>
+          <div className="p-6 bg-white rounded-2xl shadow-md w-full">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+              My Designs
+            </h1>
             <p className="text-gray-600">View and manage your designs</p>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-6 gap-4">
               <div className="relative w-full sm:w-auto">
@@ -211,7 +210,7 @@ const UserDesigns: React.FC = () => {
           </div>
 
           {/* Designs Table */}
-          <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-md overflow-hidden w-full">
             {filteredDesigns.length === 0 ? (
               <div className="p-8 text-center">
                 <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -224,7 +223,7 @@ const UserDesigns: React.FC = () => {
               <>
                 {/* Desktop Table */}
                 <div className="hidden md:block overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
+                  <table className="min-w-full table-auto divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
                         {["request_title", "status", "created_at", "actions"].map(
@@ -234,9 +233,7 @@ const UserDesigns: React.FC = () => {
                               scope="col"
                               className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                               onClick={
-                                key !== "actions"
-                                  ? () => handleSort(key)
-                                  : undefined
+                                key !== "actions" ? () => handleSort(key) : undefined
                               }
                             >
                               <div className="flex items-center">
@@ -255,9 +252,8 @@ const UserDesigns: React.FC = () => {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredDesigns.map((d) => (
                         <tr key={d._id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {requestsMap[d.request_id]?.request_title ??
-                              "No Name"}
+                          <td className="px-6 py-4 break-words">
+                            {requestsMap[d.request_id]?.request_title ?? "No Name"}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <StatusBadge status={d.status} />
@@ -265,12 +261,18 @@ const UserDesigns: React.FC = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {formatTimeAgo(d.created_at ?? d._creationTime)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap flex flex-wrap gap-2">
+                            <button
+                              onClick={() => navigate(`/client/seeDesign/${d._id}`)}
+                              className="px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-indigo-600 transition"
+                            >
+                              See Design
+                            </button>
                             <button
                               onClick={() => openModal(d)}
-                              className="px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-teal-600 transition"
+                              className="px-3 py-1 text-sm bg-cyan-600 text-white rounded hover:bg-teal-600 transition"
                             >
-                              View Details
+                              See Progress
                             </button>
                           </td>
                         </tr>
@@ -280,7 +282,7 @@ const UserDesigns: React.FC = () => {
                 </div>
 
                 {/* Mobile Cards */}
-                <div className="md:hidden grid grid-cols-1 gap-4 px-4 py-4">
+                <div className="md:hidden grid grid-cols-1 gap-4 px-2 sm:px-4 py-4">
                   {filteredDesigns.map((d) => (
                     <div
                       key={d._id}
@@ -293,17 +295,22 @@ const UserDesigns: React.FC = () => {
                         <StatusBadge status={d.status} />
                       </div>
                       <div className="space-y-1 text-sm text-gray-900">
-                        <p>
-                          Date:{" "}
-                          {formatTimeAgo(d.created_at ?? d._creationTime)}
-                        </p>
+                        <p>Date: {formatTimeAgo(d.created_at ?? d._creationTime)}</p>
                       </div>
-                      <button
-                        onClick={() => openModal(d)}
-                        className="mt-2 px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-teal-600 transition w-full"
-                      >
-                        View Details
-                      </button>
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() => openModal(d)}
+                          className="flex-1 px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-teal-600 transition"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          onClick={() => navigate(`/client/seeDesign/${d._id}`)}
+                          className="flex-1 px-3 py-1 text-sm bg-indigo-500 text-white rounded hover:bg-indigo-600 transition"
+                        >
+                          See Design
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -313,7 +320,6 @@ const UserDesigns: React.FC = () => {
         </main>
       </div>
 
-      {/* Modal */}
       {selectedRequestId && isModalOpen && (
         <UserDesignModal requestId={selectedRequestId} onClose={closeModal} />
       )}

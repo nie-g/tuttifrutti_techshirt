@@ -17,6 +17,8 @@ import InventoryPage from './pages/Inventory';
 import Users from './pages/Users';
 import DesignerCanvasPage from './pages/DesignCanvasPage';
 import UserDesigns from './pages/UserDesigns';
+import SeeDesign from './pages/SeeDesign';
+
 
 
 
@@ -43,6 +45,7 @@ function App() {
         <Route path="/admin/users" element={<Users />} />
         <Route path="/designer/canvas/:requestId" element={<DesignerCanvasPage />} />
         <Route path="/client/designs" element={<UserDesigns />} />
+        <Route path="/client/seeDesign/:designId" element={<SeeDesign />} />
       </Routes>
     </BrowserRouter>
   );

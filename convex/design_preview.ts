@@ -53,4 +53,27 @@ export const getByDesign = query({
       .first();
   },
 });
+export const getLatestByDesign = query({
+  args: { designId: v.id("design") },
+  handler: async (ctx, args) => {
+    const previews = await ctx.db
+      .query("design_preview")
+      .withIndex("by_design", (q) => q.eq("design_id", args.designId))
+      .order("desc") // newest first
+      .take(1);
+
+    return previews[0] || null;
+  },
+});
+
+export const listByDesign = query({
+  args: { designId: v.id("design") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("design_preview")
+      .withIndex("by_design", (q) => q.eq("design_id", args.designId))
+      .order("desc") // newest first
+      .collect();
+  },
+});
 

@@ -39,3 +39,10 @@ export const getDesignByRequestId = query({
       .first();
   },
 });
+
+export const getById = query({
+  args: { designId: v.id("design") },
+  handler: async (ctx, { designId }) => {
+    return await ctx.db.get(designId);
+  },
+});
