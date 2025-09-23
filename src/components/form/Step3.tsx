@@ -20,6 +20,10 @@ interface Step3Props {
   setReferenceImages: (images: any[]) => void;
   newPaletteColors: string[];
   setNewPaletteColors: (colors: string[]) => void;
+  textileId: string | null;
+  setTextileId: (id: string | null) => void;
+  preferredDesignerId: string | null;
+  setPreferredDesignerId: (id: string | null) => void;
 }
 
 const Step3: React.FC<Step3Props> = ({
@@ -38,6 +42,10 @@ const Step3: React.FC<Step3Props> = ({
   setReferenceImages,
   newPaletteColors,
   setNewPaletteColors,
+  textileId,
+  setTextileId,
+  preferredDesignerId,
+  setPreferredDesignerId,
 }) => {
   const [isUploadingReference, setIsUploadingReference] = useState(false);
   const [showNewPaletteForm, setShowNewPaletteForm] = useState(false);
@@ -48,57 +56,106 @@ const Step3: React.FC<Step3Props> = ({
 
   // ✅ Mapping UI → schema
   const typeMapping: Record<string, string> = {
-    "Round Neck tshirt": "tshirt",
+    "Round Neck": "tshirt",
     "Polo Shirt": "polo",
+    "V-Neck": "tshirt",
     "Jersey": "jersey",
     "Long Sleeves": "long sleeves",
   };
 
-  // ✅ Fetch all shirt sizes from Convex
+  // ✅ Fetch sizes, textiles, designers
   const shirtSizes = useQuery(api.shirt_sizes.getAll);
+  const textiles = useQuery(api.inventory.getTextileItems);
+  const designers = useQuery(api.userQueries.listDesigners);
 
-  // ✅ Debug logs
-  useEffect(() => {
-    console.log("Fetched shirt sizes:", shirtSizes);
-    console.log("Current shirtType:", shirtType);
-  }, [shirtSizes, shirtType]);
-
-  // ✅ Sync selected size with DB results
+  // ✅ Sync selected size
   useEffect(() => {
     if (shirtSizes && sizeId) {
       const selectedSize = shirtSizes.find(
-        (s: any) =>
-          (s._id ? s._id.toString() : s.id?.toString()) === sizeId
+        (s: any) => s._id.toString() === sizeId
       );
-      if (selectedSize) {
-        setSize(selectedSize);
-      }
+      if (selectedSize) setSize(selectedSize);
     }
   }, [shirtSizes, sizeId, setSize]);
 
-  const handleReferenceImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+  async function compressImageFile(
+  file: File,
+  maxWidth = 800,
+  maxHeight = 800,
+  quality = 0.7
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
 
-    setIsUploadingReference(true);
-    const newImages = [...referenceImages];
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
 
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        newImages.push({
-          id: Date.now() + Math.random().toString(36).substring(2, 9),
-          image: event.target?.result,
-          description: "",
-          file: file,
-        });
-        setReferenceImages(newImages);
-        setIsUploadingReference(false);
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let { width, height } = img;
+
+        // 🔹 Maintain aspect ratio
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas context not available"));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
       };
-      reader.readAsDataURL(file);
-    });
-  };
 
+      img.onerror = (err) => reject(err);
+    };
+
+    reader.onerror = (err) => reject(err);
+  });
+}
+  // ✅ Reference Images
+  const handleReferenceImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const files = Array.from(e.target.files || []);
+  if (files.length === 0) return;
+
+  setIsUploadingReference(true);
+  const newImages = [...referenceImages];
+
+  files.forEach(async (file) => {
+    try {
+      // 🔹 compress before storing
+      const compressedDataUrl = await compressImageFile(file, 800, 800, 0.7);
+
+      newImages.push({
+        id: Date.now() + Math.random().toString(36).substring(2, 9),
+        image: compressedDataUrl, // ✅ compressed base64, < 1 MiB
+        description: "",
+        file,
+      });
+
+      setReferenceImages([...newImages]);
+    } catch (err) {
+      console.error("Compression failed", err);
+    } finally {
+      setIsUploadingReference(false);
+    }
+  });
+};
   const removeReferenceImage = (id: string) => {
     setReferenceImages(referenceImages.filter((img) => img.id !== id));
   };
@@ -111,6 +168,7 @@ const Step3: React.FC<Step3Props> = ({
     );
   };
 
+  // ✅ Palettes
   const handlePaletteSelect = (palette: any) => {
     setNewPaletteColors(palette.colors.slice(0, 5));
     setPaletteName(palette.title + " (Copy)");
@@ -126,11 +184,15 @@ const Step3: React.FC<Step3Props> = ({
 
   return (
     <div className="h-[323px] overflow-y-auto px-4 py-6 bg-white rounded-lg shadow-md space-y-6">
-      <h3 className="mb-4 text-2xl font-semibold text-gray-800">Colors & Details</h3>
+      <h3 className="mb-4 text-2xl font-semibold text-gray-800">
+        Colors & Details
+      </h3>
 
       {/* Project Name */}
       <div className="space-y-2">
-        <label className="block text-sm font-semibold text-gray-700">Project Name</label>
+        <label className="block text-sm font-semibold text-gray-700">
+          Project Name
+        </label>
         <input
           type="text"
           value={projectName}
@@ -160,7 +222,9 @@ const Step3: React.FC<Step3Props> = ({
       {/* Shirt Size + Gender */}
       <div className="grid grid-cols-2 gap-4 mt-6">
         <div>
-          <label className="block mb-2 text-sm font-semibold text-gray-700">Shirt Size</label>
+          <label className="block mb-2 text-sm font-semibold text-gray-700">
+            Shirt Size
+          </label>
           {shirtSizes === undefined ? (
             <div className="flex items-center justify-center w-full p-3 bg-gray-100 border border-gray-300 rounded-md">
               <div className="w-5 h-5 mr-2 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
@@ -176,12 +240,9 @@ const Step3: React.FC<Step3Props> = ({
                 const selectedId = e.target.value || null;
                 setSizeId(selectedId);
                 const selectedSize = shirtSizes.find(
-                  (s: any) =>
-                    (s._id ? s._id.toString() : s.id?.toString()) === selectedId
+                  (s: any) => s._id.toString() === selectedId
                 );
-                if (selectedSize) {
-                  setSize(selectedSize);
-                }
+                if (selectedSize) setSize(selectedSize);
               }}
               className="w-full p-3 text-gray-700 bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
             >
@@ -191,40 +252,24 @@ const Step3: React.FC<Step3Props> = ({
                   if (!shirtType) return true;
                   const normalizedType =
                     typeMapping[shirtType] || shirtType.toLowerCase();
-                  const match = s.type?.toLowerCase() === normalizedType;
-                  console.log("Filtering:", {
-                    dbType: s.type,
-                    currentShirtType: shirtType,
-                    normalizedType,
-                    match,
-                  });
-                  return match;
+                  return s.type?.toLowerCase() === normalizedType;
                 })
                 .map((shirtSize: any) => (
-                  <option
-                    key={shirtSize._id ? shirtSize._id.toString() : shirtSize.id}
-                    value={shirtSize._id ? shirtSize._id.toString() : shirtSize.id}
-                  >
+                  <option key={shirtSize._id.toString()} value={shirtSize._id.toString()}>
                     {shirtSize.size_label || "Unnamed"} –{" "}
                     {shirtSize.type || "Unknown"} ({shirtSize.category || "No category"})
                   </option>
                 ))}
             </select>
           )}
-          {size && (
-            <div className="mt-2 text-xs text-gray-500">
-              <p>Width: {size.w}cm, Height: {size.h}cm</p>
-              {size.sleeves_w && size.sleeves_h && (
-                <p>Sleeves: {size.sleeves_w}cm x {size.sleeves_h}cm</p>
-              )}
-            </div>
-          )}
         </div>
 
         <div>
-          <label className="block mb-2 text-sm font-semibold text-gray-700">Gender</label>
+          <label className="block mb-2 text-sm font-semibold text-gray-700">
+            Gender
+          </label>
           <select
-            aria-label="Select gender"
+            aria-label="Select a gender"
             value={gender}
             onChange={(e) => setGender(e.target.value)}
             className="w-full p-3 text-gray-700 bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
@@ -236,9 +281,65 @@ const Step3: React.FC<Step3Props> = ({
         </div>
       </div>
 
+      {/* Fabric/Textile Selection - Always visible */}
+      <div>
+        <label className="block mb-2 text-sm font-semibold text-gray-700">
+          Fabric / Textile
+        </label>
+        <select
+          aria-label="Select a fabric"
+          value={textileId || ""}
+          onChange={(e) => setTextileId(e.target.value || null)}
+          className="w-full p-3 text-gray-700 bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+        >
+          <option value="">Select a fabric</option>
+          {textiles?.map((fabric: any) => (
+            <option key={fabric._id.toString()} value={fabric._id.toString()}>
+              {fabric.name} ({fabric.category || "Uncategorized"})
+            </option>
+          ))}
+        </select>
+        {textiles === undefined && (
+          <p className="text-sm text-gray-500 mt-1">Loading fabrics...</p>
+        )}
+        {textiles?.length === 0 && (
+          <p className="text-sm text-gray-500 mt-1">No fabrics found</p>
+        )}
+      </div>
+
+      {/* Preferred Designer */}
+      <div>
+        <label className="block mb-2 text-sm font-semibold text-gray-700">
+          Preferred Designer (Optional)
+        </label>
+        <select
+          aria-label="Select a preferred designer"
+          value={preferredDesignerId || ""}
+          onChange={(e) => setPreferredDesignerId(e.target.value || null)}
+          className="w-full p-3 text-gray-700 bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+        >
+          <option value="">No preferred designer</option>
+          {designers?.map((designer: any) => (
+            <option key={designer._id.toString()} value={designer._id.toString()}>
+              {designer.firstName && designer.lastName
+                ? `${designer.firstName} ${designer.lastName}`
+                : designer.firstName || designer.lastName || "Unnamed"}
+            </option>
+          ))}
+        </select>
+        {designers === undefined && (
+          <p className="text-sm text-gray-500 mt-1">Loading designers...</p>
+        )}
+        {designers?.length === 0 && (
+          <p className="text-sm text-gray-500 mt-1">No designers available</p>
+        )}
+      </div>
+
       {/* Project Description */}
       <div>
-        <label className="block mb-2 text-sm font-semibold text-gray-700">Project Description</label>
+        <label className="block mb-2 text-sm font-semibold text-gray-700">
+          Project Description
+        </label>
         <textarea
           rows={4}
           value={description}
@@ -251,7 +352,9 @@ const Step3: React.FC<Step3Props> = ({
       {/* Reference Images */}
       <div className="mt-6">
         <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-semibold text-gray-700">Reference Images (Optional)</label>
+          <label className="text-sm font-semibold text-gray-700">
+            Reference Images (Optional)
+          </label>
           <label
             htmlFor="reference-image-upload"
             className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-teal-600 bg-teal-50 rounded-md cursor-pointer hover:bg-teal-100 transition-colors"
@@ -279,7 +382,10 @@ const Step3: React.FC<Step3Props> = ({
         {referenceImages.length > 0 ? (
           <div className="space-y-4">
             {referenceImages.map((ref) => (
-              <div key={ref.id} className="p-3 bg-gray-50 border border-gray-200 rounded-md">
+              <div
+                key={ref.id}
+                className="p-3 bg-gray-50 border border-gray-200 rounded-md"
+              >
                 <div className="flex items-start gap-3">
                   <div className="relative w-20 h-20 overflow-hidden bg-white border border-gray-300 rounded-md shrink-0">
                     <img
@@ -303,8 +409,10 @@ const Step3: React.FC<Step3Props> = ({
                     </div>
                     <textarea
                       value={ref.description}
-                      onChange={(e) => updateReferenceDescription(ref.id, e.target.value)}
-                      placeholder="Add a description for this reference image (optional)"
+                      onChange={(e) =>
+                        updateReferenceDescription(ref.id, e.target.value)
+                      }
+                      placeholder="Add a description (optional)"
                       className="w-full p-2 mt-2 text-sm text-gray-700 placeholder-gray-400 bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                       rows={2}
                     />

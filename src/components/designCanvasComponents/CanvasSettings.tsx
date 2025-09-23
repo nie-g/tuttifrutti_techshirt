@@ -261,20 +261,20 @@ export default function CanvasSettings({ canvas }: CanvasSettingsProps) {
     <div className="p-4 bg-white rounded shadow w-64 space-y-4">
       {/* === Toolbar === */}
       <div className="flex flex-wrap gap-2">
-        <button onClick={handleText} className={`p-2 rounded ${activeTool==="text"?"bg-blue-400 text-white":"bg-gray-200 hover:bg-gray-300"}`} title="Add Text"><Type size={18}/></button>
-        <button onClick={() => canvas && addRectangle(canvas)} className="p-2 bg-gray-200 rounded hover:bg-gray-300" title="Add Rectangle"><Square size={18}/></button>
-        <button onClick={() => canvas && addCircle(canvas)} className="p-2 bg-gray-200 rounded hover:bg-gray-300" title="Add Circle"><CircleIcon size={18}/></button>
-        <button onClick={() => canvas && addLine(canvas)} className="p-2 bg-gray-200 rounded hover:bg-gray-300" title="Add Line"><Minus size={18}/></button>
+        <button onClick={handleText} className={`p-2 rounded text-teal-900 ${activeTool==="text"?"bg-teal-400 text-white":"bg-gray-200 hover:bg-gray-300"}`} title="Add Text"><Type size={18} strokeWidth={2.3}  /></button>
+        <button onClick={() => canvas && addRectangle(canvas)} className="p-2 text-teal-900 bg-gray-200 rounded hover:bg-gray-300" title="Add Rectangle"><Square size={18} strokeWidth={2.3}/></button>
+        <button onClick={() => canvas && addCircle(canvas)} className="p-2 text-teal-900 bg-gray-200 rounded hover:bg-gray-300" title="Add Circle"><CircleIcon size={18} strokeWidth={2.3}/></button>
+        <button onClick={() => canvas && addLine(canvas)} className="p-2 text-teal-900 bg-gray-200 rounded hover:bg-gray-300" title="Add Line"><Minus size={18} strokeWidth={2.3}/></button>
 
         {/* brush/eraser/freeform/image/select */}
-        <button onClick={handleBrush} className={`p-2 rounded ${activeTool==="brush"?"bg-blue-400 text-white":"bg-gray-200 hover:bg-gray-300"}`} title="Brush"><Brush size={18}/></button>
-        <button onClick={handleEraser} className={`p-2 rounded ${activeTool==="eraser"?"bg-blue-400 text-white":"bg-gray-200 hover:bg-gray-300"}`} title="Eraser"><Eraser size={18}/></button>
-        <button onClick={() => canvas && addFreeform(canvas)} className="p-2 bg-gray-200 rounded hover:bg-gray-300" title="Freeform"><Pencil size={18}/></button>
-        <button onClick={() => canvas && addImage(canvas)} className="p-2 bg-gray-200 rounded hover:bg-gray-300" title="Add Image"><ImageIcon size={18}/></button>
+        <button onClick={handleBrush} className={`p-2 rounded text-teal-900 ${activeTool==="brush"?"bg-teal-400 text-white":"bg-gray-200 hover:bg-gray-300"}`} title="Brush"><Brush size={18} strokeWidth={2.3}/></button>
+        <button onClick={handleEraser} className={`p-2 rounded text-teal-900 ${activeTool==="eraser"?"bg-teal-400 text-white":"bg-gray-200 hover:bg-gray-300"}`} title="Eraser"><Eraser size={18} strokeWidth={2.3}/></button>
+        <button onClick={() => canvas && addFreeform(canvas)} className="p-2  text-teal-900 bg-gray-200 rounded hover:bg-gray-300" title="Freeform"><Pencil size={18} strokeWidth={2.3}/></button>
+        <button onClick={() => canvas && addImage(canvas)} className="p-2 text-teal-900 bg-gray-200 rounded hover:bg-gray-300" title="Add Image"><ImageIcon size={18} strokeWidth={2.3}/></button>
 
         {/* bucket + eyedropper */}
-        <button onClick={handleBucket} className={`p-2 rounded ${activeTool==="bucket"?"bg-blue-400 text-white":"bg-gray-200 hover:bg-gray-300"}`} title="Bucket"><PaintBucket size={18}/></button>
-        <button onClick={handleEyedropper} className={`p-2 rounded ${activeTool==="eyedropper"?"bg-blue-400 text-white":"bg-gray-200 hover:bg-gray-300"}`} title="Eyedropper"><Pipette size={18}/></button>
+        <button onClick={handleBucket} className={`p-2 rounded text-teal-900 ${activeTool==="bucket"?"bg-teal-400 text-white":"bg-gray-200 hover:bg-gray-300"}`} title="Bucket"><PaintBucket size={18} strokeWidth={2.3}/></button>
+        <button onClick={handleEyedropper} className={`p-2 rounded text-teal-900 ${activeTool==="eyedropper"?"bg-teal-400 text-white":"bg-gray-200 hover:bg-gray-300"}`} title="Eyedropper"><Pipette size={18} strokeWidth={2.3}/></button>
 
         {/* selection */}
         <button
@@ -283,10 +283,10 @@ export default function CanvasSettings({ canvas }: CanvasSettingsProps) {
             disableDrawingMode(canvas);
             setActiveTool(null);
           }}
-          className={`p-2 rounded ${!activeTool?"bg-blue-400 text-white":"bg-gray-200 hover:bg-gray-300"}`}
+          className={`p-2 rounded text-teal-900 ${!activeTool?"bg-teal-400 text-white":"bg-gray-200 hover:bg-gray-300"}`}
           title="Select"
         >
-          <MousePointer size={18}/>
+          <MousePointer size={18} strokeWidth={2.3}/>
         </button>
       </div>
 

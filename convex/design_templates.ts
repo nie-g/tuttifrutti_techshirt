@@ -13,6 +13,37 @@ export const getAll = query({
   },
 });
 
+export const getDesignTemplates = query({
+  args: {
+    shirtType: v.optional(v.string()), // e.g. "Round Neck tshirt"
+  },
+  handler: async ({ db }, { shirtType }) => {
+    // fetch all templates
+    const templates = await db.query("design_templates").collect();
+
+    // expand with shirt_type name
+    const expanded = await Promise.all(
+      templates.map(async (t) => {
+        const shirtTypeDoc = await db.get(t.shirt_type_id);
+        return {
+          ...t,
+          shirt_type_name: shirtTypeDoc?.type_name ?? null,
+        };
+      })
+    );
+
+    // filter if shirtType is provided
+    if (shirtType) {
+      return expanded.filter(
+        (t) => t.shirt_type_name?.toLowerCase() === shirtType.toLowerCase()
+      );
+    }
+
+    return expanded;
+  },
+});
+
+
 // ============================
 // Migration (for old schema with designer_id)
 // ============================
@@ -81,7 +112,7 @@ export const migrateTemplates = mutation({
 // ============================
 export const getByDesigner = query({
   args: { designerId: v.optional(v.string()) },
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     try {
       const allTemplates = await ctx.db.query("design_templates").collect();
       console.log(`Returning ${allTemplates.length} templates (designer association removed)`);

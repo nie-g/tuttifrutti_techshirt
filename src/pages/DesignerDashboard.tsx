@@ -39,14 +39,15 @@ const DesignerDashboard: React.FC = () => {
     clerkUser ? { clerkId: clerkUser.id } : "skip"
   );
 
-  // ✅ Fetch designer-specific requests and designs
-  const requests: Request[] =
+  // ✅ Fetch designer-specific requests (nullable allowed)
+  const requests: (Request | null)[] =
     useQuery(
       api.design_requests.getRequestsByDesigner,
       currentUser ? { designerId: currentUser._id } : "skip"
     ) || [];
 
-  const designs: Design[] =
+  // ✅ Fetch designer-specific designs (nullable allowed)
+  const designs: (Design | null)[] =
     useQuery(
       api.designs.getDesignsByDesigner,
       currentUser ? { designerId: currentUser._id } : "skip"
@@ -56,7 +57,7 @@ const DesignerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const allUsers: User[] = useQuery(api.userQueries.listAllUsers) || [];
   const totalClients = allUsers.filter((u) => u.role === "client").length;
-  const totalDesigns = designs.length;
+  const totalDesigns = designs.filter((d) => d !== null).length; // still safe counting
   const totalRequests =
     (useQuery(api.design_requests.listAllRequests) || []).length;
 
@@ -77,16 +78,17 @@ const DesignerDashboard: React.FC = () => {
     >
       <DynamicSidebar />
       <div className="flex-1 flex flex-col">
-         <ClientNavbar />
+        <ClientNavbar />
         <main className="p-6 md:p-8 flex flex-col gap-6 overflow-auto">
-           <HeaderSection />
+          <HeaderSection />
           <StatsSection
             totalClients={totalClients}
             totalDesigns={totalDesigns}
             totalRequests={totalRequests}
           />
 
-           <ProjectsSection requests={requests} navigate={navigate} />
+          {/* Pass requests (nullable) to ProjectsSection */}
+          <ProjectsSection requests={requests} navigate={navigate} />
 
           <QuickActionsSection />
         </main>

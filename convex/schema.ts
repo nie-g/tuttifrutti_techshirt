@@ -20,18 +20,18 @@ export default defineSchema({
     created_at: v.number(),
   }).index("by_user", ["user_id"]),
 
-  // --- DESIGNERS (role-specific profile) ---
+  // --- DESIGNERS ---
   designers: defineTable({
     user_id: v.id("users"),
     portfolio_id: v.optional(v.id("portfolios")),
-    specialization: v.optional(v.string()), // e.g. "3D, Vector, Fabric"
+    specialization: v.optional(v.string()),
     bio: v.optional(v.string()),
     contact_number: v.optional(v.string()),
     address: v.optional(v.string()),
     created_at: v.number(),
   }).index("by_user", ["user_id"]),
 
-  // --- ADMIN (role-specific profile) ---
+  // --- ADMINS ---
   admins: defineTable({
     user_id: v.id("users"),
     address: v.optional(v.string()),
@@ -39,7 +39,7 @@ export default defineSchema({
     created_at: v.number(),
   }).index("by_user", ["user_id"]),
 
-  // --- PORTFOLIO (belongs to Designer) ---
+  // --- PORTFOLIOS ---
   portfolios: defineTable({
     designer_id: v.id("designers"),
     title: v.optional(v.string()),
@@ -47,13 +47,13 @@ export default defineSchema({
     created_at: v.number(),
   }).index("by_designer", ["designer_id"]),
 
-  // --- GALLERIES (images/artworks inside portfolio) ---
   galleries: defineTable({
     portfolio_id: v.id("portfolios"),
-    image_url: v.string(), // can store Convex storage id or CDN url
+    image_url: v.string(),
     caption: v.optional(v.string()),
     created_at: v.number(),
   }).index("by_portfolio", ["portfolio_id"]),
+
   invites: defineTable({
     email: v.string(),
     token: v.string(),
@@ -102,6 +102,7 @@ export default defineSchema({
     created_at: v.optional(v.number()),
   }),
 
+  // --- DESIGN REQUESTS (UPDATED) ---
   design_requests: defineTable({
     client_id: v.id("users"),
     size_id: v.id("shirt_sizes"),
@@ -111,6 +112,8 @@ export default defineSchema({
     sketch: v.optional(v.string()),
     description: v.optional(v.string()),
     status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected")),
+    textile_id: v.id("inventory_items"), // 🔗 linked to inventory items (required textile)
+    preferred_designer_id: v.optional(v.id("users")), // 🔗 optional preferred designer
     created_at: v.optional(v.number()),
   }),
 
@@ -128,7 +131,6 @@ export default defineSchema({
     created_at: v.optional(v.number()),
   }),
 
-  // Updated "design" table — removed design_json, added status
   design: defineTable({
     client_id: v.id("users"),
     designer_id: v.id("users"),
@@ -147,23 +149,19 @@ export default defineSchema({
 
   design_preview: defineTable({
     design_id: v.id("design"),
-    preview_image: v.id("_storage"), // ✅ now stores Convex storage file ref
+    preview_image: v.id("_storage"),
     created_at: v.optional(v.number()),
-    }).index("by_design", ["design_id"]),
+  }).index("by_design", ["design_id"]),
 
-  // fabric_canvases: canvas_json is optional so canvases can start empty
- // fabric_canvases: simplified (no categories)
   fabric_canvases: defineTable({
     design_id: v.id("design"),
     canvas_json: v.optional(v.string()),
     thumbnail: v.optional(v.string()),
     version: v.optional(v.string()),
-    images: v.optional(v.array(v.id("_storage"))), // 🔹 store uploaded image refs
+    images: v.optional(v.array(v.id("_storage"))),
     created_at: v.number(),
     updated_at: v.number(),
-  })
-    .index("by_design", ["design_id"]),
-
+  }).index("by_design", ["design_id"]),
 
   inventory_categories: defineTable({
     category_name: v.string(),
@@ -183,9 +181,10 @@ export default defineSchema({
   })
     .index("by_name", ["name"])
     .index("by_category", ["category_id"]),
+
   comments: defineTable({
-    preview_id: v.id("design_preview"), // 🔗 link to design_preview instead of design
-    user_id: v.id("users"),             // who wrote the comment
+    preview_id: v.id("design_preview"),
+    user_id: v.id("users"),
     comment: v.string(),
     created_at: v.number(),
   })

@@ -84,3 +84,19 @@ export const deleteInventoryItem = mutation({
     await ctx.db.delete(args.id);
   },
 });
+
+export const getTextileItems = query({
+  handler: async (ctx) => {
+    const items = await ctx.db.query("inventory_items").collect();
+    const textiles = await Promise.all(
+      items.map(async (item) => {
+        const category = await ctx.db.get(item.category_id);
+        return {
+          ...item,
+          categoryName: category?.category_name || "Unknown",
+        };
+      })
+    );
+    return textiles.filter((item) => item.categoryName.toLowerCase() === "fabric");
+  },
+});

@@ -13,6 +13,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as clients from "../clients.js";
 import type * as colors from "../colors.js";
 import type * as comments from "../comments.js";
 import type * as designReferences from "../designReferences.js";
@@ -42,6 +43,7 @@ import type * as users from "../users.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  clients: typeof clients;
   colors: typeof colors;
   comments: typeof comments;
   designReferences: typeof designReferences;

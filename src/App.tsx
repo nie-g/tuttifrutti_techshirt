@@ -18,6 +18,7 @@ import Users from './pages/Users';
 import DesignerCanvasPage from './pages/DesignCanvasPage';
 import UserDesigns from './pages/UserDesigns';
 import SeeDesign from './pages/SeeDesign';
+import ClientProfile from './pages/ClientProfile';
 
 
 
@@ -46,6 +47,7 @@ function App() {
         <Route path="/designer/canvas/:requestId" element={<DesignerCanvasPage />} />
         <Route path="/client/designs" element={<UserDesigns />} />
         <Route path="/client/seeDesign/:designId" element={<SeeDesign />} />
+        <Route path="/client/settings" element={<ClientProfile />} />
       </Routes>
     </BrowserRouter>
   );

@@ -8,6 +8,7 @@ import { useUser } from "@clerk/clerk-react";
 // Steps
 import ProgressTrackingStep from "./userDesignSteps/ProgressTrackingStep";
 import SeeDesignStep from "./userDesignSteps/SeeDesignStep";
+import FinalizeDesignStep from "./userDesignSteps/FinalizeStep"; // ✅ New step
 
 // Modal header
 import DesignHeader from "./designDetailsModal/DesignHeader";
@@ -39,7 +40,8 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
       : [previewsResult]
     : [];
 
-  const handleNext = () => setStep((prev) => Math.min(prev + 1, 2));
+  const totalSteps = 3;
+  const handleNext = () => setStep((prev) => Math.min(prev + 1, totalSteps));
   const handleBack = () => setStep((prev) => Math.max(prev - 1, 1));
 
   if (!design) {
@@ -65,7 +67,7 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
 
         {/* Stepper */}
         <div className="flex justify-center my-4 sm:my-1 space-x-6 sm:space-x-8">
-          {["Progress", "See Design"].map((label, index) => (
+          {["See Design", "Progress", "Finalize"].map((label, index) => (
             <div key={index} className="flex flex-col items-center">
               <div
                 className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full text-white font-bold shadow-lg ${
@@ -87,8 +89,9 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
 
         {/* Step Content */}
         <div className="mt-2 sm:mt-4 flex-1 overflow-y-auto pr-1 sm:pr-2">
-          {step === 1 && <ProgressTrackingStep designId={design._id} />}
-          {step === 2 && <SeeDesignStep design={design} />}
+          {step === 1 && <SeeDesignStep design={design} />}
+          {step === 2 && <ProgressTrackingStep designId={design._id} />}
+          {step === 3 && <FinalizeDesignStep design={design} />}
         </div>
 
         {/* Navigation */}
@@ -104,7 +107,7 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
           <button
             onClick={handleNext}
             className={`px-4 sm:px-6 md:px-8 py-2 text-xs sm:text-sm text-white bg-teal-500 rounded-lg shadow-md hover:bg-teal-600 ${
-              step === 2 ? "invisible" : ""
+              step === totalSteps ? "invisible" : ""
             }`}
           >
             Next

@@ -193,9 +193,11 @@ export const createRequest = mutation({
     gender: v.optional(v.string()),
     sketch: v.optional(v.string()),
     description: v.optional(v.string()),
+    textileId: v.id("inventory_items"), // ✅ required
+    preferredDesignerId: v.optional(v.id("users")), // ✅ optional
   },
   handler: async (ctx, args) => {
-    const requestId = await ctx.db.insert("design_requests", {
+   const requestId = await ctx.db.insert("design_requests", {
       client_id: args.clientId,
       size_id: args.sizeId,
       request_title: args.requestTitle,
@@ -203,6 +205,8 @@ export const createRequest = mutation({
       gender: args.gender || "",
       sketch: args.sketch || "",
       description: args.description || "",
+      textile_id: args.textileId, // ✅ added
+      preferred_designer_id: args.preferredDesignerId || undefined, // ✅ added
       status: "pending",
       created_at: Date.now(),
     });

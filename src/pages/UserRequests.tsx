@@ -237,13 +237,17 @@ const UserRequests: React.FC = () => {
                 <h1 className="text-2xl font-bold text-gray-900">My Design Requests</h1>
                 <p className="text-gray-600">Manage and track your t-shirt design requests</p>
               </div>
-              <button
-                onClick={() => setShowRequestForm(true)}
-                className="px-6 py-3 text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-2 self-start"
-              >
-                <Plus size={18} />
-                New Request
-              </button>
+            <button
+              onClick={() => setShowRequestForm(true)}
+              disabled={isSubmitting}
+              className={`px-6 py-3 text-white rounded-lg flex items-center gap-2 self-start transition-colors ${
+                isSubmitting
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-teal-600 hover:bg-teal-700"
+              }`}
+            >
+              {isSubmitting ? "Submitting..." : <><Plus size={18} /> New Request</>}
+            </button>
             </div>
           </div>
 

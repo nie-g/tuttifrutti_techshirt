@@ -35,92 +35,98 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
   const createNewRequestMutation = useMutation(api.design_requests.createRequest);
   const saveMultipleReferencesMutation = useMutation(api.designReferences.saveMultipleReferences);
   const saveSelectedColorsMutation = useMutation(api.colors.saveSelectedColors);
+  const [textileId, setTextileId] = useState<string | null>(null);
+  const [preferredDesignerId, setPreferredDesignerId] = useState<string | null>(null);
+  const [canvasSnapshot, setCanvasSnapshot] = useState<string | null>(null);
 
   const handleNext = () => setStep((prev) => Math.min(prev + 1, 3));
   const handleBack = () => setStep((prev) => Math.max(prev - 1, 1));
 
-  const saveDesign = async () => {
-    if (!projectName.trim()) {
-      alert('Please enter a project name');
-      return;
+const saveDesign = async () => {
+  if (!projectName.trim()) {
+    alert('Please enter a project name');
+    return;
+  }
+  if (!sizeId) {
+    alert('Please select a shirt size');
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  if (!user) {
+    alert('Please sign in to save your design');
+    setIsSubmitting(false);
+    return;
+  }
+
+  try {
+    const canvasDataURL =
+      canvasSnapshot || canvasRef.current?.toDataURL() || ""; // 👈 use saved snapshot if available
+
+    const requestId = await createNewRequestMutation({
+      clientId: user._id,
+      sizeId: sizeId as any,
+      textileId: textileId as any,
+      requestTitle: projectName,
+      tshirtType: shirtType || "",
+      gender: gender || "",
+      sketch: canvasDataURL, // 👈 goes to request.sketch
+      description: description || "",
+    });
+
+    if (!requestId) {
+      throw new Error("Failed to create design request");
     }
-    if (!sizeId) {
-        alert('Please select a shirt size');
-        return;
-    }
 
-    setIsSubmitting(true);
-
-    if (!user) {
-      alert('Please sign in to save your design');
-      setIsSubmitting(false);
-      return;
-    }
-
-    try {
-      const canvasDataURL = canvasRef.current?.toDataURL() || "";
-
-      const requestId = await createNewRequestMutation({
-        clientId: user._id,
-        sizeId: sizeId as any,
-        requestTitle: projectName,
-        tshirtType: shirtType || "",
-        gender: gender || "",
-        sketch: canvasDataURL,
-        description: description || ""
+    if (referenceImages.length > 0) {
+      await saveMultipleReferencesMutation({
+        requestId: requestId,
+        references: referenceImages.map((ref) => ({
+          designImage: ref.image,
+          description: ref.description || "",
+        })),
       });
+    }
 
-      if (!requestId) {
-        throw new Error("Failed to create design request");
-      }
-
-      if (referenceImages.length > 0) {
-        await saveMultipleReferencesMutation({
-          requestId: requestId,
-          references: referenceImages.map(ref => ({
-            designImage: ref.image,
-            description: ref.description || ""
-          }))
-        });
-      }
-
-      if (newPaletteColors.length > 0) {
-        await Promise.all(newPaletteColors.map(async (color) => {
-          // Ensure color is a valid hex string with # prefix
+    if (newPaletteColors.length > 0) {
+      await Promise.all(
+        newPaletteColors.map(async (color) => {
           let hexColor = color;
-          if (typeof hexColor !== 'string') {
+          if (typeof hexColor !== "string") {
             hexColor = String(hexColor);
           }
-          if (hexColor && !hexColor.startsWith('#')) {
-            hexColor = '#' + hexColor;
+          if (hexColor && !hexColor.startsWith("#")) {
+            hexColor = "#" + hexColor;
           }
           if (!hexColor || !/^#[0-9A-F]{6}$/i.test(hexColor)) {
-            hexColor = '#000000'; // Default to black if invalid
+            hexColor = "#000000";
           }
 
           return saveSelectedColorsMutation({
             requestId: requestId,
             hex: hexColor,
-            createdAt: Date.now()
+            createdAt: Date.now(),
           });
-        }));
-      }
-
-      onSubmit({
-        request_title: projectName,
-        tshirt_type: shirtType || "",
-        gender: gender || "",
-        description: description || "",
-        design_image: canvasDataURL,
-        requestId: requestId
-      });
-    } catch (error) {
-      console.error('Error saving design:', error);
-      alert('Failed to save design: ' + (error as Error).message);
-    } finally {
-      setIsSubmitting(false);
+        })
+      );
     }
-  };
+
+    onSubmit({
+      request_title: projectName,
+      tshirt_type: shirtType || "",
+      gender: gender || "",
+      description: description || "",
+      design_image: canvasDataURL,
+      requestId: requestId,
+    });
+  } catch (error) {
+    console.error("Error saving design:", error);
+    alert("Failed to save design: " + (error as Error).message);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -137,7 +143,7 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
           </button>
         </div>
 
-        <div className="flex justify-center my-6 space-x-8">
+        <div className="flex justify-center my-4 space-x-8">
           {["Shirt Type", "Design", "Colors & Details"].map((label, index) => (
             <div key={index} className="flex flex-col items-center">
               <div
@@ -154,27 +160,43 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
           ))}
         </div>
 
-        {step === 1 && <Step1 shirtType={shirtType} setShirtType={setShirtType} />}
-        {step === 2 && <Step2 canvasRef={canvasRef} canvasState={canvasState} setCanvasState={setCanvasState} />}
-        {step === 3 && (
-          <Step3
-            projectName={projectName}
-            setProjectName={setProjectName}
-            description={description}
-            setDescription={setDescription}
-            gender={gender}
-            setGender={setGender}
-            size={size}
-            setSize={setSize}
-            sizeId={sizeId}
-            setSizeId={setSizeId}
-            shirtType={shirtType}
-            referenceImages={referenceImages}
-            setReferenceImages={setReferenceImages}
-            newPaletteColors={newPaletteColors}
-            setNewPaletteColors={setNewPaletteColors}
-          />
-        )}
+        {/* Step Content with scroll */}
+<div className="max-h-[50vh] overflow-y-auto pr-2">
+  {step === 1 && <Step1 shirtType={shirtType} setShirtType={setShirtType} />}
+  {step === 2 && (
+    <Step2
+    canvasRef={canvasRef}
+    canvasState={canvasState}
+    setCanvasState={setCanvasState}
+    shirtType={shirtType}
+    onSaveSnapshot={setCanvasSnapshot} // 👈 NEW
+  />
+  )}
+  {step === 3 && (
+    <Step3
+      projectName={projectName}
+      setProjectName={setProjectName}
+      description={description}
+      setDescription={setDescription}
+      gender={gender}
+      setGender={setGender}
+      size={size}
+      setSize={setSize}
+      sizeId={sizeId}
+      setSizeId={setSizeId}
+      shirtType={shirtType}
+      referenceImages={referenceImages}
+      setReferenceImages={setReferenceImages}
+      newPaletteColors={newPaletteColors}
+      setNewPaletteColors={setNewPaletteColors}
+      textileId={textileId}
+      setTextileId={setTextileId}
+      preferredDesignerId={preferredDesignerId}
+      setPreferredDesignerId={setPreferredDesignerId}
+    />
+  )}
+</div>
+
 
         <div className="flex justify-between mt-6">
           <button

@@ -1,6 +1,6 @@
 import { internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import Clerk from "@clerk/clerk-sdk-node";
+
 
 export const storeClerkUser = internalMutation({
   args: {

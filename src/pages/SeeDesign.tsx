@@ -1,4 +1,4 @@
-// SeeDesign.tsx
+// src/pages/SeeDesign.tsx
 import React, { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
@@ -7,7 +7,7 @@ import { Canvas as ThreeCanvas } from "@react-three/fiber";
 import { PresentationControls, Stage } from "@react-three/drei";
 import TexturedTShirt from "./seeDesign/TexturedShirt";
 import ThreeScreenshotHelper from "../components/ThreeScreenshotHelper";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CheckCircle } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -103,6 +103,19 @@ const SeeDesign: React.FC = () => {
     }
   };
 
+  // ✅ Approve mutation
+  const approveDesign = useMutation(api.designs.approveDesign);
+
+  const handleApprove = async () => {
+    if (!design?._id) return;
+    try {
+      await approveDesign({ designId: design._id });
+      alert("✅ Design approved successfully!");
+    } catch (err) {
+      console.error("Failed to approve design:", err);
+    }
+  };
+
   // 🔥 Load fabric JSON into hidden canvas
   useEffect(() => {
     if (!canvasDoc?.canvas_json) return;
@@ -138,16 +151,35 @@ const SeeDesign: React.FC = () => {
       transition={{ duration: 0.3 }}
       className="relative p-4 flex flex-col md:flex-row gap-4 h-[80vh]"
     >
-      {/* Back */}
-      <motion.button
-        onClick={() => navigate(-1)}
-        className="absolute top-4 left-4 z-10 flex items-center gap-1 bg-white shadow-lg rounded-full px-4 py-2 hover:bg-gray-100"
-      >
-        <ArrowLeft size={18} /> Back
-      </motion.button>
-
       {/* Left: 3D preview */}
-      <motion.div className="flex-1 border rounded-2xl h-[96vh] p-6 shadow-md bg-white flex items-center justify-center">
+      <motion.div className="relative flex-1 border rounded-2xl h-[96vh] p-6 shadow-md bg-white flex items-center justify-center">
+        {/* Back + Approve inside 3D canvas container */}
+        <div className="absolute top-4 left-4 z-20">
+          <motion.button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1 bg-white shadow-lg rounded-full px-4 py-2 hover:bg-gray-100"
+          >
+            <ArrowLeft size={18} /> Back
+          </motion.button>
+        </div>
+
+        <div className="absolute top-4 right-4 z-20">
+          {design && design.status === "approved" ? (
+            <div className="flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full shadow">
+              <CheckCircle size={18} /> Approved
+            </div>
+          ) : (
+            design && (
+              <motion.button
+                onClick={handleApprove}
+                className="bg-teal-500 text-white px-6 py-2 rounded-full shadow-lg hover:bg-teal-600 transition"
+              >
+                Approve
+              </motion.button>
+            )
+          )}
+        </div>
+
         {fabricCanvas && designRequest ? (
           <ThreeCanvas camera={{ position: [0, 1, 2.5], fov: 45 }}>
             <color attach="background" args={["#F8F9FA"]} />
@@ -176,7 +208,7 @@ const SeeDesign: React.FC = () => {
           {comments?.length ? (
             comments
               .slice()
-              .reverse() // oldest at top, newest at bottom (chat style)
+              .reverse()
               .map((c) => {
                 const formattedDate = new Date(c.created_at).toLocaleString();
                 return (

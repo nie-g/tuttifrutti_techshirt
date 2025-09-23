@@ -264,13 +264,13 @@ const UserDesigns: React.FC = () => {
                           <td className="px-6 py-4 whitespace-nowrap flex flex-wrap gap-2">
                             <button
                               onClick={() => navigate(`/client/seeDesign/${d._id}`)}
-                              className="px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-indigo-600 transition"
+                              className="px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-teal-700 transition"
                             >
                               See Design
                             </button>
                             <button
                               onClick={() => openModal(d)}
-                              className="px-3 py-1 text-sm bg-cyan-600 text-white rounded hover:bg-teal-600 transition"
+                              className="px-3 py-1 text-sm bg-cyan-600 text-white rounded hover:bg-indigo-600 transition"
                             >
                               See Progress
                             </button>
@@ -298,17 +298,18 @@ const UserDesigns: React.FC = () => {
                         <p>Date: {formatTimeAgo(d.created_at ?? d._creationTime)}</p>
                       </div>
                       <div className="flex gap-2 mt-2">
-                        <button
-                          onClick={() => openModal(d)}
-                          className="flex-1 px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-teal-600 transition"
-                        >
-                          View Details
-                        </button>
+                        
                         <button
                           onClick={() => navigate(`/client/seeDesign/${d._id}`)}
-                          className="flex-1 px-3 py-1 text-sm bg-indigo-500 text-white rounded hover:bg-indigo-600 transition"
+                          className="flex-1 px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-teal-700 transition"
                         >
                           See Design
+                        </button>
+                        <button
+                          onClick={() => openModal(d)}
+                          className="flex-1 px-3 py-1 text-sm bg-cyan-600 text-white rounded hover:bg-indigo-600 transition"
+                        >
+                          View Details
                         </button>
                       </div>
                     </div>

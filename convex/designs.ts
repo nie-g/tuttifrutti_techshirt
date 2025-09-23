@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 // Get all designs
@@ -44,5 +44,19 @@ export const getById = query({
   args: { designId: v.id("design") },
   handler: async (ctx, { designId }) => {
     return await ctx.db.get(designId);
+  },
+});
+
+export const approveDesign = mutation({
+  args: { designId: v.id("design") },
+  handler: async (ctx, { designId }) => {
+    const design = await ctx.db.get(designId);
+    if (!design) throw new Error("Design not found");
+
+    await ctx.db.patch(designId, {
+      status: "approved",
+    });
+
+    return { success: true };
   },
 });

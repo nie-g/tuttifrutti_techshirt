@@ -1,10 +1,32 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { motion } from "framer-motion";
+import { useUser } from "@clerk/clerk-react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar"; // keep your Navbar here
 import cutie from "../images/DesignSyncLogo.png";
 import { Shirt, Users, MessageSquare, Clock, LayoutDashboard, Download } from "lucide-react";
 
 const LandingPage: React.FC = () => {
+  const { isSignedIn, user } = useUser();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isSignedIn && user?.unsafeMetadata?.userType) {
+      const role = user.unsafeMetadata.userType as string;
+
+      if (role === "designer") {
+        navigate("/designer");
+      } else if (role === "client") {
+        navigate("/client");
+      } else if (role === "admin") {
+        navigate("/admin");
+      } else {
+        // fallback if no role or unrecognized
+        navigate("/dashboard");
+      }
+    }
+  }, [isSignedIn, user, navigate]);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -102,32 +124,32 @@ const LandingPage: React.FC = () => {
             {
               title: "3D T-Shirt Customization",
               desc: "Design directly on realistic 3D models with intuitive tools.",
-              icon: <Shirt size={28} strokeWidth={2} className="text-teal-600" />
+              icon: <Shirt size={28} strokeWidth={2} className="text-teal-600" />,
             },
             {
               title: "Real-Time Collaboration",
               desc: "Work together with clients in real-time on the same design.",
-              icon: <Users size={28} strokeWidth={2} className="text-teal-600" />
+              icon: <Users size={28} strokeWidth={2} className="text-teal-600" />,
             },
             {
               title: "Annotations Tools",
               desc: "Communicate efficiently with built-in annotation tools.",
-              icon: <MessageSquare size={28} strokeWidth={2} className="text-teal-600" />
+              icon: <MessageSquare size={28} strokeWidth={2} className="text-teal-600" />,
             },
             {
               title: "Design Revision Tracking",
               desc: "Track all revisions with a visual timeline and version control.",
-              icon: <Clock size={28} strokeWidth={2} className="text-teal-600" />
+              icon: <Clock size={28} strokeWidth={2} className="text-teal-600" />,
             },
             {
               title: "Dashboard Interface",
               desc: "Manage all your projects efficiently with intuitive dashboards.",
-              icon: <LayoutDashboard size={28} strokeWidth={2} className="text-teal-600" />
+              icon: <LayoutDashboard size={28} strokeWidth={2} className="text-teal-600" />,
             },
             {
               title: "Export Options",
               desc: "Download your designs in multiple formats for any purpose.",
-              icon: <Download size={28} strokeWidth={2} className="text-teal-600" />
+              icon: <Download size={28} strokeWidth={2} className="text-teal-600" />,
             },
           ].map((feature, index) => (
             <motion.div
@@ -183,15 +205,27 @@ const LandingPage: React.FC = () => {
           </div>
           <div>
             <h4 className="font-bold text-white">Product</h4>
-            <a href="/features" className="block mt-2">Features</a>
-            <a href="/how-it-works" className="block mt-2">How It Works</a>
-            <a href="/pricing" className="block mt-2">Pricing</a>
+            <a href="/features" className="block mt-2">
+              Features
+            </a>
+            <a href="/how-it-works" className="block mt-2">
+              How It Works
+            </a>
+            <a href="/pricing" className="block mt-2">
+              Pricing
+            </a>
           </div>
           <div>
             <h4 className="font-bold text-white">Company</h4>
-            <a href="/about" className="block mt-2">About Us</a>
-            <a href="/contact" className="block mt-2">Contact</a>
-            <a href="/careers" className="block mt-2">Careers</a>
+            <a href="/about" className="block mt-2">
+              About Us
+            </a>
+            <a href="/contact" className="block mt-2">
+              Contact
+            </a>
+            <a href="/careers" className="block mt-2">
+              Careers
+            </a>
           </div>
         </div>
       </footer>

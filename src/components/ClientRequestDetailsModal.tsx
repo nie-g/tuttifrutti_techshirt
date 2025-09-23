@@ -65,7 +65,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   );
 };
 
-const ClientRequestDetailsModal: React.FC<ClientRequestDetailsModalProps> = ({request,onClose,isOpen,userType,
+const ClientRequestDetailsModal: React.FC<ClientRequestDetailsModalProps> = ({request,onClose,isOpen,
 }) => {
   const [activeTab, setActiveTab] = useState("details");
   const [requestData, setRequestData] = useState<any>(null);
