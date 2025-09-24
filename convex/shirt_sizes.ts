@@ -139,6 +139,7 @@ export const update = mutation({
 });
 
 // Delete a shirt size
+// Delete a shirt size
 export const remove = mutation({
   args: { id: v.id("shirt_sizes") },
   handler: async (ctx, args) => {
@@ -150,13 +151,13 @@ export const remove = mutation({
       throw new Error("Shirt size not found");
     }
 
-    // Check if the shirt size is used in any design requests
-    const designRequests = await ctx.db
-      .query("design_requests")
-      .filter(q => q.eq(q.field("size_id"), id))
+    // Check if the shirt size is used in any request_sizes
+    const requestSizes = await ctx.db
+      .query("request_sizes")
+      .withIndex("by_size", q => q.eq("size_id", id))
       .collect();
 
-    if (designRequests.length > 0) {
+    if (requestSizes.length > 0) {
       throw new Error("Cannot delete shirt size that is used in design requests");
     }
 
@@ -166,3 +167,4 @@ export const remove = mutation({
     return { success: true };
   },
 });
+

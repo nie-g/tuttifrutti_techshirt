@@ -16,13 +16,11 @@ export const updateProfile = mutation({
     clientId: v.id("clients"),
     phone: v.optional(v.string()),
     address: v.optional(v.string()),
-    bio: v.optional(v.string()),
   },
-  handler: async (ctx, { clientId, phone, address, bio }) => {
+  handler: async (ctx, { clientId, phone, address }) => {
     await ctx.db.patch(clientId, {
       phone,
       address,
-      bio,
     });
   },
 });

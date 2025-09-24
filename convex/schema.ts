@@ -16,7 +16,6 @@ export default defineSchema({
     user_id: v.id("users"),
     phone: v.optional(v.string()),
     address: v.optional(v.string()),
-    bio: v.optional(v.string()),
     created_at: v.number(),
   }).index("by_user", ["user_id"]),
 
@@ -24,8 +23,7 @@ export default defineSchema({
   designers: defineTable({
     user_id: v.id("users"),
     portfolio_id: v.optional(v.id("portfolios")),
-    specialization: v.optional(v.string()),
-    bio: v.optional(v.string()),
+    
     contact_number: v.optional(v.string()),
     address: v.optional(v.string()),
     created_at: v.number(),
@@ -40,12 +38,36 @@ export default defineSchema({
   }).index("by_user", ["user_id"]),
 
   // --- PORTFOLIOS ---
-  portfolios: defineTable({
+   portfolios: defineTable({
     designer_id: v.id("designers"),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
+
+    // new fields
+    skills: v.optional(v.array(v.string())), // e.g. ["Photoshop", "Illustrator", "3D Design"]
+    specialization: v.optional(v.string()),
+    social_links: v.optional(
+      v.array(
+        v.object({
+          platform: v.string(), // e.g. "Behance", "LinkedIn"
+          url: v.string(),
+        })
+      )
+    ),
+
     created_at: v.number(),
   }).index("by_designer", ["designer_id"]),
+
+  // --- RATINGS & FEEDBACK ---
+  ratings_feedback: defineTable({
+    portfolio_id: v.id("portfolios"), // connect to portfolio
+    reviewer_id: v.id("users"),       // who gave the rating
+    rating: v.number(),               // numeric rating, e.g. 1-5
+    feedback: v.optional(v.string()), // written review
+    created_at: v.number(),
+  })
+    .index("by_portfolio", ["portfolio_id"])
+    .index("by_reviewer", ["reviewer_id"]),
 
   galleries: defineTable({
     portfolio_id: v.id("portfolios"),
@@ -103,19 +125,34 @@ export default defineSchema({
   }),
 
   // --- DESIGN REQUESTS (UPDATED) ---
-  design_requests: defineTable({
+    design_requests: defineTable({
     client_id: v.id("users"),
-    size_id: v.id("shirt_sizes"),
     request_title: v.string(),
     tshirt_type: v.optional(v.string()),
     gender: v.optional(v.string()),
     sketch: v.optional(v.string()),
     description: v.optional(v.string()),
     status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected")),
-    textile_id: v.id("inventory_items"), // 🔗 linked to inventory items (required textile)
-    preferred_designer_id: v.optional(v.id("users")), // 🔗 optional preferred designer
+    textile_id: v.id("inventory_items"),
+    preferred_designer_id: v.optional(v.id("users")),
+    print_type: v.optional(
+    v.union(
+      v.literal("Sublimation"),
+      v.literal("Dtf") // direct-to-garment
+    )
+  ),
     created_at: v.optional(v.number()),
   }),
+
+  // --- NEW: sizes per request ---
+  request_sizes: defineTable({
+    request_id: v.id("design_requests"), // link to request
+    size_id: v.id("shirt_sizes"),        // link to shirt size
+    quantity: v.number(),                // how many shirts of this size
+    created_at: v.optional(v.number()),
+  })
+    .index("by_request", ["request_id"])
+    .index("by_size", ["size_id"]),
 
   design_reference: defineTable({
     design_image: v.string(),
@@ -190,4 +227,25 @@ export default defineSchema({
   })
     .index("by_preview", ["preview_id"])
     .index("by_user", ["user_id"]),
+    // --- BILLING ---
+  billing: defineTable({
+    invoice_id: v.id("invoices"),      // link to invoices table
+    amount: v.number(),                // invoice amount
+    client_id: v.id("clients"),        // who is paying
+    design_id: v.id("design"),         // which design this billing is for
+    designer_id: v.id("designers"),    // who receives the payment
+    created_at: v.number(),
+  })
+    .index("by_invoice", ["invoice_id"])
+    .index("by_client", ["client_id"])
+    .index("by_designer", ["designer_id"])
+    .index("by_design", ["design_id"]),
+
+  // --- INVOICES ---
+  invoices: defineTable({
+    invoice_file: v.id("_storage"),   // stored invoice file
+    created_at: v.number(),
+  }),
+
 });
+

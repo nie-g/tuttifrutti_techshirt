@@ -27,11 +27,18 @@ interface DesignRequestRecord {
   created_at?: number;
   _creationTime?: number;
   tshirt_type?: string;
-  client?: { full_name?: string; email?: string };
+  client?: {
+    _id: Id<"users">;
+    firstName?: string;
+    lastName?: string;
+    full_name?: string;
+    email?: string;
+  };
   designer_id?: Id<"users">;
   description?: string;
   [k: string]: any;
 }
+
 
 function formatTimeAgo(timestamp?: number) {
   if (!timestamp) return "Unknown";
@@ -281,17 +288,15 @@ const DesignerTasks: React.FC = () => {
 
           {/* Request Details Modal */}
           {selectedRequest && (
-            <RequestDetailsModal
-             request={{
-                        ...selectedRequest,
-                        client: selectedRequest.client
-                          ? { _id: "temp_id" as Id<"users">, ...selectedRequest.client }
-                          : undefined,
-                      }}
-              userType="designer"
-               isOpen={true} // <-- add this
-              onClose={() => setSelectedRequest(null)}
-            />
+           <RequestDetailsModal
+                    request={{
+                      ...selectedRequest,
+                      client: selectedRequest.client ? { ...selectedRequest.client } : undefined,
+                    }}
+                    userType="designer"
+                    isOpen={true}
+                    onClose={() => setSelectedRequest(null)}
+                  />
           )}
         </main>
       </div>

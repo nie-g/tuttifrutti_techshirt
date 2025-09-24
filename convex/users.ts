@@ -54,7 +54,7 @@ export const storeClerkUser = internalMutation({
           user_id: userId,
           phone: "",
           address: "",
-          bio: "",
+        
           created_at: Date.now(),
         });
         console.log("✅ Client profile created");
@@ -71,8 +71,6 @@ export const storeClerkUser = internalMutation({
     // 1. Create designer row first
     const designerId = await ctx.db.insert("designers", {
       user_id: userId,
-      specialization: "",
-      bio: "",
       contact_number: "",
       address: "",
       created_at: Date.now(),
@@ -82,6 +80,9 @@ export const storeClerkUser = internalMutation({
     const portfolioId = await ctx.db.insert("portfolios", {
       designer_id: designerId, // ✅ correct type
       title: "My Portfolio",
+      skills: [], // ✅ empty array
+      social_links: [], // ✅ empty array
+      specialization: "", // ✅ empty string
       description: "",
       created_at: Date.now(),
     });
