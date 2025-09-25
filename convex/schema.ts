@@ -70,11 +70,18 @@ export default defineSchema({
     .index("by_reviewer", ["reviewer_id"]),
 
   galleries: defineTable({
-    portfolio_id: v.id("portfolios"),
-    image_url: v.string(),
+    designer_id: v.id("designers"),   // ✅ linked to designers
+    title: v.string(),                // ✅ replaces image_url
     caption: v.optional(v.string()),
     created_at: v.number(),
-  }).index("by_portfolio", ["portfolio_id"]),
+  }).index("by_designer", ["designer_id"]),
+
+  // === Gallery Images Table ===
+  gallery_images: defineTable({
+    gallery_id: v.id("galleries"),    // ✅ reference to parent gallery
+    image: v.id("_storage"),  // ✅ Convex storage file 
+    created_at: v.number(),
+  }).index("by_gallery", ["gallery_id"]),
 
   invites: defineTable({
     email: v.string(),

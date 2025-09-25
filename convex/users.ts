@@ -79,7 +79,7 @@ export const storeClerkUser = internalMutation({
     // 2. Create portfolio linked to designer
     const portfolioId = await ctx.db.insert("portfolios", {
       designer_id: designerId, // ✅ correct type
-      title: "My Portfolio",
+      title: "",
       skills: [], // ✅ empty array
       social_links: [], // ✅ empty array
       specialization: "", // ✅ empty string

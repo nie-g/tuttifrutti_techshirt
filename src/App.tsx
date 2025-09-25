@@ -19,6 +19,9 @@ import DesignerCanvasPage from './pages/DesignCanvasPage';
 import UserDesigns from './pages/UserDesigns';
 import SeeDesign from './pages/SeeDesign';
 import ClientProfile from './pages/ClientProfile';
+import Portfolio from './pages/Potfolio';
+import Gallery from './pages/Gallery';
+import Designs from './pages/Designs';
 
 
 
@@ -48,6 +51,9 @@ function App() {
         <Route path="/client/designs" element={<UserDesigns />} />
         <Route path="/client/seeDesign/:designId" element={<SeeDesign />} />
         <Route path="/client/settings" element={<ClientProfile />} />
+        <Route path="/designer/settings" element={<Portfolio />} />
+        <Route path="/designer/gallery" element={<Gallery />} />
+        <Route path="/designer/designs" element={<Designs />} />
       </Routes>
     </BrowserRouter>
   );

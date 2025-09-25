@@ -62,13 +62,19 @@ const RequestDetailsSection: React.FC<Props> = ({
         <InfoRow
           icon={Calendar}
           label="Created At"
-          value={request.created_at ? new Date(request.created_at).toLocaleDateString() : "N/A"}
+          value={
+            request.created_at
+              ? new Date(request.created_at).toLocaleDateString()
+              : "N/A"
+          }
         />
 
         {/* Designer Dropdown (admin only) */}
         {isAdmin && (
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-500">Assign Designer</label>
+            <label className="text-sm font-medium text-gray-500">
+              Assign Designer <span className="text-red-500">*</span>
+            </label>
             <select
               aria-label="Select a designer"
               value={selectedDesigner}

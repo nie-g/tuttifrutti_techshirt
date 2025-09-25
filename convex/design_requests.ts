@@ -284,3 +284,74 @@ export const getRequestsByIds = query({
     );
   },
 });
+
+// convex/design_requests.ts
+export const assignDesignRequest = mutation({
+  args: {
+    requestId: v.id("design_requests"),
+    designerId: v.id("users"),
+  },
+  handler: async (ctx, { requestId, designerId }) => {
+    const request = await ctx.db.get(requestId);
+    if (!request) {
+      throw new Error("Request not found");
+    }
+
+    // 1. Approve & assign the request
+    await ctx.db.patch(requestId, {
+      preferred_designer_id: designerId,
+      status: "approved",
+    });
+
+    // 2. Create a design entry linked to this request
+    const now = Date.now();
+    const designId = await ctx.db.insert("design", {
+      client_id: request.client_id,
+      designer_id: designerId,
+      request_id: requestId,
+      status: "in_progress",
+      created_at: now,
+    });
+
+    // 3. Ensure a fabric canvas is created for this design
+    await ctx.db.insert("fabric_canvases", {
+      design_id: designId,
+      canvas_json: "",   // ✅ matches schema
+      thumbnail: undefined,
+      version: "1.0.0",
+      images: [],
+      created_at: now,
+      updated_at: now,
+    });
+
+    // 4. Notify the designer
+    await ctx.runMutation(api.notifications.createNotification, {
+      userId: designerId,
+      userType: "designer",
+      message: `You’ve been assigned a new design request: "${request.request_title}"`,
+    });
+
+    return { success: true, designId };
+  },
+});
+
+export const updateDesignRequestStatus = mutation({
+  args: {
+    requestId: v.id("design_requests"),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("approved"),
+      v.literal("rejected")
+    ),
+  },
+  handler: async (ctx, { requestId, status }) => {
+    const request = await ctx.db.get(requestId);
+    if (!request) {
+      throw new Error("Request not found");
+    }
+
+    await ctx.db.patch(requestId, { status });
+
+    return { success: true };
+  },
+});

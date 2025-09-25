@@ -9,7 +9,6 @@ import { useNavigate } from "react-router-dom";
 interface Props {
   request: RequestType;
   userType?: "admin" | "designer" | "client";
-  updateRequestStatus: (args: any) => Promise<any>;
   onClose: () => void;
   selectedDesigner: Id<"users"> | ""; // pass current dropdown selection
 }
@@ -17,29 +16,21 @@ interface Props {
 const RequestFooter: React.FC<Props> = ({
   request,
   userType,
-  updateRequestStatus,
   onClose,
   selectedDesigner,
 }) => {
-  const navigate = useNavigate(); // ✅ move here
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const assignDesigner = useMutation(api.design_requests.assignDesignRequest);
 
   const handleApprove = async () => {
-    if (!selectedDesigner) return; // disable if no designer selected
+    if (!selectedDesigner) return; // ✅ must pick designer
 
     setIsSubmitting(true);
     try {
-      // Assign the selected designer automatically
       await assignDesigner({
-        request_id: request._id,
-        designer_id: selectedDesigner,
-      });
-
-      // Update request status to approved
-      await updateRequestStatus({
-        request_id: request._id,
-        status: "approved",
+        requestId: request._id,
+        designerId: selectedDesigner,
       });
 
       onClose();
@@ -47,19 +38,22 @@ const RequestFooter: React.FC<Props> = ({
       setIsSubmitting(false);
     }
   };
+  const updateRequestStatus = useMutation(
+  api.design_requests.updateDesignRequestStatus
+);
 
   const handleReject = async () => {
-    setIsSubmitting(true);
-    try {
-      await updateRequestStatus({
-        request_id: request._id,
-        status: "rejected",
-      });
-      onClose();
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  setIsSubmitting(true);
+  try {
+    await updateRequestStatus({
+      requestId: request._id,
+      status: "rejected",
+    });
+    onClose();
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="p-5 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
@@ -71,7 +65,11 @@ const RequestFooter: React.FC<Props> = ({
               disabled={isSubmitting}
               className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1 disabled:opacity-50"
             >
-              {isSubmitting ? <Loader size={16} className="animate-spin" /> : <XCircle size={16} />}
+              {isSubmitting ? (
+                <Loader size={16} className="animate-spin" />
+              ) : (
+                <XCircle size={16} />
+              )}
               Decline
             </button>
             <button
@@ -83,27 +81,30 @@ const RequestFooter: React.FC<Props> = ({
                   : "bg-green-500 text-white hover:bg-green-600"
               }`}
             >
-              {isSubmitting ? <Loader size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+              {isSubmitting ? (
+                <Loader size={16} className="animate-spin" />
+              ) : (
+                <CheckCircle size={16} />
+              )}
               Approve
             </button>
           </>
         )}
 
         {userType === "designer" && request.status === "approved" && (
-         
-        <button
-          onClick={() => {
-            onClose(); // close the modal
-            navigate(`/designer/canvas/${request._id}`, { state: { request: { ...request, designId: request.designId } } });
-          }}
-          className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors flex items-center gap-1"
-        >
-          <ArrowRight size={16} />
-          Start Working
-        </button>
-          )}
-
-      
+          <button
+            onClick={() => {
+              onClose();
+              navigate(`/designer/canvas/${request._id}`, {
+                state: { request: { ...request, designId: request.designId } },
+              });
+            }}
+            className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors flex items-center gap-1"
+          >
+            <ArrowRight size={16} />
+            Start Working
+          </button>
+        )}
 
         <button
           onClick={onClose}

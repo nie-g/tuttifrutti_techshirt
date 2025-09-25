@@ -88,6 +88,7 @@ const Sidebar: React.FC = () => {
           { name: "Dashboard", icon: <Home />, route: "/client" },
           { name: "My Requests", icon: <Clock />, route: "/client/requests" },
           { name: "My Designs", icon: <Images />, route: "/client/designs" },
+          { name: "Browse Designsers", icon: <Layers />, route: "/client/browse" },
           { name: "Notifications", icon: <BellIcon />, route: "/notifications" },
           { name: "Settings", icon: <Settings />, route: "/client/settings" },
         ];
