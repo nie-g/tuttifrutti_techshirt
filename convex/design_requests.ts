@@ -309,6 +309,7 @@ export const assignDesignRequest = mutation({
       client_id: request.client_id,
       designer_id: designerId,
       request_id: requestId,
+      revision_count: 0,
       status: "in_progress",
       created_at: now,
     });
@@ -351,6 +352,38 @@ export const updateDesignRequestStatus = mutation({
     }
 
     await ctx.db.patch(requestId, { status });
+
+    return { success: true };
+  },
+});
+
+// convex/design_requests.ts
+export const cancelDesignRequest = mutation({
+  args: {
+    request_id: v.id("design_requests"),
+    client_id: v.id("users"),
+  },
+  handler: async (ctx, { request_id, client_id }) => {
+    const request = await ctx.db.get(request_id);
+    if (!request) {
+      throw new Error("Request not found");
+    }
+
+    // Ensure only the owner can cancel
+    if (request.client_id !== client_id) {
+      throw new Error("Unauthorized: You cannot cancel this request");
+    }
+
+    // Mark as rejected
+    await ctx.db.patch(request_id, { status: "rejected" });
+
+    // Optional: notify admins or designers
+    await ctx.runMutation(api.notifications.createNotificationForMultipleUsers, {
+      recipients: [
+        { userId: client_id, userType: "client" as const },
+      ],
+      message: `Your request "${request.request_title}" has been cancelled.`,
+    });
 
     return { success: true };
   },

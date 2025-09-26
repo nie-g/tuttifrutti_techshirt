@@ -157,6 +157,7 @@ const UserRequests: React.FC = () => {
   const openRequestModal = (request: DesignRequestRecord) => {
     setSelectedRequest(request);
     setIsModalOpen(true);
+    
   };
 
   const closeModal = () => {

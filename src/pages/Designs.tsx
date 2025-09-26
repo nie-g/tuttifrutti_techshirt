@@ -50,7 +50,7 @@ const Designs: React.FC = () => {
   const { user: clerkUser } = useUser();
   const [user, setUser] = useState<ConvexUser | null>(null);
   const [activeTab, setActiveTab] = useState<
-    "all" | "in_progress" | "finished" | "billed" | "approved"
+  "all" | "in_progress" | "finished" | "billed" | "approved" | "pending_revision"
   >("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{
@@ -191,7 +191,7 @@ const Designs: React.FC = () => {
           {/* Filter Tabs */}
           <div className="flex overflow-x-auto pb-2 hide-scrollbar">
             <div className="flex space-x-2 min-w-max">
-              {["all", "in_progress", "finished", "billed", "approved"].map(
+              {["all", "in_progress","pending_revision", "finished", "billed", "approved"].map(
                 (tab) => (
                   <button
                     key={tab}
@@ -264,12 +264,18 @@ const Designs: React.FC = () => {
                             {formatTimeAgo(d.created_at ?? d._creationTime)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap flex flex-wrap gap-2">
-                            <button
-                              onClick={() => navigate(`/designer/seeDesign/${d._id}`)}
-                              className="px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-teal-700 transition"
-                            >
-                              Open Design
-                            </button>
+                           <button
+                           onClick={() =>
+                              navigate(`/designer/canvas/${d.request_id}`, {
+                                state: { request: { ...requestsMap[d.request_id], designId: d._id } },
+                              })
+                            }
+
+                            className="px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-teal-700 transition"
+                          >
+                            Open Design
+                          </button>
+
                             <button
                               onClick={() => openModal(d)}
                               className="px-3 py-1 text-sm bg-cyan-600 text-white rounded hover:bg-indigo-600 transition"
@@ -300,12 +306,19 @@ const Designs: React.FC = () => {
                         <p>Date: {formatTimeAgo(d.created_at ?? d._creationTime)}</p>
                       </div>
                       <div className="flex gap-2 mt-2">
-                        <button
-                          onClick={() => navigate(`/designer/seeDesign/${d._id}`)}
+                       <button
+                          onClick={() =>
+                            navigate(`/designer/canvas/${d.request_id}`, {
+                              state: { designId: d._id, requestId: d.request_id },
+                            })
+                          }
                           className="flex-1 px-3 py-1 text-sm bg-teal-500 text-white rounded hover:bg-teal-700 transition"
                         >
                           Open Design
                         </button>
+
+
+
                         <button
                           onClick={() => openModal(d)}
                           className="flex-1 px-3 py-1 text-sm bg-cyan-600 text-white rounded hover:bg-indigo-600 transition"

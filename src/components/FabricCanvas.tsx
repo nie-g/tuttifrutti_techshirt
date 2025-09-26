@@ -1,14 +1,16 @@
-// src/components/FabricCanvas.tsx
 import React, { useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
 import CanvasSettings from "./designCanvasComponents/CanvasSettings";
-import { Save, Upload } from "lucide-react";
+import DesignDetails from "./designCanvasComponents/CanvasDesignDetails";
+import { Save, Upload, Info, Wrench, ArrowLeft } from "lucide-react"; // added Back icon
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useMutation, useAction } from "convex/react";
+import { useNavigate } from "react-router-dom";
 
-const CANVAS_WIDTH = 500;
-const CANVAS_HEIGHT = 500;
+// 🔹 Bigger canvas size
+const CANVAS_WIDTH = 730;
+const CANVAS_HEIGHT = 515;
 
 interface FabricCanvasProps {
   designId: Id<"design">;
@@ -29,6 +31,12 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
   const fabricRef = useRef<fabric.Canvas | null>(null);
   const notifyTimeoutRef = useRef<number | null>(null);
   const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
+  const navigate = useNavigate();
+
+  // 🔹 Floating panel state
+  const [activeTab, setActiveTab] = useState<"none" | "details" | "tools">(
+    "none"
+  );
 
   const saveCanvas = useMutation(api.fabric_canvases.saveCanvas);
   const savePreview = useAction(api.design_preview.savePreview);
@@ -152,40 +160,102 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
   };
 
   return (
-    <div className="p-4">
-      {/* Top bar: Save + Post Update */}
-      <div className="flex justify-end gap-3 mb-4">
-        <button
+    <div className="p-2 relative">
+      {/* Top row: Back button + Controls */}
+      <div className="flex justify-between items-center mb-4">
+        {/* Back button on the left */}
+       <button
           type="button"
-          title="Save design"
-          className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-          onClick={handleSave}
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
         >
-          <Save size={18} />
-          <span className="text-sm font-medium">Save Canvas</span>
+          <ArrowLeft size={18} />
+          <span className="text-sm font-medium">Back</span>
         </button>
 
-        <button
-          type="button"
-          title="Post update"
-          className="flex items-center gap-2 px-3 py-2 bg-teal-500 text-white rounded hover:bg-blue-600"
-          onClick={handlePostUpdate}
-        >
-          <Upload size={18} />
-          <span className="text-sm font-medium">Post Update</span>
-        </button>
+
+        {/* Right-side controls: Details, Tools, Save, Post */}
+        <div className="flex gap-2">
+          {/* Details button */}
+          <button
+            type="button"
+            onClick={() =>
+              setActiveTab(activeTab === "details" ? "none" : "details")
+            }
+            className={`p-2 rounded ${
+              activeTab === "details" ? "bg-blue-500 text-white" : "bg-gray-200"
+            }`}
+            title="Details"
+          >
+            <Info size={18} />
+          </button>
+
+          {/* Tools button */}
+          <button
+            type="button"
+            onClick={() =>
+              setActiveTab(activeTab === "tools" ? "none" : "tools")
+            }
+            className={`p-2 rounded ${
+              activeTab === "tools" ? "bg-blue-500 text-white" : "bg-gray-200"
+            }`}
+            title="Tools"
+          >
+            <Wrench size={18} />
+          </button>
+
+          {/* Save button */}
+          <button
+            type="button"
+            title="Save design"
+            className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            onClick={handleSave}
+          >
+            <Save size={18} />
+            <span className="text-sm font-medium">Save</span>
+          </button>
+
+          {/* Post button */}
+          <button
+            type="button"
+            title="Post update"
+            className="flex items-center gap-2 px-3 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
+            onClick={handlePostUpdate}
+          >
+            <Upload size={18} />
+            <span className="text-sm font-medium">Post</span>
+          </button>
+        </div>
       </div>
 
-      {/* Canvas + Settings */}
-      <div className="flex gap-6 items-start">
-        <canvas
-          ref={canvasElRef}
-          width={CANVAS_WIDTH}
-          height={CANVAS_HEIGHT}
-          className="border border-gray-300 w-[800px] h-[500px] rounded"
-        />
-        <CanvasSettings canvas={canvas} />
-      </div>
+      {/* Canvas */}
+      <canvas
+        ref={canvasElRef}
+        width={CANVAS_WIDTH}
+        height={CANVAS_HEIGHT}
+        className="border border-gray-300 w-[1000px] h-[700px] rounded"
+      />
+
+
+      {/* Floating container for details/tools */}
+        {activeTab !== "none" && (
+          <div className="absolute top-16 right-2 max-w-[100vw] sm:max-w-sm p-4 bg-white shadow-lg border rounded-xl z-10 overflow-y-auto max-h-[80vh]">
+            {activeTab === "details" && (
+              <div>
+                <h3 className="text-sm font-semibold mb-2">Design Details</h3>
+                <DesignDetails designId={designId} />
+              </div>
+            )}
+
+            {activeTab === "tools" && (
+              <div className="w-full">
+                <CanvasSettings canvas={canvas} />
+              </div>
+            )}
+          </div>
+        )}
+        
+
     </div>
   );
 };

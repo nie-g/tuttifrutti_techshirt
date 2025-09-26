@@ -105,6 +105,8 @@ const SeeDesign: React.FC = () => {
 
   // ✅ Approve mutation
   const approveDesign = useMutation(api.designs.approveDesign);
+  const requestRevision = useMutation(api.designs.reviseDesign);
+
 
   const handleApprove = async () => {
     if (!design?._id) return;
@@ -116,13 +118,24 @@ const SeeDesign: React.FC = () => {
     }
   };
 
+  const handleRevision = async () => {
+    if (!design?._id) return;
+    try {
+      await requestRevision({ designId: design._id });
+      alert("✅ Revision requested successfully!");
+    } catch (err) {
+      console.error("Failed to request revison for design:", err);
+    }
+  };
+
+  
   // 🔥 Load fabric JSON into hidden canvas
   useEffect(() => {
     if (!canvasDoc?.canvas_json) return;
 
     const tempCanvasEl = document.createElement("canvas");
-    tempCanvasEl.width = 500;
-    tempCanvasEl.height = 500;
+    tempCanvasEl.width = 730;
+    tempCanvasEl.height = 515;
 
     const fabricInstance = new fabric.Canvas(tempCanvasEl, {
       backgroundColor: "white",
@@ -163,22 +176,32 @@ const SeeDesign: React.FC = () => {
           </motion.button>
         </div>
 
-        <div className="absolute top-4 right-4 z-20">
+        <div className="absolute top-4 right-4 z-20 flex gap-3">
           {design && design.status === "approved" ? (
             <div className="flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full shadow">
               <CheckCircle size={18} /> Approved
             </div>
           ) : (
             design && (
-              <motion.button
-                onClick={handleApprove}
-                className="bg-teal-500 text-white px-6 py-2 rounded-full shadow-lg hover:bg-teal-600 transition"
-              >
-                Approve
-              </motion.button>
+              <>
+                <motion.button
+                  onClick={handleApprove}
+                  className="bg-teal-500 text-white px-6 py-2 rounded-full shadow-lg hover:bg-teal-600 transition"
+                >
+                  Approve
+                </motion.button>
+
+                <motion.button
+                  onClick={handleRevision}
+                  className="bg-yellow-500 text-white px-6 py-2 rounded-full shadow-lg hover:bg-yellow-600 transition"
+                >
+                  Request Revision
+                </motion.button>
+              </>
             )
           )}
         </div>
+
 
         {fabricCanvas && designRequest ? (
           <ThreeCanvas camera={{ position: [0, 1, 2.5], fov: 45 }}>

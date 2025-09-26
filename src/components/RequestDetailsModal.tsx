@@ -1,8 +1,6 @@
 // src/components/RequestDetailsModal.tsx
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
 import { X, Palette, Image } from "lucide-react";
 import { formatTimeAgo } from "../pages/utils/convexUtils";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -68,9 +66,9 @@ const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({
   );
 
   // Mutation (for approve/reject)
-  const updateRequestStatus = useMutation(
+  /*const updateRequestStatus = useMutation(
     api.design_requests.updateDesignRequestStatus
-  );
+  );*/
 
   useEffect(() => {
     if (!isOpen) setActiveTab("details");
@@ -180,7 +178,6 @@ const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({
               request={request}
               userType={userType}
               selectedDesigner={selectedDesigner} // ✅ pass state
-              updateRequestStatus={updateRequestStatus}
               onClose={onClose}
             />
           </motion.div>

@@ -11,7 +11,7 @@ interface Step2Props {
   canvasState: any;
   setCanvasState: React.Dispatch<React.SetStateAction<any>>;
   shirtType: string | null;
-  onSaveSnapshot?: (snapshot: string) => void; // 👈 allow parent to receive snapshot
+  onSaveSnapshot?: (snapshot: string) => void;
 }
 
 const Step2: React.FC<Step2Props> = ({
@@ -50,7 +50,6 @@ const Step2: React.FC<Step2Props> = ({
     setLocalCanvas(canvas);
 
     const saveState = () => {
-      if (!canvas) return;
       try {
         const state = JSON.stringify(canvas.toJSON());
         undoStack.current.push(state);
@@ -76,6 +75,7 @@ const Step2: React.FC<Step2Props> = ({
     canvas.on("object:modified", updateState);
     canvas.on("object:removed", updateState);
 
+    // restore from localStorage if present
     const savedCanvas = localStorage.getItem("savedCanvas");
     if (savedCanvas) {
       try {
@@ -98,6 +98,10 @@ const Step2: React.FC<Step2Props> = ({
       canvas.dispose();
       canvasRef.current = null;
       setLocalCanvas(null);
+
+      // 🧹 clear local storage when form closes
+      localStorage.removeItem("savedCanvas");
+      localStorage.removeItem("savedCanvasImage");
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -144,7 +148,7 @@ const Step2: React.FC<Step2Props> = ({
       localStorage.setItem("savedCanvasImage", snapshot);
 
       if (onSaveSnapshot) {
-        onSaveSnapshot(snapshot); // 👈 send snapshot to parent
+        onSaveSnapshot(snapshot);
       }
 
       alert("Canvas & snapshot saved locally ✅");
@@ -209,9 +213,11 @@ const Step2: React.FC<Step2Props> = ({
         });
 
         imgInstance.scaleToWidth(400);
-        localCanvas.clear();
+
+        // 👉 Add only when clicked (no auto-clear)
         localCanvas.add(imgInstance);
         localCanvas.centerObject(imgInstance);
+        localCanvas.setActiveObject(imgInstance);
         localCanvas.renderAll();
 
         const json = JSON.stringify(localCanvas.toJSON());

@@ -35,7 +35,6 @@ const Step3: React.FC<Step3Props> = ({
   setGender,
   sizes,
   setSizes,
-  shirtType,
   referenceImages,
   setReferenceImages,
   newPaletteColors,
@@ -186,7 +185,7 @@ const Step3: React.FC<Step3Props> = ({
   };
 
   return (
-    <div className="h-[323px] overflow-y-auto px-4 py-6 bg-white rounded-lg shadow-md space-y-6">
+    <div className="h-[323px]  px-4 py-6 bg-white rounded-lg shadow-md space-y-6">
       <h3 className="mb-4 text-2xl font-semibold text-gray-800">
         Colors & Details
       </h3>

@@ -258,7 +258,8 @@ export default function CanvasSettings({ canvas }: CanvasSettingsProps) {
     );
 
   return (
-    <div className="p-4 bg-white rounded shadow w-64 space-y-4">
+     <div
+    className="p-4 bg-white rounded shadow w-64 space-y-4 max-h-[70vh] overflow-y-auto">
       {/* === Toolbar === */}
       <div className="flex flex-wrap gap-2">
         <button onClick={handleText} className={`p-2 rounded text-teal-900 ${activeTool==="text"?"bg-teal-400 text-white":"bg-gray-200 hover:bg-gray-300"}`} title="Add Text"><Type size={18} strokeWidth={2.3}  /></button>
