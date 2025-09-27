@@ -1,9 +1,10 @@
 // src/components/ShirtSizeManager.tsx
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { Edit, Trash2, Loader } from "lucide-react";
+import { Edit, Trash2, Loader, Plus, X, FileText } from "lucide-react";
 
 interface ShirtSize {
   _id: Id<"shirt_sizes">;
@@ -24,6 +25,8 @@ const ShirtSizeManager: React.FC = () => {
 
   const [localSizes, setLocalSizes] = useState<ShirtSize[]>([]);
   const [editingSize, setEditingSize] = useState<ShirtSize | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const [formData, setFormData] = useState({
     size_label: "",
     w: "",
@@ -47,8 +50,8 @@ const ShirtSizeManager: React.FC = () => {
       w: Number(formData.w),
       h: Number(formData.h),
       type: formData.type as ShirtSize["type"],
-      sleeves_w: formData.sleeves_w ? Number(formData.sleeves_w) : undefined,
-      sleeves_h: formData.sleeves_h ? Number(formData.sleeves_h) : undefined,
+      sleeves_w: formData.type === "jersey" ? undefined : (formData.sleeves_w ? Number(formData.sleeves_w) : undefined),
+      sleeves_h: formData.type === "jersey" ? undefined : (formData.sleeves_h ? Number(formData.sleeves_h) : undefined),
       category: formData.category as ShirtSize["category"],
     };
 
@@ -71,6 +74,7 @@ const ShirtSizeManager: React.FC = () => {
       category: "adult",
     });
     setEditingSize(null);
+    setIsModalOpen(false);
   };
 
   const handleEdit = (size: ShirtSize) => {
@@ -84,11 +88,14 @@ const ShirtSizeManager: React.FC = () => {
       sleeves_h: size.sleeves_h ? String(size.sleeves_h) : "",
       category: size.category,
     });
+    setIsModalOpen(true);
   };
 
   const handleDelete = async (id: Id<"shirt_sizes">) => {
-    await deleteSize({ id });
-    setLocalSizes((prev) => prev.filter((s) => s._id !== id));
+    if (window.confirm("Are you sure you want to delete this size?")) {
+      await deleteSize({ id });
+      setLocalSizes((prev) => prev.filter((s) => s._id !== id));
+    }
   };
 
   if (!shirtSizes) {
@@ -100,177 +107,220 @@ const ShirtSizeManager: React.FC = () => {
   }
 
   return (
-    <div className="p-6 bg-white shadow rounded-xl">
-      <h2 className="text-xl font-semibold mb-4">Shirt Size Manager</h2>
-
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-        <label className="sr-only" htmlFor="size_label">Size Label</label>
-        <input
-          id="size_label"
-          type="text"
-          placeholder="Size Label"
-          value={formData.size_label}
-          onChange={(e) => setFormData({ ...formData, size_label: e.target.value })}
-          className="p-2 border rounded"
-          required
-        />
-
-        <label className="sr-only" htmlFor="width">Width</label>
-        <input
-          id="width"
-          type="number"
-          placeholder="Width"
-          value={formData.w}
-          onChange={(e) => setFormData({ ...formData, w: e.target.value })}
-          className="p-2 border rounded"
-          required
-        />
-
-        <label className="sr-only" htmlFor="height">Height</label>
-        <input
-          id="height"
-          type="number"
-          placeholder="Height"
-          value={formData.h}
-          onChange={(e) => setFormData({ ...formData, h: e.target.value })}
-          className="p-2 border rounded"
-          required
-        />
-
-        <label className="sr-only" htmlFor="type">Shirt Type</label>
-        <select
-          id="type"
-          value={formData.type}
-          onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-          className="p-2 border rounded"
-        >
-          <option value="tshirt">T-Shirt</option>
-          <option value="polo">Polo</option>
-          <option value="jersey">Jersey</option>
-          <option value="long sleeves">Long Sleeves</option>
-        </select>
-
-        <label className="sr-only" htmlFor="category">Category</label>
-        <select
-          id="category"
-          value={formData.category}
-          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-          className="p-2 border rounded"
-        >
-          <option value="adult">Adult</option>
-          <option value="kids">Kids</option>
-        </select>
-
-        <label className="sr-only" htmlFor="sleeve_w">Sleeve Width</label>
-        <input
-          id="sleeve_w"
-          type="number"
-          placeholder="Sleeve Width"
-          value={formData.sleeves_w}
-          onChange={(e) => setFormData({ ...formData, sleeves_w: e.target.value })}
-          className="p-2 border rounded"
-        />
-
-        <label className="sr-only" htmlFor="sleeve_h">Sleeve Height</label>
-        <input
-          id="sleeve_h"
-          type="number"
-          placeholder="Sleeve Height"
-          value={formData.sleeves_h}
-          onChange={(e) => setFormData({ ...formData, sleeves_h: e.target.value })}
-          className="p-2 border rounded"
-        />
-
+    <div className="p-6 bg-gradient-to-br from-white to-gray-50 shadow rounded-xl">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Shirt Size Manager</h2>
+          <p className="text-gray-600">Manage shirt sizes across categories</p>
+        </div>
         <button
-          type="submit"
-          className="bg-teal-600 text-white rounded px-4 py-2 hover:bg-teal-700 transition"
+          onClick={() => {
+            setEditingSize(null);
+            setFormData({
+              size_label: "",
+              w: "",
+              h: "",
+              type: "tshirt",
+              sleeves_w: "",
+              sleeves_h: "",
+              category: "adult",
+            });
+            setIsModalOpen(true);
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition text-sm font-medium"
         >
-          {editingSize ? "Update" : "Add"}
+          <Plus className="h-4 w-4" /> Add Size
         </button>
-      </form>
-
-      {/* Sizes Table */}
-      <div className="hidden md:block">
-        <table className="w-full border rounded-lg overflow-hidden">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-2 border">Size</th>
-              <th className="px-4 py-2 border">Width</th>
-              <th className="px-4 py-2 border">Height</th>
-              <th className="px-4 py-2 border">Type</th>
-              <th className="px-4 py-2 border">Category</th>
-              <th className="px-4 py-2 border">Sleeve W</th>
-              <th className="px-4 py-2 border">Sleeve H</th>
-              <th className="px-4 py-2 border">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {localSizes.map((size) => (
-              <tr key={size._id}>
-                <td className="px-4 py-2 border">{size.size_label}</td>
-                <td className="px-4 py-2 border">{size.w}</td>
-                <td className="px-4 py-2 border">{size.h}</td>
-                <td className="px-4 py-2 border">{size.type}</td>
-                <td className="px-4 py-2 border">{size.category}</td>
-                <td className="px-4 py-2 border">{size.sleeves_w ?? "-"}</td>
-                <td className="px-4 py-2 border">{size.sleeves_h ?? "-"}</td>
-                <td className="px-4 py-2 border flex gap-2">
-                  <button
-                    onClick={() => handleEdit(size)}
-                    className="text-blue-600 hover:text-blue-800"
-                    aria-label={`Edit size ${size.size_label}`}
-                    title={`Edit size ${size.size_label}`}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(size._id)}
-                    className="text-red-600 hover:text-red-800"
-                    aria-label={`Delete size ${size.size_label}`}
-                    title={`Delete size ${size.size_label}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
 
-      {/* Mobile View */}
-      <div className="grid md:hidden gap-4">
-        {localSizes.map((size) => (
-          <div key={size._id} className="border rounded-lg p-4 shadow">
-            <h3 className="font-semibold text-gray-800">{size.size_label}</h3>
-            <p>Width: {size.w}</p>
-            <p>Height: {size.h}</p>
-            <p>Type: {size.type}</p>
-            <p>Category: {size.category}</p>
-            <p>Sleeve W: {size.sleeves_w ?? "-"}</p>
-            <p>Sleeve H: {size.sleeves_h ?? "-"}</p>
-            <div className="flex gap-2 mt-2">
-              <button
-                onClick={() => handleEdit(size)}
-                className="text-blue-600 hover:text-blue-800"
-                aria-label={`Edit size ${size.size_label}`}
-                title={`Edit size ${size.size_label}`}
-              >
-                <Edit className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleDelete(size._id)}
-                className="text-red-600 hover:text-red-800"
-                aria-label={`Delete size ${size.size_label}`}
-                title={`Delete size ${size.size_label}`}
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
+      {/* Table */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        {localSizes.length === 0 ? (
+          <div className="p-6 text-center">
+            <FileText className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-600 text-sm">No shirt sizes added yet</p>
           </div>
-        ))}
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {["Size", "Width", "Height", "Type", "Category", "Sleeve W", "Sleeve H"].map(
+                    (col) => (
+                      <th
+                        key={col}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        {col}
+                      </th>
+                    )
+                  )}
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {localSizes.map((size) => (
+                  <tr key={size._id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{size.size_label}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{size.w}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{size.h}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{size.type}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{size.category}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{size.sleeves_w ?? "-"}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{size.sleeves_h ?? "-"}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                      <button
+                        onClick={() => handleEdit(size)}
+                        className="inline-flex items-center px-2 py-1 text-blue-600 hover:text-blue-800 rounded-md hover:bg-blue-50"
+                      >
+                        <Edit className="h-4 w-4 mr-1" /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(size._id)}
+                        className="inline-flex items-center px-2 py-1 text-red-600 hover:text-red-800 rounded-md hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" /> Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
+
+      {/* Add/Edit Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 px-4">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.2 }}
+            className="bg-white rounded-xl shadow-lg w-full max-w-lg p-5 relative"
+          >
+            <button
+              aria-label="Close modal"
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <h2 className="text-lg font-semibold mb-4">
+              {editingSize ? "Edit Shirt Size" : "Add Shirt Size"}
+            </h2>
+
+            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Size Label</label>
+                <input
+                  aria-label="Size label"
+                  type="text"
+                  value={formData.size_label}
+                  onChange={(e) => setFormData({ ...formData, size_label: e.target.value })}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Width</label>
+                <input
+                  aria-label="Width"
+                  type="number"
+                  value={formData.w}
+                  onChange={(e) => setFormData({ ...formData, w: e.target.value })}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Height</label>
+                <input
+                  aria-label="Height"
+                  type="number"
+                  value={formData.h}
+                  onChange={(e) => setFormData({ ...formData, h: e.target.value })}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+                <select
+                  aria-label="Shirt type"
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="tshirt">T-Shirt</option>
+                  <option value="polo">Polo</option>
+                  <option value="jersey">Jersey</option>
+                  <option value="long sleeves">Long Sleeves</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+                <select
+                  aria-label="Shirt category"
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="adult">Adult</option>
+                  <option value="kids">Kids</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Sleeve Width</label>
+                <input
+                  aria-label="Sleeve width"
+                  type="number"
+                  value={formData.sleeves_w}
+                  onChange={(e) => setFormData({ ...formData, sleeves_w: e.target.value })}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  disabled={formData.type === "jersey"}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Sleeve Height</label>
+                <input
+                  aria-label="Sleeve height"
+                  type="number"
+                  value={formData.sleeves_h}
+                  onChange={(e) => setFormData({ ...formData, sleeves_h: e.target.value })}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  disabled={formData.type === "jersey"}
+                />
+              </div>
+
+              <div className="col-span-2 flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+                >
+                  {editingSize ? "Save" : "Add"}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

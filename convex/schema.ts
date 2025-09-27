@@ -238,27 +238,31 @@ export default defineSchema({
     .index("by_user", ["user_id"]),
     // --- BILLING ---
     billing: defineTable({
-    invoice_id: v.id("invoices"),
-    starting_amount: v.number(),
-    final_amount: v.number(),
-    negotiation_history: v.optional(v.array(v.string())),
-    negotiation_rounds: v.number(),
-    status: v.union(v.literal("billed"), v.literal("pending"), v.literal("approved")),
-    client_id: v.id("users"),   // 🔄 changed from "clients"
-    design_id: v.id("design"),
-    designer_id: v.id("users"), // 🔄 changed from "designers"
-    created_at: v.number(),
-  })
-  .index("by_invoice", ["invoice_id"])
+  starting_amount: v.number(),
+  final_amount: v.number(),
+  negotiation_history: v.optional(v.array(v.string())),
+  negotiation_rounds: v.number(),
+  status: v.union(
+    v.literal("billed"),
+    v.literal("pending"),
+    v.literal("approved")
+  ),
+  client_id: v.id("users"),    // 🔄 client who pays
+  design_id: v.id("design"),   // 🔄 linked design
+  designer_id: v.id("users"),  // 🔄 designer who created
+  created_at: v.number(),
+})
   .index("by_client", ["client_id"])
   .index("by_designer", ["designer_id"])
   .index("by_design", ["design_id"]),
 
-  // --- INVOICES ---
-  invoices: defineTable({
-    invoice_file: v.id("_storage"),   // stored invoice file
-    created_at: v.number(),
-  }),
-
+// --- INVOICES ---
+invoices: defineTable({
+  billing_id: v.id("billing"),             // 🔄 now references billing
+  invoice_file: v.optional(v.id("_storage")), // PDF/file upload (optional for now)
+  created_at: v.number(),
+})
+  .index("by_billing", ["billing_id"]),
+  
 });
 

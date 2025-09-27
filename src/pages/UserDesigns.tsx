@@ -272,7 +272,7 @@ const UserDesigns: React.FC = () => {
                               onClick={() => openModal(d)}
                               className="px-3 py-1 text-sm bg-cyan-600 text-white rounded hover:bg-indigo-600 transition"
                             >
-                              See Progress
+                              See Order Details
                             </button>
                           </td>
                         </tr>

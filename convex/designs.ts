@@ -53,32 +53,62 @@ export const approveDesign = mutation({
     const design = await ctx.db.get(designId);
     if (!design) throw new Error("Design not found");
 
-    // --- Update design status ---
-    await ctx.db.patch(designId, {
-      status: "approved",
-    });
+    // --- Get linked request ---
+    const request = await ctx.db.get(design.request_id);
+    if (!request) throw new Error("Design request not found");
 
-    // --- Check if a billing already exists for this design ---
+    // --- Get print type ---
+    const printType = request.print_type; // "Sublimation" | "Dtf"
+    if (!printType) throw new Error("Print type not set on request");
+
+    // --- Get total shirt count ---
+    const reqSizes = await ctx.db
+      .query("request_sizes")
+      .withIndex("by_request", (q) => q.eq("request_id", design.request_id))
+      .collect();
+
+    const shirtCount = reqSizes.reduce((sum, rs) => sum + rs.quantity, 0);
+
+    // --- Extract revision count ---
+    const revisionCount = design.revision_count ?? 0;
+
+    // --- printing fee per shirt ---
+    const printFee =
+      printType.toLowerCase() === "sublimation" ? 550 : 500;
+
+    // --- revision fee ---
+    let revisionFee = 0;
+    if (shirtCount >= 15) {
+      revisionFee = revisionCount > 2 ? (revisionCount - 2) * 400 : 0;
+    } else {
+      revisionFee = revisionCount * 400;
+    }
+
+    // --- base calculation ---
+    let startingAmount = 0;
+    if (shirtCount >= 15) {
+      startingAmount = shirtCount * printFee + revisionFee;
+    } else {
+      startingAmount = shirtCount * printFee + 400 + revisionFee; // + designer fee
+    }
+
+    // --- Update design status ---
+    await ctx.db.patch(designId, { status: "approved" });
+
+    // --- Check if a billing already exists ---
     const existingBilling = await ctx.db
       .query("billing")
       .withIndex("by_design", (q) => q.eq("design_id", designId))
       .first();
 
     if (!existingBilling) {
-      // --- Create an invoice first ---
-      const invoiceId = await ctx.db.insert("invoices", {
-        invoice_file: null as any, // can be filled later with actual file
-        created_at: Date.now(),
-      });
+      // Create invoice
+      
 
-      // --- Insert billing record ---
+      // Insert billing record
       await ctx.db.insert("billing", {
-        invoice_id: await ctx.db.insert("invoices", {
-          invoice_file: null as any, // or generate later
-          created_at: null as any,
-        }),
-        starting_amount: 0,
-        final_amount: 0,
+        starting_amount: startingAmount,
+        final_amount: startingAmount,
         negotiation_history: [],
         negotiation_rounds: 0,
         status: "pending",
@@ -87,11 +117,12 @@ export const approveDesign = mutation({
         design_id: designId,
         created_at: Date.now(),
       });
-      }
+    }
 
-    return { success: true, status: "approved" };
+    return { success: true, status: "approved", startingAmount };
   },
 });
+
 
 
 

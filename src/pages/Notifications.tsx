@@ -10,11 +10,12 @@ import { Bell, CheckCircle, Clock, AlertTriangle, Trash2 } from "lucide-react";
 import { formatTimeAgo } from "./utils/convexUtils";
 
 interface Notification {
-  id: string; // _id from Convex
+  id: any; // Id<"notifications"> from Convex (use `any` or proper Id type)
   notif_content: string;
   is_read?: boolean;
   created_at?: number;
 }
+
 
 const Notifications: React.FC = () => {
   const navigate = useNavigate();
@@ -54,10 +55,10 @@ const Notifications: React.FC = () => {
 
   // Map Convex fields to local Notification interface
   const notifications: Notification[] = notificationsRaw.map((n: any) => ({
-    id: n._id,
-    notif_content: n.content,
-    is_read: n.isRead,
-    created_at: n.createdAt,
+    id: n.id,                 // <- use server's `id`
+    notif_content: n.content, // <- server returns `content`
+    is_read: n.isRead ?? false,
+    created_at: n.createdAt ?? null,
   }));
 
   // Mutations
@@ -65,21 +66,31 @@ const Notifications: React.FC = () => {
   const markAllAsReadMutation = useMutation(api.notifications.markAllNotificationsAsRead);
   const deleteNotificationMutation = useMutation(api.notifications.deleteNotification);
 
-  const markAsRead = async (id: string) => {
-    try {
-      await markAsReadMutation({ notificationId: id as any }); // cast string → Id<"notifications">
-    } catch (err) {
-      console.error("Error marking notification as read:", err);
-    }
-  };
+  const deleteNotification = async (id: any) => {
+      try {
+        const res = await deleteNotificationMutation({ notificationId: id });
+        if (!res || !res.success) {
+          console.error("Failed to delete notification:", res?.error ?? res);
+          // optionally show user feedback / toast
+        } else {
+          console.log("Deleted notification", id);
+        }
+      } catch (err) {
+        console.error("Error deleting notification:", err);
+      }
+    };
 
-  const deleteNotification = async (id: string) => {
-    try {
-      await deleteNotificationMutation({ notificationId: id as any }); // cast string → Id<"notifications">
-    } catch (err) {
-      console.error("Error deleting notification:", err);
-    }
-  };
+  const markAsRead = async (id: any) => {
+      try {
+        const res = await markAsReadMutation({ notificationId: id });
+        if (!res || !res.success) {
+          console.error("Failed to mark as read:", res?.error ?? res);
+        }
+      } catch (err) {
+        console.error("Error marking notification as read:", err);
+      }
+    };
+
 
   const markAllAsRead = async () => {
     if (!userId) return;
