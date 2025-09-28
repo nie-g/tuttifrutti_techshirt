@@ -22,6 +22,7 @@ import ClientProfile from './pages/ClientProfile';
 import Portfolio from './pages/Potfolio';
 import Gallery from './pages/Gallery';
 import Designs from './pages/Designs';
+import AdminDesigns from './pages/AdminDesigns';
 
 
 
@@ -54,6 +55,7 @@ function App() {
         <Route path="/designer/settings" element={<Portfolio />} />
         <Route path="/designer/gallery" element={<Gallery />} />
         <Route path="/designer/designs" element={<Designs />} />
+        <Route path="/admin/designs" element={<AdminDesigns />} />
       </Routes>
     </BrowserRouter>
   );

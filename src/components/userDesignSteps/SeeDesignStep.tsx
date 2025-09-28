@@ -1,13 +1,16 @@
 import React from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import {
   Shirt,
   FileText,
   Calendar,
   User,
   CheckCircle,
-  Clock,
+  Layers,
+  Package,
 } from "lucide-react";
-import type { Id } from "../../../convex/_generated/dataModel";
 import type { LucideIcon } from "lucide-react";
 
 /* -------------------------
@@ -22,52 +25,26 @@ const InfoRow = ({
   label: string;
   value: string | React.ReactNode;
 }) => (
-  <div className="flex items-start gap-3">
-    <div className="p-2 rounded-lg bg-gray-100 text-gray-600">
+  <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition">
+    <div className="p-2 rounded-lg bg-white shadow-sm text-gray-600 flex items-center justify-center">
       <Icon size={18} />
     </div>
     <div>
-      <p className="text-sm font-medium text-gray-500">{label}</p>
-      <p className="text-base text-gray-900">{value}</p>
+      <p className="text-xs uppercase font-medium text-gray-500 tracking-wide">
+        {label}
+      </p>
+      <p className="text-sm font-semibold text-gray-900">{value}</p>
     </div>
   </div>
 );
 
-/* -------------------------
-   Types
-------------------------- */
-interface User {
-  _id: Id<"users">;
-  firstName: string;
-  lastName: string;
-  email: string;
+interface SeeDesignStepProps {
+  designId: Id<"design">; // ✅ Convex Id type
 }
 
-interface DesignRequest {
-  _id: Id<"design_requests">;
-  request_title: string;
-  gender?: string;
-  tshirt_type?: string;
-  description?: string;
-  status: "pending" | "approved" | "rejected";
-  created_at?: number;
-}
+const SeeDesignStep: React.FC<SeeDesignStepProps> = ({ designId }) => {
+  const design = useQuery(api.designs.getFullDesignDetails, { designId });
 
-interface Design {
-  _id: Id<"design">;
-  description?: string;
-  status: "in_progress" | "finished" | "billed" | "approved";
-  deadline?: string;
-  created_at?: number;
-  designer?: User;
-  client?: User;
-  designRequest?: DesignRequest;
-}
-
-/* -------------------------
-   Component
-------------------------- */
-const SeeDesignStep: React.FC<{ design: Design }> = ({ design }) => {
   const formatDate = (timestamp?: number) => {
     if (!timestamp) return "N/A";
     return new Date(timestamp).toLocaleDateString("en-US", {
@@ -77,77 +54,121 @@ const SeeDesignStep: React.FC<{ design: Design }> = ({ design }) => {
     });
   };
 
+  if (design === undefined) {
+    return <p className="text-gray-500 italic">Loading design details…</p>;
+  }
+  if (design === null) {
+    return <p className="text-red-500 font-medium">Design not found.</p>;
+  }
+
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-800">Design Details</h3>
+    <div className="space-y-8">
+     
 
-      <div className="space-y-4">
-        {/* --- DESIGN INFO --- */}
-        <InfoRow
-          icon={FileText}
-          label="Description"
-          value={design.description || "No design description available."}
-        />
-        <InfoRow icon={CheckCircle} label="Status" value={design.status || "N/A"} />
-        <InfoRow icon={Clock} label="Deadline" value={design.deadline || "Not set"} />
-        <InfoRow icon={Calendar} label="Created At" value={formatDate(design.created_at)} />
+      {design.request && (
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Left Column */}
+          <div className="space-y-3">
+            <InfoRow
+              icon={User}
+              label="Assigned Designer"
+              value={
+                design.designer
+                  ? `${design.designer.firstName} ${design.designer.lastName} `
+                  : "N/A"
+              }
+            />
+            <InfoRow
+              icon={CheckCircle}
+              label="Design Status"
+              value={design.design.status || "N/A"}
+            />
+            <InfoRow
+              icon={FileText}
+              label="Request Title"
+              value={design.request.request_title || "N/A"}
+            />
+            <InfoRow
+              icon={Shirt}
+              label="Shirt Type"
+              value={design.request.tshirt_type || "N/A"}
+            />
+            <InfoRow
+              icon={User}
+              label="Gender"
+              value={design.request.gender || "N/A"}
+            />
+          </div>
 
-        {/* --- DESIGNER INFO --- */}
-        <InfoRow
-          icon={User}
-          label="Designer"
-          value={
-            design.designer
-              ? `${design.designer.firstName} ${design.designer.lastName} (${design.designer.email})`
-              : "N/A"
-          }
-        />
+          {/* Right Column */}
+          <div className="space-y-3">
+            <InfoRow
+              icon={Layers}
+              label="Fabric"
+              value={design.fabric?.name || "N/A"}
+            />
+            <InfoRow
+              icon={Package}
+              label="Print Type"
+              value={design.request.print_type || "N/A"}
+            />
+           
+            <InfoRow
+              icon={FileText}
+              label="Request Description"
+              value={design.request.description || "No description"}
+            />
+            <InfoRow
+              icon={Calendar}
+              label="Requested At"
+              value={formatDate(design.request.created_at)}
+            />
+          </div>
+        </div>
+      )}
 
-        {/* --- CLIENT INFO --- */}
-        <InfoRow
-          icon={User}
-          label="Client"
-          value={
-            design.client
-              ? `${design.client.firstName} ${design.client.lastName}`
-              : "N/A"
-          }
-        />
+      {/* Sizes */}
+      <div className="bg-gray-50 rounded-xl p-4 shadow-sm">
+        <p className="text-sm font-semibold text-gray-700 mb-2">Shirt Sizes</p>
+        <ul className="space-y-1 text-sm text-gray-900">
+          {design.sizes?.length > 0 ? (
+            design.sizes.map((s, idx) => (
+              <li
+                key={idx}
+                className="flex justify-between bg-white px-3 py-1.5 rounded-md shadow-sm"
+              >
+                <span>{s.size_label}</span>
+                <span className="text-gray-600">{s.quantity} pcs</span>
+              </li>
+            ))
+          ) : (
+            <li className="text-gray-500 italic">No sizes specified</li>
+          )}
+        </ul>
+      </div>
 
-        {/* --- DESIGN REQUEST INFO --- */}
-        <div className="pt-4 border-t space-y-4">
-          <h4 className="text-md font-semibold text-gray-800">Request Details</h4>
-
-          <InfoRow
-            icon={FileText}
-            label="Request Title"
-            value={design.designRequest?.request_title || "N/A"}
-          />
-          <InfoRow
-            icon={Shirt}
-            label="Shirt Type"
-            value={design.designRequest?.tshirt_type || "N/A"}
-          />
-          <InfoRow
-            icon={User}
-            label="Gender"
-            value={design.designRequest?.gender || "N/A"}
-          />
-          <InfoRow
-            icon={CheckCircle}
-            label="Request Status"
-            value={design.designRequest?.status || "N/A"}
-          />
-          <InfoRow
-            icon={FileText}
-            label="Request Description"
-            value={design.designRequest?.description || "No description"}
-          />
-          <InfoRow
-            icon={Calendar}
-            label="Requested At"
-            value={formatDate(design.designRequest?.created_at)}
-          />
+      {/* Colors */}
+      <div className="bg-gray-50 rounded-xl p-4 shadow-sm">
+        <p className="text-sm font-semibold text-gray-700 mb-2">
+          Selected Colors
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {design.colors?.length > 0 ? (
+            design.colors.map((c, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white shadow-sm border border-gray-400"
+              >
+                <span
+                  className="inline-block w-5 h-5 rounded-full border"
+                  style={{ backgroundColor: c.hex }}
+                />
+                <span className="text-sm text-gray-800">{c.hex}</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500 italic">No colors selected</p>
+          )}
         </div>
       </div>
     </div>

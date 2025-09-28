@@ -189,7 +189,7 @@ const UserDesigns: React.FC = () => {
           {/* Filter Tabs */}
           <div className="flex overflow-x-auto pb-2 hide-scrollbar">
             <div className="flex space-x-2 min-w-max">
-              {["all", "in_progress", "finished", "billed", "approved"].map(
+              {["all", "in_progress", "finished", "pending_revision", "approved"].map(
                 (tab) => (
                   <button
                     key={tab}

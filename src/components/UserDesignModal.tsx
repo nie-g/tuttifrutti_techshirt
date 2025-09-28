@@ -67,7 +67,7 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
 
         {/* Stepper */}
         <div className="flex justify-center my-4 sm:my-1 space-x-6 sm:space-x-8">
-          {["See Design", "Progress", "Finalize"].map((label, index) => (
+          {["Order Details", "Design Progress", "Summary"].map((label, index) => (
             <div key={index} className="flex flex-col items-center">
               <div
                 className={`w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full text-white font-bold shadow-lg ${
@@ -89,7 +89,7 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
 
         {/* Step Content */}
         <div className="mt-2 sm:mt-4 flex-1 overflow-y-auto pr-1 sm:pr-2">
-          {step === 1 && <SeeDesignStep design={design} />}
+          {step === 1 && <SeeDesignStep designId={design._id} />}
           {step === 2 && <ProgressTrackingStep designId={design._id} />}
           {step === 3 && <FinalizeDesignStep design={design} />}
         </div>

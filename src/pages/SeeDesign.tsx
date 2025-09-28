@@ -7,7 +7,7 @@ import { Canvas as ThreeCanvas } from "@react-three/fiber";
 import { PresentationControls, Stage } from "@react-three/drei";
 import TexturedTShirt from "./seeDesign/TexturedShirt";
 import ThreeScreenshotHelper from "../components/ThreeScreenshotHelper";
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, Clock2 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -116,6 +116,23 @@ const SeeDesign: React.FC = () => {
   const [isRevisionInProgressModalOpen, setIsRevisionInProgressModalOpen] =useState(false);
   const billing = useQuery(api.billing.getBillingBreakdown,designId ? { designId } : "skip");
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
+  const approveBill = useMutation(api.billing.approveBill);
+
+    const handleApproveBill = async () => {
+    if (!designId) return;
+    try {
+      const res = await approveBill({ designId });
+      alert("✅ Bill approved successfully!");
+
+      // force refresh so the updated status shows
+      // (assuming convex v1)
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to approve bill:", err);
+      alert("⚠️ Failed to approve bill.");
+    }
+  };
+
 
   
 const RevisionConfirmModal = () => (
@@ -195,7 +212,7 @@ const ApproveConfirmModal = () => (
 const NotReadyModal = () => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
     <div className="bg-white rounded-2xl shadow-lg p-6 max-w-sm w-full">
-      <h3 className="text-lg font-semibold mb-2">Design Not Ready</h3>
+      <h3 className="text-lg font-semibold mb-2">Design Not Ready </h3>
       <p className="text-sm text-gray-600 mb-4">
         This design is not yet complete.  
         Please wait until the designer posts an update before you can approve or request a revision.
@@ -312,7 +329,7 @@ function createWhiteFallbackCanvas(): HTMLCanvasElement {
         <div className="absolute top-4 right-4 z-20 flex gap-3">
           {design && design.status === "approved" ? (
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full shadow">
+              <div className="flex items-center gap-2 bg-green-50 text-green-700 border border-green-600 px-4 py-2 rounded-full shadow">
                 <CheckCircle size={18} /> Approved
               </div>
               {/* 🆕 Billing button only visible when approved */}
@@ -385,9 +402,11 @@ function createWhiteFallbackCanvas(): HTMLCanvasElement {
         )}
       </motion.div>
 
-      {/* Right: Comments */}
-      <motion.div className="w-full md:w-1/3 border rounded-2xl h-[96vh] p-4 shadow-md bg-white flex flex-col">
-        <h2 className="text-lg font-semibold mb-4">Comments</h2>
+     {/* Right: Comments */}
+    <motion.div className="w-full md:w-1/3 border rounded-2xl h-[96vh] p-4 shadow-md bg-white flex flex-col">
+      <h2 className="text-lg font-semibold mb-4">Comments</h2>
+
+        {/* Comments list */}
         <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-1">
           {comments?.length ? (
             comments
@@ -411,49 +430,63 @@ function createWhiteFallbackCanvas(): HTMLCanvasElement {
             <p className="text-gray-400 text-sm">No comments yet.</p>
           )}
         </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder={
-              design?.status === "approved"
-                ? "Comments are disabled after approval"
-                : "Write a comment..."
-            }
-            disabled={design?.status === "approved"}
-            className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none ${
-              design?.status === "approved"
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "focus:ring-2 focus:ring-teal-400"
-            }`}
-          />
-          <button
-            onClick={handleAddComment}
-            disabled={design?.status === "approved"}
-            className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-              design?.status === "approved"
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-teal-500 text-white hover:bg-teal-600"
-            }`}
-          >
-            Send
-          </button>
-        </div>
 
+      {/* Input / Controls */}
+      {(() => {
+        const noPreviews = !latestPreview;
+        const isDisabled =
+          design?.status === "approved" ||
+          design?.status === "finished" ||
+          noPreviews;
+
+        return (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder={
+                isDisabled
+                  ? "Comments are disabled"
+                  : "Write a comment..."
+              }
+              disabled={isDisabled}
+              className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none ${
+                isDisabled
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "focus:ring-2 focus:ring-teal-400"
+              }`}
+            />
+            <button
+              onClick={handleAddComment}
+              disabled={isDisabled}
+              className={`px-4 py-2 text-sm rounded-lg transition-colors ${
+                isDisabled
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-teal-500 text-white hover:bg-teal-600"
+              }`}
+            >
+              Send
+            </button>
+          </div>
+        );
+      })()}
       </motion.div>
+
      {/* 🆕 Modal Renders */}
       {isRevisionModalOpen && <RevisionConfirmModal />}
       {isApproveModalOpen && <ApproveConfirmModal />}
       {isNotReadyModalOpen && <NotReadyModal />}
       {isRevisionInProgressModalOpen && <RevisionInProgressModal />}
-      {isBillModalOpen && billing && (<BillModal
-    billing={billing}
-    onClose={() => setIsBillModalOpen(false)}
-    onApprove={() => console.log("approve bill")}
-    onNegotiate={() => console.log("negotiate bill")}
-  />
-)}
+      {isBillModalOpen && billing && (
+      <BillModal
+        designId={design!._id}
+        billing={billing}
+        onClose={() => setIsBillModalOpen(false)}
+        onApprove={handleApproveBill}   // ✅ now functional
+        onNegotiate={() => console.log("negotiate bill")}
+      />
+    )}
 
      
     </motion.div>

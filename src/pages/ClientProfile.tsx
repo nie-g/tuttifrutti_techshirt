@@ -4,8 +4,9 @@ import { useUser, useClerk } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { Save, Settings } from "lucide-react";
-
+import { Save, Settings, Phone, MapPin } from "lucide-react";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css"; 
 import ClientNavbar from "../components/UsersNavbar";
 import DynamicSidebar from "../components/Sidebar";
 
@@ -136,90 +137,106 @@ const Profile: React.FC = () => {
               </button>
             </div>
 
-            {/* === Second Container: Client Info (view + edit) === */}
-            {dbUser.role === "client" && (
-              <div className="p-6 bg-white rounded-2xl shadow-md">
-                <h2 className="text-lg font-semibold mb-4">
-                  Client Information
-                </h2>
-
-                {!isEditing ? (
-                  <>
-                    <div className="space-y-3 text-gray-700">
-                      <p>
-                        <span className="font-medium text-gray-600">
-                          📞 Phone:
-                        </span>{" "}
-                        {clientProfile?.phone || "Not provided"}
-                      </p>
-                      <p>
-                        <span className="font-medium text-gray-600">
-                          📍 Address:
-                        </span>{" "}
-                        {clientProfile?.address || "Not provided"}
-                      </p>
-                    </div>
-
-                    <div className="mt-6 flex justify-end">
-                      <button
-                        onClick={() => setIsEditing(true)}
-                        className="flex items-center gap-2 bg-gray-100 text-gray-700 px-6 py-2 rounded-lg shadow hover:bg-gray-200 transition"
-                      >
-                        <Settings size={18} /> Edit Information
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-600">
-                          Phone
-                        </label>
-                        <input
-                          aria-label="Phone number"
-                          type="text"
-                          value={form.phone}
-                          onChange={(e) =>
-                            setForm({ ...form, phone: e.target.value })
-                          }
-                          className="mt-1 w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
-                        />
+           {/* === Second Container: Client Info (view + edit) === */}
+              {dbUser.role === "client" && (
+                <div className=" bg-white rounded-2xl shadow-md p-10  ">
+                  <div className="  justify-items-center mb-10">
+                    <h2 className="text-2xl font-semibold text-gray-800">Client Contact Information</h2>
+                  </div>
+                  
+                  {!isEditing ? (
+                    <>
+                      <div className="space-y-3 text-gray-700">
+                        
+                        <p>
+                          <span className="font-medium text-gray-600">Contact Number:</span>{" "}
+                          {clientProfile?.phone || "Not provided"}
+                        </p>
+                        <p>
+                          <span className="font-medium text-gray-600">Home Address:</span>{" "}
+                          {clientProfile?.address || "Not provided"}
+                        </p>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-600">
-                          Address
-                        </label>
-                        <input
-                          aria-label="Address"
-                          type="text"
-                          value={form.address}
-                          onChange={(e) =>
-                            setForm({ ...form, address: e.target.value })
-                          }
-                          className="mt-1 w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
-                        />
-                      </div>
-                    </div>
 
-                    <div className="mt-6 flex justify-end gap-3">
-                      <button
-                        onClick={() => setIsEditing(false)}
-                        className="px-6 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition"
+                      <div className="mt-6 flex justify-end">
+                        <button
+                          onClick={() => setIsEditing(true)}
+                          className="flex items-center gap-2 bg-gray-100 text-gray-700 px-6 py-2 rounded-lg shadow hover:bg-gray-200 transition"
+                        >
+                          <Settings size={18} />
+                          {(!clientProfile?.phone && !clientProfile?.address)
+                            ? "Set up your contact information"
+                            : "Edit Information"}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <form
+                        className="space-y-4 "
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleSave();
+                        }}
                       >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleSave}
-                        className="flex items-center gap-2 bg-teal-500 text-white px-6 py-2 rounded-lg shadow hover:bg-teal-600 transition"
-                      >
-                        <Save size={18} /> Save Changes
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+                        {/* ✅ Contact number with label beside input */}
+                        <div className="flex items-center gap-4">
+                          <label className="w-1/3 text-sm font-medium text-gray-600">
+                            Please enter your Contact Number <span className="text-red-500">*</span>
+                          </label>
+                          {/* ✅ Phone input */}
+                          <div className="flex-1">  
+                            <PhoneInput
+                              country={"ph"} // default to PH
+                              value={form.phone}
+                              onChange={(value) => setForm({ ...form, phone: value })}
+                              inputClass="!w-full !h-10 !text-sm !rounded-lg !border-gray-300 focus:!ring-teal-400 required"
+                            />
+                          </div>
+                          
+                        </div>
+
+                        {/* ✅ Address with inline label */}
+                        <div className="flex items-center gap-4">
+                          <label className="w-1/3 text-sm font-medium text-gray-600">
+                            Please enter your current address <span className="text-red-500">*</span>
+                          </label>
+                          <div className="flex-1">  
+                            <textarea
+                              aria-label="Address"
+                              value={form.address}
+                              onChange={(e) =>
+                                setForm({ ...form, address: e.target.value })
+                              }
+                              className="w-full h-24 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+                              required
+                            />
+                          </div>
+                          
+                        </div>
+
+                        {/* Actions */}
+                        <div className="mt-6 flex justify-end gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setIsEditing(false)}
+                            className="px-6 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="flex items-center gap-2 bg-teal-500 text-white px-6 py-2 rounded-lg shadow hover:bg-teal-600 transition"
+                          >
+                            <Save size={18} /> Save Changes
+                          </button>
+                        </div>
+                      </form>
+                    </>
+                  )}
+                </div>
+              )}
+
           </motion.div>
         </main>
       </div>

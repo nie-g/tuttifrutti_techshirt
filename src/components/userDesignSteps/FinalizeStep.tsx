@@ -1,4 +1,6 @@
 import React from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 interface FinalizeDesignStepProps {
@@ -13,67 +15,119 @@ interface FinalizeDesignStepProps {
 }
 
 const FinalizeDesignStep: React.FC<FinalizeDesignStepProps> = ({ design }) => {
+  const isApproved = design.status === "approved";
   const isFinished = design.status === "finished";
+
+  // Fetch billing breakdown
+  const billing = useQuery(api.billing.getBillingBreakdown, {
+    designId: design._id,
+  });
 
   return (
     <div className="p-4 space-y-6">
-      {/* Summary */}
-      <div>
-        <h2 className="text-lg font-semibold mb-2">Order Summary</h2>
-        <div className="space-y-1 text-gray-700 text-sm">
-          <p>
-            <span className="font-medium">Design Title:</span>{" "}
-            {design.title || "Untitled"}
-          </p>
-          <p>
-            <span className="font-medium">Description:</span>{" "}
-            {design.description || "No description provided"}
-          </p>
-          <p>
-            <span className="font-medium">Status:</span>{" "}
-            <span
-              className={`${
-                isFinished ? "text-green-600 font-semibold" : "text-red-500"
-              }`}
-            >
-              {design.status}
-            </span>
-          </p>
-          {design.createdAt && (
+      {/* Approved: Estimated Bill */}
+      {isApproved && billing && (
+        <div>
+          <h2 className="text-lg font-semibold mb-2">Estimated Bill Breakdown</h2>
+          <div className="p-4 border rounded-lg shadow-sm bg-gray-50 space-y-2 text-sm text-gray-700">
             <p>
-              <span className="font-medium">Requested On:</span>{" "}
-              {new Date(design.createdAt).toLocaleDateString()}
+              <span className="font-medium">Total Shirts:</span> {billing.shirtCount}
             </p>
-          )}
-        </div>
-      </div>
-
-      {/* Billing */}
-      <div>
-        <h2 className="text-lg font-semibold mb-2">Billing</h2>
-        <div className="p-4 border rounded-lg shadow-sm bg-gray-50">
-          <p className="text-sm text-gray-600 mb-3">
-            {isFinished
-              ? "Your design is marked finished. You can now proceed with billing."
-              : "Billing is locked until your design is marked as finished."}
-          </p>
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-gray-700">
-              Total: ₱{design.price ?? 0}
-            </span>
-            <button
-              disabled={!isFinished}
-              className={`px-4 py-2 text-sm rounded-md shadow-md transition ${
-                isFinished
-                  ? "bg-teal-500 text-white hover:bg-teal-600"
-                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
-              }`}
-            >
-              {isFinished ? "Proceed to Payment" : "Locked"}
-            </button>
+            <p>
+              <span className="font-medium">Printing Subtotal:</span> ₱
+              {billing.printFee * billing.shirtCount}
+            </p>
+            <p>
+              <span className="font-medium">Revision Fee:</span> ₱{billing.revisionFee}
+            </p>
+            <p>
+              <span className="font-medium">Designer Fee:</span> ₱{billing.designerFee}
+            </p>
+            <hr className="my-2" />
+            <p className="font-semibold text-gray-900">Total: ₱{billing.total}</p>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Finished: Invoice */}
+      {isFinished && billing && (
+        <div className="p-6 border rounded-lg shadow bg-white">
+          {/* Header */}
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h1 className="text-2xl font-bold">Invoice</h1>
+              <p className="text-sm text-gray-500">Invoice No. #{design._id}</p>
+              <p className="text-sm text-gray-500">
+                {new Date().toLocaleDateString()}
+              </p>
+            </div>
+            <div className="text-right">
+              <h2 className="font-semibold">{design.title || "Custom Design"}</h2>
+              <p className="text-sm text-gray-500">{design.description}</p>
+            </div>
+          </div>
+
+          {/* Table */}
+          <table className="w-full text-sm text-left border-t border-b mb-6">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="px-3 py-2">Item</th>
+                <th className="px-3 py-2 text-center">Quantity</th>
+                <th className="px-3 py-2 text-center">Unit Price</th>
+                <th className="px-3 py-2 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-t">
+                <td className="px-3 py-2">Printing</td>
+                <td className="px-3 py-2 text-center">{billing.shirtCount}</td>
+                <td className="px-3 py-2 text-center">₱{billing.printFee}</td>
+                <td className="px-3 py-2 text-right">
+                  ₱{billing.printFee * billing.shirtCount}
+                </td>
+              </tr>
+              <tr className="border-t">
+                <td className="px-3 py-2">Revision Fee</td>
+                <td className="px-3 py-2 text-center">-</td>
+                <td className="px-3 py-2 text-center">₱{billing.revisionFee}</td>
+                <td className="px-3 py-2 text-right">₱{billing.revisionFee}</td>
+              </tr>
+              <tr className="border-t">
+                <td className="px-3 py-2">Designer Fee</td>
+                <td className="px-3 py-2 text-center">-</td>
+                <td className="px-3 py-2 text-center">₱{billing.designerFee}</td>
+                <td className="px-3 py-2 text-right">₱{billing.designerFee}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Totals */}
+          <div className="flex justify-end">
+            <div className="w-1/3 space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="font-medium">Subtotal:</span>
+                <span>₱{billing.total}</span>
+              </div>
+              <div className="flex justify-between font-semibold border-t pt-2">
+                <span>Total:</span>
+                <span>₱{billing.total}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-8 text-center">
+            <p className="text-sm font-medium">Thank you!</p>
+          </div>
+        </div>
+      )}
+
+      {/* Locked state */}
+      {!isApproved && !isFinished && (
+        <p className="text-sm text-gray-600">
+          Billing is locked until your design is approved.
+        </p>
+      )}
     </div>
   );
 };

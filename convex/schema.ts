@@ -184,7 +184,6 @@ export default defineSchema({
       v.literal("in_progress"),
       v.literal("pending_revision"),
       v.literal("finished"),
-      v.literal("billed"),
       v.literal("approved")
     ),
     preview_image: v.optional(v.string()),
@@ -238,23 +237,23 @@ export default defineSchema({
     .index("by_user", ["user_id"]),
     // --- BILLING ---
     billing: defineTable({
-  starting_amount: v.number(),
-  final_amount: v.number(),
-  negotiation_history: v.optional(v.array(v.string())),
-  negotiation_rounds: v.number(),
-  status: v.union(
-    v.literal("billed"),
-    v.literal("pending"),
-    v.literal("approved")
-  ),
-  client_id: v.id("users"),    // 🔄 client who pays
-  design_id: v.id("design"),   // 🔄 linked design
-  designer_id: v.id("users"),  // 🔄 designer who created
-  created_at: v.number(),
-})
-  .index("by_client", ["client_id"])
-  .index("by_designer", ["designer_id"])
-  .index("by_design", ["design_id"]),
+    starting_amount: v.number(),
+    final_amount: v.number(),
+    negotiation_history: v.optional(v.array(v.string())),
+    negotiation_rounds: v.number(),
+    status: v.union(
+      v.literal("billed"),
+      v.literal("pending"),
+      v.literal("approved")
+    ),
+    client_id: v.id("users"),    // 🔄 client who pays
+    design_id: v.id("design"),   // 🔄 linked design
+    designer_id: v.id("users"),  // 🔄 designer who created
+    created_at: v.number(),
+  })
+    .index("by_client", ["client_id"])
+    .index("by_designer", ["designer_id"])
+    .index("by_design", ["design_id"]),
 
 // --- INVOICES ---
 invoices: defineTable({

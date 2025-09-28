@@ -68,9 +68,10 @@ const Sidebar: React.FC = () => {
           { name: "Dashboard", icon: <Home />, route: "/admin" },
           { name: "Users", icon: <Users />, route: "/admin/users" },
           { name: "Requests", icon: <FileText />, route: "/admin/requests" },
+          { name: "Designs", icon: <Palette />, route: "/admin/designs" },
           { name: "Templates", icon: <Layers />, route: "/admin/templates" },
           { name: "Inventory", icon: <Box />, route: "/admin/inventory" },
-          { name: "Analytics", icon: <BarChart />, route: "/admin/analytics" },
+          { name: "Notifications", icon: <BarChart />, route: "/notifications" },
           { name: "Settings", icon: <Settings />, route: "/admin/settings" },
         ];
       case "designer":

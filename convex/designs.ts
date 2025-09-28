@@ -201,3 +201,154 @@ export const getDesignWithRequest = query({
     };
   },
 });
+
+// Get full design details (design + request + client + designer + sizes + colors)
+export const getFullDesignDetails = query({
+  args: { designId: v.id("design") },
+  handler: async (ctx, { designId }) => {
+    const design = await ctx.db.get(designId);
+    if (!design) return null;
+
+    // --- Linked request ---
+    const request = await ctx.db.get(design.request_id);
+
+    // --- Client ---
+    const client = design.client_id
+      ? await ctx.db.get(design.client_id)
+      : null;
+    const fabric = request 
+    ? await ctx.db.get(request.textile_id) 
+    : null;
+    // --- Designer ---
+    const designer = design.designer_id
+      ? await ctx.db.get(design.designer_id)
+      : null;
+
+    // --- Selected colors ---
+    const colors = request
+      ? await ctx.db
+          .query("selected_colors")
+          .filter((q) => q.eq(q.field("request_id"), request._id))
+          .collect()
+      : [];
+
+    // --- Sizes (join request_sizes -> shirt_sizes) ---
+    let sizes: { size_label: string; quantity: number }[] = [];
+    if (request) {
+      const reqSizes = await ctx.db
+        .query("request_sizes")
+        .withIndex("by_request", (q) => q.eq("request_id", request._id))
+        .collect();
+
+      sizes = await Promise.all(
+        reqSizes.map(async (rs) => {
+          const size = await ctx.db.get(rs.size_id);
+          return size
+            ? { size_label: size.size_label, quantity: rs.quantity }
+            : null;
+        })
+      ).then((res) =>
+        res.filter(
+          (r): r is { size_label: string; quantity: number } => r !== null
+        )
+      );
+    }
+
+    return {
+      design,
+      request,
+      client,
+      fabric,
+      designer,
+      colors,
+      sizes,
+    };
+  },
+});
+
+export const markAsCompleted = mutation({
+  args: { designId: v.id("design"), userId: v.id("users") },
+  handler: async (ctx, { designId }) => {
+    
+    // 1. Get the design
+    const design = await ctx.db.get(designId);
+    if (!design) throw new Error("Design not found");
+
+    // 2. Get the associated request
+    const request = await ctx.db.get(design.request_id);
+    if (!request) throw new Error("Request not found");
+
+    if (!request.textile_id) throw new Error("No fabric selected for this request");
+
+    // 3. Get all request_sizes for this request
+    const sizes = await ctx.db
+      .query("request_sizes")
+      .withIndex("by_request", (q) => q.eq("request_id", request._id))
+      .collect();
+
+    if (!sizes.length) throw new Error("No sizes found for this request");
+
+    // 4. Fetch all shirt sizes once and store in a map
+    const sizeMap: Record<string, string> = {};
+    for (const s of sizes) {
+      const shirtSize = await ctx.db.get(s.size_id);
+      if (!shirtSize) throw new Error(`Shirt size not found: ${s.size_id}`);
+      sizeMap[s._id] = shirtSize.size_label; // XS, S, M, etc.
+    }
+
+    // 5. Define yardage per size
+    const yardPerSize: Record<string, number> = {
+      XS: 0.8,
+      S: 1.0,
+      M: 1.2,
+      L: 1.4,
+      XL: 1.6,
+      XXL: 1.8,
+    };
+
+    // 6. Calculate total yards needed
+    let totalYardsNeeded = 0;
+    for (const s of sizes) {
+      const sizeLabel = sizeMap[s._id] ?? "M"; // fallback to M
+      const yards = yardPerSize[sizeLabel] ?? 1.2;
+      totalYardsNeeded += s.quantity * yards;
+    }
+
+    // 7. Fetch the selected fabric item from inventory
+    const fabricItem = await ctx.db.get(request.textile_id);
+    if (!fabricItem) throw new Error("Selected fabric not found in inventory");
+
+    // 8. Check remaining stock
+    const remainingStock = fabricItem.stock - totalYardsNeeded;
+
+    if (remainingStock <= 0) {
+      // 9. Notify the admin (you) about potential delay
+      const adminUser = await ctx.db.query("users").first();
+      if (adminUser) {
+        await ctx.db.insert("notifications", {
+          recipient_user_id: adminUser._id,
+          recipient_user_type: "admin",
+          notif_content: `Warning: Order "${request.request_title}" may be delayed at least 7 days due to insufficient fabric stock.`,
+          created_at: Date.now(),
+          is_read: false,
+        });
+      }
+    }
+
+    // 10. Deduct fabric stock
+    await ctx.db.patch(fabricItem._id, {
+      stock: remainingStock,
+      updated_at: Date.now(),
+    });
+
+    // 11. Mark design as finished
+    await ctx.db.patch(designId, { status: "finished", created_at: Date.now() });
+
+    return {
+      success: true,
+      deducted: totalYardsNeeded,
+      remaining: remainingStock,
+      notified: remainingStock < 0,
+    };
+  },
+});
