@@ -2,12 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
 import CanvasSettings from "./designCanvasComponents/CanvasSettings";
 import DesignDetails from "./designCanvasComponents/CanvasDesignDetails";
-import { Save, Upload, Info, Wrench, ArrowLeft } from "lucide-react"; // added Back icon
+import { Save, Upload, Info, Wrench, ArrowLeft, ReceiptText } from "lucide-react"; // added Back icon
+import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useMutation, useAction } from "convex/react";
 import { useNavigate } from "react-router-dom";
-
+import DesignerBillModal from "./DesignerBillModal";
 // 🔹 Bigger canvas size
 const CANVAS_WIDTH = 730;
 const CANVAS_HEIGHT = 515;
@@ -152,12 +153,14 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
 
       await savePreview({ designId, previewImage: previewBuffer });
 
-      alert("Preview image saved successfully!");
+      alert("Update posted successfully!");
     } catch (err) {
       console.error("Failed to save preview", err);
       alert("Error saving preview. Check console.");
     }
   };
+  const billingDoc = useQuery(api.billing.getBillingByDesign, { designId });
+  const [isDesignerBillOpen, setIsDesignerBillOpen] = useState(false);
 
   return (
     <div className="p-2 relative">
@@ -176,6 +179,17 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
 
         {/* Right-side controls: Details, Tools, Save, Post */}
         <div className="flex gap-2">
+          {/* See Bill button – only show if billing exists */}
+          {billingDoc && (
+            <button
+              type="button"
+              onClick={() => setIsDesignerBillOpen(true)}
+              className="p-2 rounded bg-zinc-500 hover:bg-zinc-600 text-white"
+              title="See Bill"
+            >
+              <ReceiptText size={18} />
+            </button>
+          )}
           {/* Details button */}
           <button
             type="button"
@@ -253,6 +267,13 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
               </div>
             )}
           </div>
+        )}
+        {billingDoc && isDesignerBillOpen && (
+          <DesignerBillModal
+            designId={designId} // pass the designId
+
+            onClose={() => setIsDesignerBillOpen(false)}
+          />
         )}
         
 

@@ -81,14 +81,12 @@ export const getBillingByDesign = query({
     if (!billingDoc) {
       return null; // ✅ safe fallback
     }
-      const allBillings = await ctx.db.query("billing").collect();
 
-    // sort by creation time (Convex docs have _creationTime by default)
+    const allBillings = await ctx.db.query("billing").collect();
     allBillings.sort((a, b) => a._creationTime - b._creationTime);
 
-// find position in array = invoice number
-    const invoiceNo =allBillings.findIndex((b) => b._id === billingDoc._id) + 1;
-
+    // invoice number = index in creation order
+    const invoiceNo = allBillings.findIndex((b) => b._id === billingDoc._id) + 1;
 
     // 2. Fetch design
     const design = await ctx.db.get(designId);
@@ -106,7 +104,7 @@ export const getBillingByDesign = query({
 
     const totalShirts = sizes.reduce((sum, s) => sum + s.quantity, 0);
 
-    // 5. Calculate fees
+    // 5. Calculate printing fee + revision fee
     const printingFee = request.print_type === "Sublimation" ? 550 : 500;
 
     const revisionCount = design.revision_count || 0;
@@ -117,14 +115,32 @@ export const getBillingByDesign = query({
       revisionFee = revisionCount * 400;
     }
 
-    const designerFee = totalShirts < 15 ? 400 : 0;
+    // 6. Fetch designer profile (from designers table)
+    const designerProfile = await ctx.db
+      .query("designers")
+      .withIndex("by_user", (q) => q.eq("user_id", design.designer_id))
+      .unique();
 
-    const total = totalShirts * printingFee + revisionFee + designerFee;
+    if (!designerProfile) throw new Error("Designer profile not found");
 
-    // 6. Return billing + breakdown
+    // 7. Fetch designer pricing
+    const pricing = await ctx.db
+      .query("designer_pricing")
+      .withIndex("by_designer", (q) => q.eq("designer_id", designerProfile._id))
+      .first();
+
+    const designerFee = pricing?.promo_amount ?? pricing?.normal_amount ?? 0;
+
+    // 8. Calculate total
+    const total =
+      totalShirts * printingFee +
+      revisionFee +
+      (totalShirts < 15 ? designerFee : designerFee); // still always include designer fee
+
+    // 9. Return billing + breakdown
     return {
       ...billingDoc,
-      createdAt: new Date(billingDoc._creationTime).toISOString(), // 👈 add this
+      createdAt: new Date(billingDoc._creationTime).toISOString(),
       invoiceNo,
       breakdown: {
         shirtCount: totalShirts,
@@ -136,6 +152,7 @@ export const getBillingByDesign = query({
     };
   },
 });
+
 
 export const getClientInfoByDesign = query({
   args: { designId: v.id("design") },
@@ -164,4 +181,63 @@ export const getClientInfoByDesign = query({
   },
 });
 
+export const submitNegotiation = mutation({
+  args: { designId: v.id("design"), newAmount: v.number() },
+  handler: async (ctx, { designId, newAmount }) => {
+    const billing = await ctx.db
+      .query("billing")
+      .withIndex("by_design", (q) => q.eq("design_id", designId))
+      .first();
 
+    if (!billing) throw new Error("Billing not found");
+
+    const rounds = billing.negotiation_rounds ?? 0;
+    if (rounds >= 5) {
+      throw new Error("Maximum negotiation rounds reached (5).");
+    }
+
+    // Who’s negotiating
+    const identity = await ctx.auth.getUserIdentity();
+   const userDoc = identity
+    ? await ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+        .first()
+    : null;
+
+
+    const newEntry = {
+      amount: newAmount,
+      date: Date.now(),
+      added_by: userDoc?._id, // 👈 correct schema field
+    };
+
+    const updatedHistory = billing.negotiation_history
+      ? [...billing.negotiation_history, newEntry]
+      : [newEntry];
+
+    await ctx.db.patch(billing._id, {
+      negotiation_history: updatedHistory,
+      final_amount: 0,
+      negotiation_rounds: rounds + 1,
+      status: "pending",
+    });
+
+    return { success: true, negotiation: newEntry };
+  },
+});
+
+export const UpdateFinalAmount = mutation({
+  args: { billingId: v.id("billing"), finalAmount: v.number() },
+  handler: async (ctx, { billingId, finalAmount }) => {
+    const billing = await ctx.db.get(billingId);
+    if (!billing) throw new Error("Billing not found");
+
+    await ctx.db.patch(billingId, {
+      final_amount: finalAmount,
+      status: "billed",
+    });
+
+    return { success: true };
+  },
+});

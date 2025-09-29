@@ -1,6 +1,5 @@
-// src/components/userDesignSteps/FinalizeDesignStep.tsx
 import React from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
 
@@ -10,10 +9,8 @@ interface FinalizeDesignStepProps {
     status: string;
     title?: string;
     description?: string;
-    price?: number;
     createdAt?: number;
   };
-  userId: Id<"users">;
 }
 
 const FinalizeDesignStep: React.FC<FinalizeDesignStepProps> = ({ design }) => {
@@ -21,45 +18,54 @@ const FinalizeDesignStep: React.FC<FinalizeDesignStepProps> = ({ design }) => {
   const isFinished = design.status === "finished";
 
   // Fetch billing breakdown
-  const billing = useQuery(api.billing.getBillingBreakdown, {
+  const billingDoc = useQuery(api.billing.getBillingByDesign, {
     designId: design._id,
   });
 
-  // Mutation to mark design as finished
+  if (!billingDoc) return null;
 
+  // --- Calculate final display totals ---
+  const displayTotal = billingDoc.starting_amount ?? billingDoc.breakdown.total;
+  const finalTotal =
+    !billingDoc.final_amount || billingDoc.final_amount === 0
+      ? displayTotal
+      : billingDoc.final_amount;
 
-  
+  const breakdown = billingDoc.breakdown;
 
   return (
     <div className="p-4 space-y-6">
       {/* Approved: Estimated Bill */}
-      {isApproved && billing && (
+      {isApproved && breakdown && (
         <div>
           <h2 className="text-lg font-semibold mb-2">Estimated Bill Breakdown</h2>
           <div className="p-4 border rounded-lg shadow-sm bg-gray-50 space-y-2 text-sm text-gray-700">
             <p>
-              <span className="font-medium">Total Shirts:</span> {billing.shirtCount}
+              <span className="font-medium">Total Shirts:</span> {breakdown.shirtCount}
             </p>
             <p>
               <span className="font-medium">Printing Subtotal:</span> ₱
-              {billing.printFee * billing.shirtCount}
+              {(breakdown.printFee * breakdown.shirtCount).toLocaleString()}
             </p>
             <p>
-              <span className="font-medium">Revision Fee:</span> ₱{billing.revisionFee}
+              <span className="font-medium">Revision Fee:</span> ₱{breakdown.revisionFee.toLocaleString()}
             </p>
             <p>
-              <span className="font-medium">Designer Fee:</span> ₱{billing.designerFee}
+              <span className="font-medium">Designer Fee:</span> ₱{breakdown.designerFee.toLocaleString()}
             </p>
             <hr className="my-2" />
-            <p className="font-semibold text-gray-900">Total: ₱{billing.total}</p>
+            <p className="font-semibold text-gray-900">
+              Total: ₱{displayTotal.toLocaleString()}
+            </p>
+            <p className="text-sm text-gray-600">
+              Final Negotiated Price: ₱{finalTotal.toLocaleString()}
+            </p>
           </div>
-
-          
         </div>
       )}
 
       {/* Finished: Invoice */}
-      {isFinished && billing && (
+      {isFinished && breakdown && (
         <div className="p-6 border rounded-lg shadow bg-white">
           {/* Header */}
           <div className="flex justify-between items-start mb-6">
@@ -89,24 +95,28 @@ const FinalizeDesignStep: React.FC<FinalizeDesignStepProps> = ({ design }) => {
             <tbody>
               <tr className="border-t">
                 <td className="px-3 py-2">Printing</td>
-                <td className="px-3 py-2 text-center">{billing.shirtCount}</td>
-                <td className="px-3 py-2 text-center">₱{billing.printFee}</td>
+                <td className="px-3 py-2 text-center">{breakdown.shirtCount}</td>
+                <td className="px-3 py-2 text-center">₱{breakdown.printFee}</td>
                 <td className="px-3 py-2 text-right">
-                  ₱{billing.printFee * billing.shirtCount}
+                  ₱{(breakdown.printFee * breakdown.shirtCount).toLocaleString()}
                 </td>
               </tr>
-              <tr className="border-t">
-                <td className="px-3 py-2">Revision Fee</td>
-                <td className="px-3 py-2 text-center">-</td>
-                <td className="px-3 py-2 text-center">₱{billing.revisionFee}</td>
-                <td className="px-3 py-2 text-right">₱{billing.revisionFee}</td>
-              </tr>
-              <tr className="border-t">
-                <td className="px-3 py-2">Designer Fee</td>
-                <td className="px-3 py-2 text-center">-</td>
-                <td className="px-3 py-2 text-center">₱{billing.designerFee}</td>
-                <td className="px-3 py-2 text-right">₱{billing.designerFee}</td>
-              </tr>
+              {breakdown.revisionFee > 0 && (
+                <tr className="border-t">
+                  <td className="px-3 py-2">Revision Fee</td>
+                  <td className="px-3 py-2 text-center">-</td>
+                  <td className="px-3 py-2 text-center">₱{breakdown.revisionFee.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right">₱{breakdown.revisionFee.toLocaleString()}</td>
+                </tr>
+              )}
+              {breakdown.designerFee > 0 && (
+                <tr className="border-t">
+                  <td className="px-3 py-2">Designer Fee</td>
+                  <td className="px-3 py-2 text-center">-</td>
+                  <td className="px-3 py-2 text-center">₱{breakdown.designerFee.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right">₱{breakdown.designerFee.toLocaleString()}</td>
+                </tr>
+              )}
             </tbody>
           </table>
 
@@ -115,11 +125,11 @@ const FinalizeDesignStep: React.FC<FinalizeDesignStepProps> = ({ design }) => {
             <div className="w-1/3 space-y-1 text-sm">
               <div className="flex justify-between">
                 <span className="font-medium">Subtotal:</span>
-                <span>₱{billing.total}</span>
+                <span>₱{displayTotal.toLocaleString()}</span>
               </div>
               <div className="flex justify-between font-semibold border-t pt-2">
                 <span>Total:</span>
-                <span>₱{billing.total}</span>
+                <span>₱{finalTotal.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -131,7 +141,6 @@ const FinalizeDesignStep: React.FC<FinalizeDesignStepProps> = ({ design }) => {
         </div>
       )}
 
-      {/* Locked state */}
       {!isApproved && !isFinished && (
         <p className="text-sm text-gray-600">
           Billing is locked until your design is approved.

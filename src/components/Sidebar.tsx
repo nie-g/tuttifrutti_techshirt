@@ -69,10 +69,11 @@ const Sidebar: React.FC = () => {
           { name: "Users", icon: <Users />, route: "/admin/users" },
           { name: "Requests", icon: <FileText />, route: "/admin/requests" },
           { name: "Designs", icon: <Palette />, route: "/admin/designs" },
-          { name: "Templates", icon: <Layers />, route: "/admin/templates" },
+          { name: "Templates & Pricing", icon: <Layers />, route: "/admin/templates" },
           { name: "Inventory", icon: <Box />, route: "/admin/inventory" },
-          { name: "Notifications", icon: <BarChart />, route: "/notifications" },
-          { name: "Settings", icon: <Settings />, route: "/admin/settings" },
+          { name: "Notifications", icon: <BellIcon />, route: "/notifications" },
+          { name: "Reports", icon: <BarChart />, route: "/admin/stats" },
+         
         ];
       case "designer":
         return [
@@ -89,7 +90,7 @@ const Sidebar: React.FC = () => {
           { name: "Dashboard", icon: <Home />, route: "/client" },
           { name: "My Requests", icon: <Clock />, route: "/client/requests" },
           { name: "My Designs", icon: <Images />, route: "/client/designs" },
-          { name: "Browse Designsers", icon: <Layers />, route: "/client/browse" },
+          { name: "Browse Galleries", icon: <Layers />, route: "/client/browse" },
           { name: "Notifications", icon: <BellIcon />, route: "/notifications" },
           { name: "Settings", icon: <Settings />, route: "/client/settings" },
         ];
@@ -100,66 +101,65 @@ const Sidebar: React.FC = () => {
 
   return (
     <aside
-      className={`bg-[#0A192F] text-white transition-all duration-300 ease-in-out ${
-        isSmallScreen ? "w-20" : "w-64"
-      } sticky top-0 h-screen flex flex-col justify-between`}
-    >
-      {/* Logo */}
-      <div>
-        <div className="flex items-center p-5 space-x-3 text-xl font-bold">
-          <img src={logoIcon} alt="App Logo" className="w-10 h-10" />
-          {!isSmallScreen && (
-            <h1 className={text}>
-              Tech<span className="text-white">Shirt</span>
-            </h1>
+  className={`bg-[#0A192F] text-white transition-all duration-300 ease-in-out ${
+    isSmallScreen ? "w-20" : "w-64"
+  } sticky top-0 h-screen flex flex-col`}
+>
+  {/* Logo */}
+  <div className="flex items-center p-5 space-x-3 text-xl font-bold flex-shrink-0">
+    <img src={logoIcon} alt="App Logo" className="w-10 h-10" />
+    {!isSmallScreen && (
+      <h1 className={text}>
+        Tech<span className="text-white">Shirt</span>
+      </h1>
+    )}
+  </div>
+
+  {/* Scrollable Nav */}
+  <nav className="flex-1 overflow-y-hidden mt-2 px-2 space-y-2">
+    {navItems.map((item) => (
+      <Link
+        key={item.name}
+        to={item.route}
+        className={`flex items-center px-4 py-3 rounded-lg space-x-3 transition-all relative ${hover}`}
+      >
+        <span className={`${text} relative`}>
+          {item.icon}
+          {item.name === "Notifications" && unreadCount > 0 && (
+            <NotificationBadge
+              count={unreadCount}
+              size="sm"
+              color="red"
+              className="animate-pulse"
+            />
           )}
-        </div>
-
-        {/* Nav Items */}
-        <nav className="flex flex-col mt-6 space-y-2 overflow-y-auto px-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.name}
-              to={item.route}
-              className={`flex items-center px-4 py-3 rounded-lg space-x-3 transition-all relative ${hover}`}
-            >
-              <span className={`${text} relative`}>
-                {item.icon}
-                {item.name === "Notifications" && unreadCount > 0 && (
-                  <NotificationBadge
-                    count={unreadCount}
-                    size="sm"
-                    color="red"
-                    className="animate-pulse"
-                  />
-                )}
+        </span>
+        {!isSmallScreen && (
+          <span className="flex items-center">
+            {item.name}
+            {item.name === "Notifications" && unreadCount > 0 && (
+              <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full min-w-[20px] text-center">
+                {unreadCount > 99 ? "99+" : unreadCount}
               </span>
-              {!isSmallScreen && (
-                <span className="flex items-center">
-                  {item.name}
-                  {item.name === "Notifications" && unreadCount > 0 && (
-                    <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full min-w-[20px] text-center">
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </span>
-                  )}
-                </span>
-              )}
-            </Link>
-          ))}
-        </nav>
-      </div>
+            )}
+          </span>
+        )}
+      </Link>
+    ))}
+  </nav>
 
-      {/* Logout */}
-      <div className="px-4 py-5">
-        <button
-          onClick={handleLogout}
-          className="flex items-center space-x-3 text-red-300 hover:text-red-500"
-        >
-          <LogOut />
-          {!isSmallScreen && <span>Sign Out</span>}
-        </button>
-      </div>
-    </aside>
+  {/* Logout (footer) */}
+  <div className="px-4 py-5 flex-shrink-0">
+    <button
+      onClick={handleLogout}
+      className="flex items-center space-x-3 text-red-300 hover:text-red-500"
+    >
+      <LogOut />
+      {!isSmallScreen && <span>Sign Out</span>}
+    </button>
+  </div>
+</aside>
+
   );
 };
 

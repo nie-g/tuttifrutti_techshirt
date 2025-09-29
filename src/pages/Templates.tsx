@@ -10,6 +10,7 @@ import DynamicSidebar from "../components/Sidebar";
 import TemplateGallery from "../components/TemplateGallery";
 import TemplateUploader from "../components/TemplateUploader";
 import ShirtSizeManager from "../components/ShirtSizeManager";
+import PricingManager from "../components/PricingManager";
 import { Shirt, Upload, Layers, Plus } from "lucide-react";
 
 // ✅ Define User type (based on Convex schema "users" table)
@@ -23,7 +24,8 @@ interface User {
   createdAt: number;
 }
 
-type TabOption = "templates" | "upload" | "sizes";
+type TabOption = "templates" | "upload" | "sizes" | "pricing";
+
 
 const Templates: React.FC = () => {
   const navigate = useNavigate();
@@ -111,6 +113,17 @@ const Templates: React.FC = () => {
                 <Shirt size={18} />
                 Manage Shirt Sizes
               </button>
+              <button
+                onClick={() => setActiveTab("pricing")}
+                className={`px-6 py-3 transition border-2 rounded-lg flex items-center gap-2 ${
+                  activeTab === "pricing"
+                    ? "bg-teal-500 text-white border-teal-500"
+                    : "text-teal-500 border-teal-500 hover:bg-teal-500 hover:text-white"
+                }`}
+              >
+                <Plus size={18} />
+                Manage Pricing
+              </button>
             </div>
           </div>
 
@@ -164,6 +177,7 @@ const Templates: React.FC = () => {
               {activeTab === "templates" && <TemplateGallery />}
               {activeTab === "upload" && <TemplateUploader />}
               {activeTab === "sizes" && <ShirtSizeManager />}
+              {activeTab === "pricing" && <PricingManager />}
             </div>
           </div>
         </main>

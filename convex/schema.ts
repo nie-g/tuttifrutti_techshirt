@@ -60,14 +60,16 @@ export default defineSchema({
 
   // --- RATINGS & FEEDBACK ---
   ratings_feedback: defineTable({
-    portfolio_id: v.id("portfolios"), // connect to portfolio
-    reviewer_id: v.id("users"),       // who gave the rating
-    rating: v.number(),               // numeric rating, e.g. 1-5
-    feedback: v.optional(v.string()), // written review
-    created_at: v.number(),
-  })
-    .index("by_portfolio", ["portfolio_id"])
-    .index("by_reviewer", ["reviewer_id"]),
+  portfolio_id: v.id("portfolios"), // connect to portfolio
+  design_id: v.id("design"),        // 🔗 connect to a design (new)
+  reviewer_id: v.id("users"),       // who gave the rating
+  rating: v.number(),               // numeric rating, e.g. 1-5
+  feedback: v.optional(v.string()), // written review
+  created_at: v.number(),
+})
+  .index("by_portfolio", ["portfolio_id"])
+  .index("by_reviewer", ["reviewer_id"])
+  .index("by_design", ["design_id"]),   // ✅ ensures fast lookup & uniqueness
 
   galleries: defineTable({
     designer_id: v.id("designers"),   // ✅ linked to designers
@@ -239,7 +241,15 @@ export default defineSchema({
     billing: defineTable({
     starting_amount: v.number(),
     final_amount: v.number(),
-    negotiation_history: v.optional(v.array(v.string())),
+    negotiation_history: v.optional(
+      v.array(
+        v.object({
+          amount: v.number(),        // the offered amount
+          date: v.number(),          // store as timestamp (ms since epoch)
+          added_by: v.optional(v.id("users")), // optional: track who made the entry
+        })
+      )
+    ),
     negotiation_rounds: v.number(),
     status: v.union(
       v.literal("billed"),
@@ -254,14 +264,20 @@ export default defineSchema({
     .index("by_client", ["client_id"])
     .index("by_designer", ["designer_id"])
     .index("by_design", ["design_id"]),
+    designer_pricing: defineTable({
+    designer_id: v.id("designers"), // 🔗 linked to designers table
+    normal_amount: v.number(),      // regular price
+    promo_amount: v.optional(v.number()), // discounted/promo price
+    description: v.optional(v.string()), // e.g. "Logo Design", "Full Shirt Design"
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+  })
+    .index("by_designer", ["designer_id"])
+    .index("by_normal_amount", ["normal_amount"])
+    .index("by_promo_amount", ["promo_amount"]),
 
 // --- INVOICES ---
-invoices: defineTable({
-  billing_id: v.id("billing"),             // 🔄 now references billing
-  invoice_file: v.optional(v.id("_storage")), // PDF/file upload (optional for now)
-  created_at: v.number(),
-})
-  .index("by_billing", ["billing_id"]),
+
   
 });
 

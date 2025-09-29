@@ -169,6 +169,7 @@ const SeeDesignStep: React.FC<SeeDesignStepProps> = ({ designId }) => {
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white shadow-sm border border-gray-400"
               >
                 <span
+                  
                   className="inline-block w-5 h-5 rounded-full border"
                   style={{ backgroundColor: c.hex }}
                 />

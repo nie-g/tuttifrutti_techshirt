@@ -21,6 +21,16 @@ export const getPortfoliosByDesigner = query({
   },
 });
 
+export const getByDesignerId = query({
+  args: { designer_id: v.id("designers") }, // <-- changed from "designers" to "users"
+  handler: async (ctx, { designer_id }) => {
+    return await ctx.db
+      .query("portfolios")
+      .filter((q) => q.eq(q.field("designer_id"), designer_id))
+      .collect();
+  },
+});
+
 // ✅ Add new portfolio
 export const addPortfolio = mutation({
   args: {

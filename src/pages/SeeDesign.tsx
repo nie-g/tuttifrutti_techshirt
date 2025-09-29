@@ -7,12 +7,11 @@ import { Canvas as ThreeCanvas } from "@react-three/fiber";
 import { PresentationControls, Stage } from "@react-three/drei";
 import TexturedTShirt from "./seeDesign/TexturedShirt";
 import ThreeScreenshotHelper from "../components/ThreeScreenshotHelper";
-import { ArrowLeft, CheckCircle, Clock2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useUser } from "@clerk/clerk-react";
-import { HandCoins } from "lucide-react"; // icon for billing
 import BillModal from "../components/BillModal";
 
 
@@ -27,6 +26,7 @@ type DesignRecord = {
   _id: Id<"design">;
   request_id: Id<"design_requests">;
   status: string;
+  designer_id: Id<"users">;
 };
 
 type DesignRequestRecord = {
@@ -118,6 +118,10 @@ const SeeDesign: React.FC = () => {
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const approveBill = useMutation(api.billing.approveBill);
 
+  const reviewer = useQuery(
+    api.userQueries.getUserByClerkId,
+    user ? { clerkId: user.id } : "skip"
+  );
     const handleApproveBill = async () => {
     if (!designId) return;
     try {
@@ -132,6 +136,26 @@ const SeeDesign: React.FC = () => {
       alert("⚠️ Failed to approve bill.");
     }
   };
+// Fetch designer info for the current design
+  
+ const designer = useQuery(
+  api.designers.getByUserId,
+  design?.designer_id ? { userId: design.designer_id } : "skip"
+);
+
+// Step 2: fetch portfolio(s) using designer._id
+const portfolios = useQuery(
+  api.portfolio.getByDesignerId,
+  designer?._id ? { designer_id: designer._id } : "skip"
+);
+
+
+  const addRatingMutation = useMutation(api.ratings_and_feedback.addRating);
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [feedback, setFeedback] = useState("");
+
+
 
 
   
@@ -320,24 +344,30 @@ function createWhiteFallbackCanvas(): HTMLCanvasElement {
         <div className="absolute top-4 left-4 z-20">
           <motion.button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-1 bg-white shadow-lg rounded-full px-4 py-2 hover:bg-gray-100"
+            className="flex items-center gap-1 bg-white shadow-lg rounded-full border border-gray-400 px-4 py-2 hover:bg-gray-100"
           >
             <ArrowLeft size={18} /> Back
           </motion.button>
         </div>
 
         <div className="absolute top-4 right-4 z-20 flex gap-3">
-          {design && design.status === "approved" ? (
+          {design && design.status === "approved" || design?.status === "finished" ? (
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 bg-green-50 text-green-700 border border-green-600 px-4 py-2 rounded-full shadow">
-                <CheckCircle size={18} /> Approved
+                Approved
               </div>
               {/* 🆕 Billing button only visible when approved */}
               <motion.button
                 onClick={() => setIsBillModalOpen(true)}
                 className="bg-teal-500 text-white px-6 py-2 rounded-full shadow-lg hover:bg-teal-600 transition flex items-center gap-2"
               >
-                <HandCoins size={18} />View Bill
+                View Bill
+              </motion.button>
+               <motion.button
+                onClick={() => setIsRatingModalOpen(true)}
+                className="bg-yellow-500 text-white px-6 py-2 rounded-full shadow-lg hover:bg-yellow-600 transition flex items-center gap-2"
+              >
+                Rate Design
               </motion.button>
             </div>
           ) : (
@@ -356,7 +386,7 @@ function createWhiteFallbackCanvas(): HTMLCanvasElement {
                   Approve
                 </motion.button>
 
-                {design.status !== "approved" && (
+                {design.status !== "approved"  && (
                   <motion.button
                     onClick={() => {
                       if (!latestPreview) {
@@ -486,7 +516,73 @@ function createWhiteFallbackCanvas(): HTMLCanvasElement {
         onApprove={handleApproveBill}   // ✅ now functional
         onNegotiate={() => console.log("negotiate bill")}
       />
-    )}
+       )}
+       {isRatingModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div className="bg-white rounded-2xl shadow-lg p-6 max-w-sm w-full">
+                  <h3 className="text-lg font-semibold mb-2">Rate this Design</h3>
+                  
+                  <div className="flex gap-1 mb-2">
+                    {[1,2,3,4,5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        className={`text-2xl ${star <= rating ? "text-yellow-400" : "text-gray-300"}`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+
+                  <textarea
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    placeholder="Leave feedback (optional)"
+                    className="w-full border rounded-lg p-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                  />
+
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => setIsRatingModalOpen(false)}
+                      className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!design?._id || !user?.id) return;
+                        try {
+
+                          if (!user || !reviewer || !portfolios?.[0]?._id) {
+                            console.error("Missing user, reviewer, or portfolio");
+                            return;
+                          }
+
+                          // Cast to Convex ID types
+                        await addRatingMutation({
+                          portfolioId: portfolios[0]._id,
+                          designId: design._id,
+                          reviewerId: reviewer._id,
+                          rating,
+                          feedback,
+                        });
+                          alert("✅ Rating submitted!");
+                          setIsRatingModalOpen(false);
+                        } catch (err) {
+                          console.error(err);
+                          alert("⚠️ Failed to submit rating.");
+                        }
+                      }}
+                      className="px-4 py-2 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 transition"
+                    >
+                      Submit
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
 
      
     </motion.div>

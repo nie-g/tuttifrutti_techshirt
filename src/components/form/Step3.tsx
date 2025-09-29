@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Upload, Trash2, ImageIcon } from "lucide-react";
+import { Upload, Trash2, ImageIcon, TriangleAlert, CircleCheck } from "lucide-react";
 import ColorPalette from "../ColorPalettes";
 
 interface Step3Props {
@@ -45,7 +45,6 @@ const Step3: React.FC<Step3Props> = ({
   setPreferredDesignerId,
   printType,
   setPrintType,
-  
 }) => {
   const [isUploadingReference, setIsUploadingReference] = useState(false);
   const [showNewPaletteForm, setShowNewPaletteForm] = useState(false);
@@ -184,8 +183,59 @@ const Step3: React.FC<Step3Props> = ({
     setNewPaletteColors(colors);
   };
 
+  // ✅ Print Type Recommendation Logic
+  function getRecommendedPrintType(
+    fabricName?: string | null
+  ): "Sublimation" | "Dtf" | null {
+    if (!fabricName) return null;
+    const name = fabricName.toLowerCase();
+
+    if (
+      name.includes("dryfit") ||
+      name.includes("dry-fit") ||
+      name.includes("dry fit") ||
+      name.includes("polyester")
+    ) {
+      return "Sublimation";
+    }
+    if (name.includes("polydex") || name.includes("polydex®") || name.includes("cotton")) {
+      return "Dtf";
+    }
+    return null;
+  }
+
+  const selectedFabric = useMemo(() => {
+    if (!textileId) return null;
+    return (
+      textiles.find((t: any) => {
+        try {
+          return String(t._id) === String(textileId);
+        } catch {
+          return false;
+        }
+      }) || null
+    );
+  }, [textileId, textiles]);
+
+  const recommendedPrintType = useMemo(
+    () =>
+      getRecommendedPrintType(
+        selectedFabric?.name ??
+    
+          selectedFabric?.description
+      ),
+    [selectedFabric]
+  );
+
+  // ✅ Auto-set print type if recommended
+  useEffect(() => {
+    if (!printType && recommendedPrintType) {
+      setPrintType(recommendedPrintType);
+    }
+  }, [recommendedPrintType, printType, setPrintType]);
+
   return (
-    <div className="h-[323px]  px-4 py-6 bg-white rounded-lg shadow-md space-y-6">
+    <div className="h-[323px] px-4 py-6 bg-white rounded-lg shadow-md space-y-6">
       <h3 className="mb-4 text-2xl font-semibold text-gray-800">
         Colors & Details
       </h3>
@@ -222,71 +272,68 @@ const Step3: React.FC<Step3Props> = ({
       />
 
       {/* Shirt Sizes & Gender */}
-      {/* Shirt Sizes & Gender */}
-<div className="space-y-4 mt-6">
-  <label className="block text-sm font-semibold text-gray-700">
-    Shirt Sizes & Quantities
-  </label>
+      <div className="space-y-4 mt-6">
+        <label className="block text-sm font-semibold text-gray-700">
+          Shirt Sizes & Quantities
+        </label>
 
-  {sizes.length === 0 && (
-    <p className="text-sm text-gray-400">
-      No sizes added yet. Click <span className="font-medium">+ Add Size</span> to start.
-    </p>
-  )}
+        {sizes.length === 0 && (
+          <p className="text-sm text-gray-400">
+            No sizes added yet. Click{" "}
+            <span className="font-medium">+ Add Size</span> to start.
+          </p>
+        )}
 
-  {sizes.map((row, idx) => (
-    <div key={idx} className="grid grid-cols-3 gap-3 items-center">
-      {/* Size dropdown */}
-      <select
-        aria-label="Select a shirt size"
-        value={row.sizeId}
-        onChange={(e) => updateSizeRow(idx, "sizeId", e.target.value)}
-        className="w-full p-2 text-gray-700 bg-white border border-gray-300 rounded-md"
-      >
-        <option value="">Select a size</option>
-        {shirtSizes.map((s: any) => (
-          <option key={s._id.toString()} value={s._id.toString()}>
-            {s.size_label || "Unnamed"} – {s.type || "Unknown"}
-          </option>
+        {sizes.map((row, idx) => (
+          <div key={idx} className="grid grid-cols-3 gap-3 items-center">
+            {/* Size dropdown */}
+            <select
+              aria-label="Select a shirt size"
+              value={row.sizeId}
+              onChange={(e) => updateSizeRow(idx, "sizeId", e.target.value)}
+              className="w-full p-2 text-gray-700 bg-white border border-gray-300 rounded-md"
+            >
+              <option value="">Select a size</option>
+              {shirtSizes.map((s: any) => (
+                <option key={s._id.toString()} value={s._id.toString()}>
+                  {s.size_label || "Unnamed"} – {s.type || "Unknown"}
+                </option>
+              ))}
+            </select>
+
+            {/* Quantity input */}
+            <input
+              aria-label="Enter quantity"
+              type="number"
+              min={1}
+              value={row.quantity}
+              onChange={(e) =>
+                updateSizeRow(idx, "quantity", parseInt(e.target.value) || 1)
+              }
+              className="w-full p-2 text-gray-700 bg-white border border-gray-300 rounded-md"
+            />
+
+            {/* Remove button */}
+            <button
+              aria-label="Remove size"
+              type="button"
+              onClick={() => removeSizeRow(idx)}
+              className="p-2 text-red-500 hover:bg-red-50 rounded-md"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         ))}
-      </select>
 
-      {/* Quantity input */}
-      <input
-        aria-label="Enter quantity"
-        type="number"
-        min={1}
-        value={row.quantity}
-        onChange={(e) =>
-          updateSizeRow(idx, "quantity", parseInt(e.target.value) || 1)
-        }
-        className="w-full p-2 text-gray-700 bg-white border border-gray-300 rounded-md"
-      />
-
-      {/* Remove button */}
-      <button
-        aria-label="Remove size"
-        type="button"
-        onClick={() => removeSizeRow(idx)}
-        
-        className="p-2 text-red-500 hover:bg-red-50 rounded-md"
-      > 
-        
-        <Trash2 size={16}  />
-      </button>
-    </div>
-  ))}
-
-  {/* Add size button */}
-  <button
-    type="button"
-    onClick={addSizeRow}
-    className="px-3 py-1.5 text-sm font-medium text-teal-600 bg-teal-50 rounded-md hover:bg-teal-100 transition-colors"
-  >
-    + Add Size
-  </button>
-</div>
-
+        {/* Add size button */}
+        <button
+          type="button"
+          onClick={addSizeRow}
+          className="px-3 py-1.5 text-sm font-medium text-teal-600 bg-teal-50 rounded-md hover:bg-teal-100 transition-colors"
+        >
+          + Add Size
+        </button>
+      </div>
 
       {/* Gender */}
       <div>
@@ -321,12 +368,13 @@ const Step3: React.FC<Step3Props> = ({
             <option value="">Select a fabric</option>
             {textiles.map((fabric: any) => (
               <option key={fabric._id.toString()} value={fabric._id.toString()}>
-                {fabric.name} ({fabric.category || "Uncategorized"})
+                {fabric.name} - {fabric.description}
               </option>
             ))}
           </select>
         </div>
 
+        {/* Print Type */}
         {/* Print Type */}
         <div>
           <label className="block mb-2 text-sm font-semibold text-gray-700">
@@ -348,7 +396,46 @@ const Step3: React.FC<Step3Props> = ({
             <option value="Sublimation">Sublimation</option>
             <option value="Dtf">DTF</option>
           </select>
+
+          {/* Recommendation label */}
+          {printType && (
+            <p
+              className={`mt-1 text-xs ${
+                printType === recommendedPrintType
+                  ? "text-green-600 font-medium"
+                  : "text-red-500 font-medium"
+              }`}
+            >
+              {printType && (
+                <p
+                  className={`mt-1 flex items-center gap-1 text-xs font-medium ${
+                    printType === recommendedPrintType ? "text-green-600" : "text-red-500"
+                  }`}
+                >
+                  {printType === recommendedPrintType ? (
+                    <>
+                      <CircleCheck size={14} />
+                      Recommended for this fabric
+                    </>
+                  ) : (
+                    <>
+                      <TriangleAlert size={14} />
+                      Not recommended for this fabric
+                    </>
+                  )}
+                </p>
+              )}
+            </p>
+          )}
+
+          {/* Hint before user selects */}
+          {!printType && recommendedPrintType && (
+            <p className="mt-1 text-xs text-gray-500">
+              Recommended: <span className="font-medium">{recommendedPrintType}</span>
+            </p>
+          )}
         </div>
+
       </div>
 
       {/* Preferred Designer */}
@@ -367,7 +454,8 @@ const Step3: React.FC<Step3Props> = ({
             <option key={designer._id.toString()} value={designer._id.toString()}>
               {designer.firstName && designer.lastName
                 ? `${designer.firstName} ${designer.lastName}`
-                : designer.firstName || designer.lastName || "Unnamed"}
+                : designer.firstName || designer.lastName || "Unnamed"}{" "}
+              – {designer.specialization || "General"}
             </option>
           ))}
         </select>

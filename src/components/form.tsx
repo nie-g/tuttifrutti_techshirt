@@ -47,6 +47,16 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
 
   const handleNext = () => setStep((prev) => Math.min(prev + 1, 3));
   const handleBack = () => setStep((prev) => Math.max(prev - 1, 1));
+  const yardPerSize: Record<string, number> = {
+  XS: 0.8,
+  S: 1.0,
+  M: 1.2,
+  L: 1.4,
+  XL: 1.6,
+  XXL: 1.8,
+};
+
+  
 
   const saveDesign = async () => {
     if (!projectName.trim()) {
@@ -74,18 +84,24 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
       const canvasDataURL =
         canvasSnapshot || canvasRef.current?.toDataURL() || "";
 
-      const requestId = await createNewRequestMutation({
+        const requestPayload: any = {
         clientId: user._id,
-        sizes: sizes as any, // ✅ array of { sizeId, quantity }
+        sizes: sizes as any, // array of { sizeId, quantity }
         textileId: textileId as any,
         requestTitle: projectName,
         tshirtType: shirtType || "",
         gender: gender || "",
         sketch: canvasDataURL,
         description: description || "",
-        preferredDesignerId: preferredDesignerId as any,
-        printType: printType || null, // ✅ new field
-      });
+        printType: printType || undefined, // ✅ changed from null to undefined
+      };
+
+      // ✅ Only add preferredDesignerId if it exists
+      if (preferredDesignerId) {
+        requestPayload.preferredDesignerId = preferredDesignerId;
+      }
+
+      const requestId = await createNewRequestMutation(requestPayload);
 
       if (!requestId) {
         throw new Error("Failed to create design request");
@@ -135,6 +151,41 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
       setIsSubmitting(false);
     }
   };
+  
+  const shirtSizes = useQuery(api.shirt_sizes.getAll) || [];  
+    const calculateTotalYards = (): number => {
+      if (!sizes || sizes.length === 0 || !textileId) return 0;
+
+      let total = 0;
+
+      for (const s of sizes) {
+        const sizeInfo = shirtSizes.find((size: any) => size._id === s.sizeId);
+        const sizeLabel = sizeInfo?.size_label ?? "M"; // fallback
+        const yardage = yardPerSize[sizeLabel] ?? 1.2; // fallback
+        total += s.quantity * yardage;
+      }
+
+      return total;
+    };
+
+    const textileInventory = useQuery(api.inventory.getTextileItems) || [];
+    const [showStockModal, setShowStockModal] = useState(false);
+    const checkFabricStock = (): boolean => {
+    if (!sizes || sizes.length === 0 || !textileId) return true;
+
+    const totalYardsNeeded = calculateTotalYards();
+    const textile = textileInventory.find((t: any) => t._id === textileId);
+    const availableYards = textile?.stock ?? 0; // <- use stock
+
+    if (totalYardsNeeded > availableYards) {
+      setShowStockModal(true); // trigger modal
+      return false; // stop saveDesign for now
+    }
+
+    return true; // enough stock
+  };
+
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -241,7 +292,12 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
             </button>
           ) : (
             <button
-              onClick={saveDesign}
+             onClick={() => {
+                if (checkFabricStock()) {
+                  saveDesign(); // call original function if stock is enough
+                }
+              }}
+
               disabled={!projectName.trim() || sizes.length === 0 || !printType || isSubmitting}
               className="px-8 py-1 text-white bg-green-600 rounded-lg shadow-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
@@ -256,6 +312,43 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
             </button>
           )}
         </div>
+        {showStockModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="w-full max-w-md p-6 bg-white rounded-lg shadow-2xl"
+              >
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Warning: Insufficient stock</h3>
+                <p className="mb-4">
+                  The selected fabric does not have enough stock to fulfill your order.
+                  
+                </p>
+                <p className="mb-4"> Required: {calculateTotalYards()} yards.</p>
+                <p className="mb-6 text-red-600">
+                  If you proceed, the order might be delayed for a minimum of least 7 days.
+                </p>
+                <div className="flex justify-end space-x-4">
+                  <button
+                    onClick={() => setShowStockModal(false)}
+                    className="px-4 py-2 border rounded-md hover:bg-gray-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowStockModal(false);
+                      saveDesign(); // call original saveDesign
+                    }}
+                    className="px-4 py-2 text-white bg-teal-600 rounded-md hover:bg-green-700"
+                  >
+                    Proceed Anyway
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+
       </motion.div>
     </div>
   );
