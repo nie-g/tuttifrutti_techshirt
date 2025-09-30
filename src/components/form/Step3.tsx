@@ -39,6 +39,7 @@ const Step3: React.FC<Step3Props> = ({
   setReferenceImages,
   newPaletteColors,
   setNewPaletteColors,
+  shirtType,   // 👈 add this
   textileId,
   setTextileId,
   preferredDesignerId,
@@ -57,6 +58,21 @@ const Step3: React.FC<Step3Props> = ({
   const shirtSizes = useQuery(api.shirt_sizes.getAll) || [];
   const textiles = useQuery(api.inventory.getTextileItems) || [];
   const designers = useQuery(api.userQueries.listDesigners) || [];
+  const typeMapping: Record<string, string> = {
+    "Round Neck": "tshirt",
+    "V-neck": "tshirt",      // V-neck is still a tshirt in schema
+    "Polo": "polo",
+    "Jersey": "jersey",
+    "Long Sleeves": "long sleeves",
+  };
+
+  const filteredShirtSizes = useMemo(() => {
+    if (!shirtType) return shirtSizes;
+    const normalizedType = typeMapping[shirtType] || shirtType.toLowerCase();
+    return shirtSizes.filter((s: any) => s.type === normalizedType);
+  }, [shirtSizes, shirtType]);
+
+  
 
   // ✅ Size handling
   const addSizeRow = () => {
@@ -294,9 +310,9 @@ const Step3: React.FC<Step3Props> = ({
               className="w-full p-2 text-gray-700 bg-white border border-gray-300 rounded-md"
             >
               <option value="">Select a size</option>
-              {shirtSizes.map((s: any) => (
+              {filteredShirtSizes.map((s: any) => (
                 <option key={s._id.toString()} value={s._id.toString()}>
-                  {s.size_label || "Unnamed"} – {s.type || "Unknown"}
+                  {s.size_label || "Unnamed"}
                 </option>
               ))}
             </select>
@@ -324,6 +340,7 @@ const Step3: React.FC<Step3Props> = ({
             </button>
           </div>
         ))}
+
 
         {/* Add size button */}
         <button

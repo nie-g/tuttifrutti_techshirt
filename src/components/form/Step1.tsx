@@ -29,6 +29,8 @@ const shirtOptions = [
   { label: "Jersey", value: "Jersey" },
 ];
 
+
+
 const Step1: React.FC<Step1Props> = ({ shirtType, setShirtType }) => {
   return (
     <div className="grid grid-cols-2 gap-6">
