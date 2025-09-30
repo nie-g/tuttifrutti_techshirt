@@ -23,8 +23,10 @@ import Portfolio from './pages/Potfolio';
 import Gallery from './pages/Gallery';
 import Designs from './pages/Designs';
 import AdminDesigns from './pages/AdminDesigns';
-
-
+import BrowseGallery from './pages/BrowseGallery';
+import Register from './pages/Register';
+import Login from './pages/Login';
+import Verify from './pages/verify';
 
 
 function App() {
@@ -56,6 +58,10 @@ function App() {
         <Route path="/designer/gallery" element={<Gallery />} />
         <Route path="/designer/designs" element={<Designs />} />
         <Route path="/admin/designs" element={<AdminDesigns />} />
+        <Route path="/client/browse" element={<BrowseGallery />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/verify-email" element={<Verify />} />
       </Routes>
     </BrowserRouter>
   );

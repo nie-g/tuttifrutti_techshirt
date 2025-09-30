@@ -14,6 +14,13 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
           Pending
         </span>
       );
+     case "pending_revision":
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-200 text-yellow-800">
+          <Clock className="w-3 h-3 mr-1" />
+          Pending Revision
+        </span>
+      );
     case "approved":
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">

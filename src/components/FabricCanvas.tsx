@@ -33,6 +33,7 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
   const notifyTimeoutRef = useRef<number | null>(null);
   const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
   const navigate = useNavigate();
+  const notifyClientUpdate = useMutation(api.design_notifications.notifyClientDesignUpdate);
 
   // 🔹 Floating panel state
   const [activeTab, setActiveTab] = useState<"none" | "details" | "tools">(
@@ -41,6 +42,11 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
 
   const saveCanvas = useMutation(api.fabric_canvases.saveCanvas);
   const savePreview = useAction(api.design_preview.savePreview);
+  const designDoc = useQuery(api.designs.getById, { designId });
+  const isApproved = designDoc?.status === "approved";
+  const isDisabled = designDoc?.status === "approved" || designDoc?.status === "finished";
+
+
 
   const notifyParent = (c?: fabric.Canvas) => {
     if (notifyTimeoutRef.current) {
@@ -141,22 +147,26 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
 
   // 🔹 Save only Preview Image
   const handlePostUpdate = async () => {
-    if (!getThreeScreenshot) {
-      alert("3D preview screenshot function not provided.");
-      return;
-    }
+  if (!getThreeScreenshot) {
+    alert("3D preview screenshot function not provided.");
+    return;
+  }
 
     try {
       const dataUrl = getThreeScreenshot();
       const blob = await (await fetch(dataUrl)).blob();
       const previewBuffer = await blob.arrayBuffer();
 
+      // 1️⃣ Save the preview
       await savePreview({ designId, previewImage: previewBuffer });
 
-      alert("Update posted successfully!");
+      // 2️⃣ Notify the client & update status
+      await notifyClientUpdate({ designId });
+
+      alert("Update posted successfully! The client has been notified.");
     } catch (err) {
-      console.error("Failed to save preview", err);
-      alert("Error saving preview. Check console.");
+      console.error("Failed to post update", err);
+      alert("Error posting update. Check console.");
     }
   };
   const billingDoc = useQuery(api.billing.getBillingByDesign, { designId });
@@ -205,40 +215,47 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
           </button>
 
           {/* Tools button */}
-          <button
-            type="button"
-            onClick={() =>
-              setActiveTab(activeTab === "tools" ? "none" : "tools")
-            }
-            className={`p-2 rounded ${
-              activeTab === "tools" ? "bg-blue-500 text-white" : "bg-gray-200"
-            }`}
-            title="Tools"
-          >
-            <Wrench size={18} />
-          </button>
+          {!isDisabled &&  (
+            <button
+              type="button"
+              onClick={() =>
+                setActiveTab(activeTab === "tools" ? "none" : "tools")
+              }
+              className={`p-2 rounded ${
+                activeTab === "tools" ? "bg-blue-500 text-white" : "bg-gray-200"
+              }`}
+              title="Tools"
+            >
+              <Wrench size={18} />
+            </button>
+          )}
 
           {/* Save button */}
-          <button
-            type="button"
-            title="Save design"
-            className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            onClick={handleSave}
-          >
-            <Save size={18} />
-            <span className="text-sm font-medium">Save</span>
-          </button>
+          {!isDisabled && (
+            <button
+              type="button"
+              title="Save design"
+              className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              onClick={handleSave}
+            >
+              <Save size={18} />
+              <span className="text-sm font-medium">Save</span>
+            </button>
+          )}
 
           {/* Post button */}
-          <button
-            type="button"
-            title="Post update"
-            className="flex items-center gap-2 px-3 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
-            onClick={handlePostUpdate}
-          >
-            <Upload size={18} />
-            <span className="text-sm font-medium">Post</span>
-          </button>
+          {!isDisabled && (
+            <button
+              type="button"
+              title="Post update"
+              className="flex items-center gap-2 px-3 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
+              onClick={handlePostUpdate}
+            >
+              <Upload size={18} />
+              <span className="text-sm font-medium">Post</span>
+            </button>
+          )}
+
         </div>
       </div>
 

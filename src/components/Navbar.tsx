@@ -35,13 +35,13 @@ const Navbar = () => {
         <SignedOut>
           <>
             <Link
-              to="/sign-in"
+              to="/login"
               className="px-5 py-2 border-2 border-teal-500 text-teal-500 rounded-full font-medium hover:bg-teal-500 hover:text-white transition-all"
             >
               Log In
             </Link>
             <Link
-              to="/sign-up"
+              to="/register"
               className="px-5 py-2 bg-teal-500 text-white rounded-full font-medium hover:bg-teal-600 transition-all"
             >
               Sign Up

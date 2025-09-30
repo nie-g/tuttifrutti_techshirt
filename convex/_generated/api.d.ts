@@ -18,6 +18,7 @@ import type * as clients from "../clients.js";
 import type * as colors from "../colors.js";
 import type * as comments from "../comments.js";
 import type * as designReferences from "../designReferences.js";
+import type * as design_notifications from "../design_notifications.js";
 import type * as design_preview from "../design_preview.js";
 import type * as design_requests from "../design_requests.js";
 import type * as design_templates from "../design_templates.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   colors: typeof colors;
   comments: typeof comments;
   designReferences: typeof designReferences;
+  design_notifications: typeof design_notifications;
   design_preview: typeof design_preview;
   design_requests: typeof design_requests;
   design_templates: typeof design_templates;

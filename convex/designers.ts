@@ -69,4 +69,22 @@ export const listAllWithUsers = query({
       email: users[i]?.email ?? "",
     }));
   },
+  
+});
+
+export const listAllDesignersWithUsers = query(async ({ db }) => {
+  const designers = await db.query("designers").collect();
+  
+  const results = await Promise.all(
+    designers.map(async (designer) => {
+      const user = await db.get(designer.user_id);
+      return {
+        ...designer,
+        first_name: user?.firstName ?? "",
+        last_name: user?.lastName ?? "",
+      };
+    })
+  );
+
+  return results;
 });

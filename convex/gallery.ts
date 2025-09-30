@@ -112,3 +112,27 @@ export const saveGalleryImage = action({
     return storageId;
   },
 });
+
+export const listAllGalleries = query({
+  handler: async (ctx) => {
+    return await ctx.db.query("galleries").collect();
+  },
+});
+
+export const getAllImages = query({
+  handler: async (ctx) => {
+    const galleries = await ctx.db.query("galleries").collect();
+    const result: Record<string, any[]> = {};
+
+    for (const gallery of galleries) {
+      const images = await ctx.db
+        .query("gallery_images")
+        .withIndex("by_gallery", (q) => q.eq("gallery_id", gallery._id))
+        .collect();
+      result[gallery._id] = images;
+    }
+
+    return result;
+  },
+});
+
