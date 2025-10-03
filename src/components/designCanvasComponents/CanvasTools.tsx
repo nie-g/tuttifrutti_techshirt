@@ -8,54 +8,87 @@ type AnyCanvas = fabric.Canvas & {
   _brushColor?: string;
   _brushSize?: number;
   _eraserSize?: number;
-  _defaultColor?: string; // ✅ global default color
+  _defaultColor?: string;
   _bucketHandler?: (opts: any) => void;
   _eyedropperHandler?: (opts: any) => void;
-
-  // ✅ add Fabric method typings
   sendToBack?: (obj: fabric.Object) => void;
+  _bucketImage?: fabric.Image;
 };
 
 /* ---------- global color helpers ---------- */
 export function getDefaultColor(canvas: fabric.Canvas): string {
-  return (canvas as AnyCanvas)._defaultColor ?? "#ff0000"; // ✅ default red
+  return (canvas as AnyCanvas)._defaultColor ?? "#ff0000";
 }
 
 export function setDefaultColor(canvas: fabric.Canvas, color: string) {
   const c = canvas as AnyCanvas;
   c._defaultColor = color;
   c._brushColor = color;
-  if (canvas.freeDrawingBrush) {
-    (canvas.freeDrawingBrush as any).color = color;
-  }
+  if (canvas.freeDrawingBrush) (canvas.freeDrawingBrush as any).color = color;
 }
 
 /* ---------- detect & set object color ---------- */
 export function getObjectColor(obj: fabric.Object): string | undefined {
-  if ("fill" in obj && obj.fill && typeof obj.fill === "string") {
-    return obj.fill;
-  }
-  if ("stroke" in obj && obj.stroke && typeof obj.stroke === "string") {
-    return obj.stroke;
-  }
+  if ("fill" in obj && obj.fill && typeof obj.fill === "string") return obj.fill;
+  if ("stroke" in obj && obj.stroke && typeof obj.stroke === "string") return obj.stroke;
   return undefined;
 }
 
 export function setObjectColor(obj: fabric.Object, color: string) {
-  if (obj.type === "line" || obj.type === "path") {
-    obj.set("stroke", color);
-  } else {
-    obj.set("fill", color);
-  }
+  if (obj.type === "line" || obj.type === "path") obj.set("stroke", color);
+  else obj.set("fill", color);
+}
+
+/* ---------- HELPER: DISABLE ACTIVE OBJECT EDITING ---------- */
+function disableActiveObjectEditing(canvas: fabric.Canvas) {
+  const active = canvas.getActiveObject();
+  if (!active) return;
+  if ((active as any).exitEditing) (active as any).exitEditing();
+  canvas.discardActiveObject?.();
+  canvas.requestRenderAll();
+}
+
+
+
+/* ---------- HELPER: FLATTEN CANVAS ---------- */
+async function flattenCanvasBeforeAdding(canvas: fabric.Canvas) {
+  return new Promise<fabric.Image>((resolve) => {
+    disableActiveObjectEditing(canvas);
+
+    const raster = document.createElement("canvas");
+    raster.width = canvas.getWidth();
+    raster.height = canvas.getHeight();
+    const ctx = raster.getContext("2d")!;
+    canvas.renderAll();
+    ctx.drawImage(canvas.lowerCanvasEl, 0, 0);
+    ctx.drawImage(canvas.upperCanvasEl, 0, 0);
+
+    const imgEl = new Image();
+    imgEl.src = raster.toDataURL("image/png");
+    imgEl.onload = () => {
+      const flattenedImage = new fabric.Image(imgEl, {
+        selectable: false,
+        evented: true,
+        hasControls: true,
+        hasBorders: true,
+        erasable: true,
+      });
+
+      // Clear canvas and add flattened image
+      canvas.clear();
+      canvas.add(flattenedImage);
+      (canvas as AnyCanvas).sendToBack?.(flattenedImage);
+      canvas.requestRenderAll();
+
+      resolve(flattenedImage);
+    };
+  });
 }
 
 /* ---------- basic shapes/text ---------- */
-export function addText(
-  canvas: fabric.Canvas,
-  textString: string = "New Text",
-  fontSize: number = 20,
-  color?: string
-) {
+export async function addText(canvas: fabric.Canvas, textString = "New Text", fontSize = 20, color?: string) {
+  await flattenCanvasBeforeAdding(canvas);
+
   const text = new fabric.Textbox(textString, {
     left: 100,
     top: 100,
@@ -63,12 +96,17 @@ export function addText(
     fill: color ?? getDefaultColor(canvas),
     erasable: true,
   });
+
   canvas.add(text);
+  canvas.selection = true;
+  canvas.skipTargetFind = false;
   canvas.setActiveObject(text);
   canvas.requestRenderAll();
 }
 
-export function addRectangle(canvas: fabric.Canvas) {
+export async function addRectangle(canvas: fabric.Canvas) {
+  await flattenCanvasBeforeAdding(canvas);
+
   const rect = new fabric.Rect({
     left: 100,
     top: 100,
@@ -77,12 +115,17 @@ export function addRectangle(canvas: fabric.Canvas) {
     height: 100,
     erasable: true,
   });
+
   canvas.add(rect);
+    canvas.selection = true;
+  canvas.skipTargetFind = false;
   canvas.setActiveObject(rect);
   canvas.requestRenderAll();
 }
 
-export function addCircle(canvas: fabric.Canvas) {
+export async function addCircle(canvas: fabric.Canvas) {
+  await flattenCanvasBeforeAdding(canvas);
+
   const circle = new fabric.Circle({
     left: 150,
     top: 150,
@@ -90,22 +133,48 @@ export function addCircle(canvas: fabric.Canvas) {
     fill: getDefaultColor(canvas),
     erasable: true,
   });
+
   canvas.add(circle);
+    canvas.selection = true;
+  canvas.skipTargetFind = false;
   canvas.setActiveObject(circle);
   canvas.requestRenderAll();
 }
 
-export function addLine(canvas: fabric.Canvas) {
+export async function addLine(canvas: fabric.Canvas) {
+  await flattenCanvasBeforeAdding(canvas);
+
   const line = new fabric.Line([50, 100, 200, 100], {
     stroke: getDefaultColor(canvas),
     strokeWidth: 2,
     erasable: true,
   });
+
   canvas.add(line);
+  canvas.selection = true;
+  canvas.skipTargetFind = false;
   canvas.setActiveObject(line);
   canvas.requestRenderAll();
 }
 
+export async function addFreeform(canvas: fabric.Canvas) {
+  await flattenCanvasBeforeAdding(canvas);
+
+  const path = new fabric.Path("M 0 0 Q 50 100 100 0 T 200 0", {
+    left: 100,
+    top: 200,
+    stroke: getDefaultColor(canvas),
+    fill: "",
+    strokeWidth: 2,
+    erasable: true,
+  });
+
+  canvas.add(path);
+  canvas.selection = true;
+  canvas.skipTargetFind = false;
+  canvas.setActiveObject(path);
+  canvas.requestRenderAll();
+}
 /* ---------- drawing helpers ---------- */
 export function disableDrawingMode(canvas: fabric.Canvas) {
   const c = canvas as AnyCanvas;
@@ -133,13 +202,17 @@ export function disableDrawingMode(canvas: fabric.Canvas) {
   canvas.requestRenderAll();
 }
 
-
-export function addBrush(canvas: fabric.Canvas, color?: string, width?: number) {
+/* ---------- brush ---------- */
+export async function addBrush(canvas: fabric.Canvas, color?: string, width?: number) {
   const c = canvas as AnyCanvas;
+
   if (c._activeTool === "brush") {
     disableDrawingMode(canvas);
     return;
   }
+
+  // Flatten canvas before starting brush
+  await flattenCanvasBeforeAdding(canvas);
 
   const PencilBrush = (fabric as any).PencilBrush ?? (fabric as any).Brush;
   const brush = new PencilBrush(canvas);
@@ -166,13 +239,10 @@ export function addBrush(canvas: fabric.Canvas, color?: string, width?: number) 
   canvas.requestRenderAll();
 }
 
-export function setBrushColor(
-  canvas: fabric.Canvas,
-  color: string,
-  size?: number
-) {
+export function setBrushColor(canvas: fabric.Canvas, color: string, size?: number) {
   const c = canvas as AnyCanvas;
   c._brushColor = color;
+
   const brush = (canvas as any).freeDrawingBrush;
   if (brush) {
     (brush as any).color = color;
@@ -186,12 +256,15 @@ export function setBrushColor(
 export function setBrushSize(canvas: fabric.Canvas, size: number) {
   const c = canvas as AnyCanvas;
   c._brushSize = size;
+
   const brush = (canvas as any).freeDrawingBrush;
   if (brush) brush.width = size;
+
+  canvas.requestRenderAll();
 }
 
 /* ---------- eraser ---------- */
-export function addEraser(canvas: fabric.Canvas, size: number = 20) {
+export async function addEraser(canvas: fabric.Canvas, size: number = 20) {
   const c = canvas as AnyCanvas;
 
   if (c._activeTool === "eraser") {
@@ -199,10 +272,12 @@ export function addEraser(canvas: fabric.Canvas, size: number = 20) {
     return;
   }
 
+  // Flatten canvas before starting eraser
+  await flattenCanvasBeforeAdding(canvas);
+
   const chosenSize = typeof c._eraserSize === "number" ? c._eraserSize : size;
   c._eraserSize = chosenSize;
 
-  // ✅ Plain white brush instead of transparent erasing
   const PencilBrush = (fabric as any).PencilBrush ?? (fabric as any).Brush;
   const whiteBrush = new PencilBrush(canvas);
   whiteBrush.width = chosenSize;
@@ -218,7 +293,6 @@ export function addEraser(canvas: fabric.Canvas, size: number = 20) {
   (canvas as any).discardActiveObject?.();
   canvas.requestRenderAll();
 }
-
 
 export function setEraserSize(canvas: fabric.Canvas, size: number) {
   const c = canvas as AnyCanvas;
@@ -236,23 +310,10 @@ export function setEraserSize(canvas: fabric.Canvas, size: number) {
   canvas.requestRenderAll();
 }
 
-/* ---------- freeform ---------- */
-export function addFreeform(canvas: fabric.Canvas) {
-  const path = new fabric.Path("M 0 0 Q 50 100 100 0 T 200 0", {
-    left: 100,
-    top: 200,
-    stroke: getDefaultColor(canvas),
-    fill: "",
-    strokeWidth: 2,
-    erasable: true,
-  });
-  canvas.add(path);
-  canvas.setActiveObject(path);
-  canvas.requestRenderAll();
-}
 
 /* ---------- bucket fill ---------- */
 /* ---------- bucket fill ---------- */
+
 export function addBucketTool(canvas: fabric.Canvas, color?: string) {
   const c = canvas as AnyCanvas;
   disableDrawingMode(canvas);
@@ -266,7 +327,7 @@ export function addBucketTool(canvas: fabric.Canvas, color?: string) {
     const x = Math.floor(pointer.x);
     const y = Math.floor(pointer.y);
 
-    // draw current canvas content into offscreen raster
+    // Step 1: Render current canvas into offscreen canvas
     const raster = document.createElement("canvas");
     raster.width = canvas.getWidth();
     raster.height = canvas.getHeight();
@@ -275,28 +336,34 @@ export function addBucketTool(canvas: fabric.Canvas, color?: string) {
     ctx.drawImage(canvas.lowerCanvasEl, 0, 0);
     ctx.drawImage(canvas.upperCanvasEl, 0, 0);
 
-    // flood fill into offscreen imageData
+    // Step 2: Apply flood fill to offscreen imageData
     const imageData = ctx.getImageData(0, 0, raster.width, raster.height);
     const flood = new FloodFill(imageData);
     flood.fill(chosenColor, x, y, 0);
     ctx.putImageData(flood.imageData, 0, 0);
 
-    // create <img> so fabric.Image has proper HTMLImageElement
+    // Step 3: Create a Fabric Image from the flood-filled raster
     const filledImg = new Image();
     filledImg.src = raster.toDataURL("image/png");
     filledImg.onload = () => {
+      // Step 4: Clear the canvas **before** adding the new bucket image
+      canvas.clear();
+
       const bucketImage = new fabric.Image(filledImg, {
-        selectable: false,
+        selectable: false,   // editable/movable
         evented: true,
         hasControls: true,
         hasBorders: true,
         erasable: true,
       });
 
-      // Add to Fabric canvas
+      // Step 5: Track the bucket image so it can be removed/replaced later
+      c._bucketImage = bucketImage;
+
+      // Step 6: Add the new bucket image
       canvas.add(bucketImage);
 
-      // send behind everything else
+      // Step 7: Send it to back so future objects can be drawn on top
       (canvas as AnyCanvas).sendToBack?.(bucketImage);
 
       canvas.setActiveObject(bucketImage);
@@ -337,6 +404,23 @@ function extractColorFromTarget(target: fabric.Object): string {
   return "#000000";
 }
 
+function pickVisibleColor(canvas: fabric.Canvas, x: number, y: number): string {
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = canvas.getWidth();
+  tempCanvas.height = canvas.getHeight();
+  const ctx = tempCanvas.getContext("2d")!;
+
+  // Render everything into it
+  canvas.renderAll();
+  ctx.drawImage(canvas.lowerCanvasEl, 0, 0);
+  ctx.drawImage(canvas.upperCanvasEl, 0, 0);
+
+  // Sample pixel
+  const pixel = ctx.getImageData(x, y, 1, 1).data;
+  return `rgba(${pixel[0]}, ${pixel[1]}, ${pixel[2]}, ${pixel[3] / 255})`;
+}
+
+/* ---------- eyedropper (hybrid) ---------- */
 export function addEyedropperTool(
   canvas: fabric.Canvas,
   onColorPicked: (color: string) => void
@@ -348,33 +432,50 @@ export function addEyedropperTool(
   canvas.selection = false;
   canvas.forEachObject((obj) => (obj.selectable = false));
 
-  const handleClick = (opts: any) => {
-    const target = opts?.target as fabric.Object | undefined;
-    if (target) {
-      const pickedColor = extractColorFromTarget(target);
-      setDefaultColor(canvas, pickedColor);
-      setBrushColor(canvas, pickedColor);
+  const handleClick = async (opts: any) => {
+    let pickedColor = "#000000";
 
+    // 1️⃣ Try native EyeDropper API if available
+    if ("EyeDropper" in window) {
       try {
-        onColorPicked(pickedColor);
-      } catch {}
-
-      canvas.off("mouse:down", handleClick);
-      canvas.selection = true;
-      canvas.forEachObject((obj) => (obj.selectable = true));
-      c._activeTool = null;
-      c.defaultCursor = "default";
+        const eyeDropper = new (window as any).EyeDropper();
+        const result = await eyeDropper.open();
+        pickedColor = result.sRGBHex;
+      } catch {
+        // Fallback silently if user cancels
+      }
     }
+
+    // 2️⃣ Fallback to Fabric pixel sampling if EyeDropper not used
+    if (pickedColor === "#000000") {
+      const pointer = opts?.pointer || canvas.getPointer(opts.e, true);
+      const x = Math.floor(pointer.x);
+      const y = Math.floor(pointer.y);
+      pickedColor = pickVisibleColor(canvas, x, y);
+    }
+
+    // 3️⃣ Update default color and brush
+    setDefaultColor(canvas, pickedColor);
+    setBrushColor(canvas, pickedColor);
+
+    try {
+      onColorPicked(pickedColor);
+    } catch {}
+
+    // 4️⃣ Reset canvas state
+    canvas.off("mouse:down", handleClick);
+   
+    canvas.skipTargetFind = false;
+    canvas.selection = false;
+    c._activeTool = null;
+    c.defaultCursor = "default";
   };
 
-  
-
+  // 5️⃣ Attach handler
   canvas.off("mouse:down", c._eyedropperHandler as any);
   c._eyedropperHandler = handleClick;
   canvas.on("mouse:down", handleClick);
 }
-
-
 
 
 export async function compressImageFile(
@@ -432,6 +533,9 @@ export async function compressImageFile(
 
 export async function addImage(canvas: fabric.Canvas) {
   if (typeof document === "undefined") return;
+
+  await flattenCanvasBeforeAdding(canvas);
+
   const input = document.createElement("input");
   input.type = "file";
   input.accept = "image/*";
@@ -468,23 +572,9 @@ export async function addImage(canvas: fabric.Canvas) {
         );
         imgInstance.scale(scale || 0.6);
 
-        try {
-          canvas.add(imgInstance);
-          if ((canvas as any).centerObject) {
-            (canvas as any).centerObject(imgInstance);
-          } else {
-            imgInstance.set({
-              left:
-                (cw - (imgEl.width || 100) * (imgInstance.scaleX || 1)) / 2,
-              top:
-                (ch - (imgEl.height || 100) * (imgInstance.scaleY || 1)) / 2,
-            });
-          }
-        } catch {
-          imgInstance.set({ left: 50, top: 50 });
-          canvas.add(imgInstance);
-        }
-
+        canvas.add(imgInstance);
+        canvas.selection = true;
+        canvas.skipTargetFind = false;
         canvas.setActiveObject(imgInstance);
         canvas.requestRenderAll();
         document.body.removeChild(input);
@@ -498,4 +588,3 @@ export async function addImage(canvas: fabric.Canvas) {
   document.body.appendChild(input);
   input.click();
 }
-

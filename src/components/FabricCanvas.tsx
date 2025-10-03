@@ -111,9 +111,13 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
           typeof initialCanvasJson === "string"
             ? JSON.parse(initialCanvasJson)
             : initialCanvasJson;
-        canvas.loadFromJSON(parsed, () => {
+          canvas.loadFromJSON(parsed, () => {
           canvas.backgroundColor = "#f5f5f5";
+          canvas.selection = false;
+          canvas.skipTargetFind = true;
+          
           canvas.renderAll();
+          
           notifyParent(canvas);
         });
       } catch {
