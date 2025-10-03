@@ -26,7 +26,8 @@ import AdminDesigns from './pages/AdminDesigns';
 import BrowseGallery from './pages/BrowseGallery';
 import Register from './pages/Register';
 import Login from './pages/Login';
-import Verify from './pages/verify';
+import Reports from './pages/AdminReports';
+
 
 
 function App() {
@@ -61,7 +62,7 @@ function App() {
         <Route path="/client/browse" element={<BrowseGallery />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/verify-email" element={<Verify />} />
+        <Route path="/admin/reports" element={<Reports />} />
       </Routes>
     </BrowserRouter>
   );

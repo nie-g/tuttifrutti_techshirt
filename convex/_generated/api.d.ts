@@ -29,6 +29,7 @@ import type * as designs from "../designs.js";
 import type * as fabric_canvases from "../fabric_canvases.js";
 import type * as files from "../files.js";
 import type * as functions_invites from "../functions/invites.js";
+import type * as functions_updateClerkUser from "../functions/updateClerkUser.js";
 import type * as gallery from "../gallery.js";
 import type * as getPreviewUrl from "../getPreviewUrl.js";
 import type * as http from "../http.js";
@@ -67,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   fabric_canvases: typeof fabric_canvases;
   files: typeof files;
   "functions/invites": typeof functions_invites;
+  "functions/updateClerkUser": typeof functions_updateClerkUser;
   gallery: typeof gallery;
   getPreviewUrl: typeof getPreviewUrl;
   http: typeof http;

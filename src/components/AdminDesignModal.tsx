@@ -99,7 +99,7 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
         <div className="mt-2 sm:mt-4 flex-1 overflow-y-auto pr-1 sm:pr-2">
           {step === 1 && <SeeDesignStep designId={design._id} />}
           {step === 2 && <ProgressTrackingStep designId={design._id} />}
-          {step === 3 && convexUser && (<FinalizeDesignStep design={design} userId={convexUser._id} />
+          {step === 3 && convexUser && (<FinalizeDesignStep design={design}  />
 )}
         </div>
 

@@ -150,6 +150,7 @@ export default defineSchema({
       v.literal("Dtf") // direct-to-garment
     )
   ),
+    preferred_date: v.optional(v.string()),
     created_at: v.optional(v.number()),
   }),
 

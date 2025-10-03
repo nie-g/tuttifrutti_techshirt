@@ -77,6 +77,7 @@ const Requests: React.FC = () => {
   // ✅ Get userType directly from Clerk metadata
   const userType = (clerkUser?.unsafeMetadata?.userType as "admin" | "designer" | "client") || "client";
 
+     
   // --- Helpers ---
   const formatDate = (timestamp?: number) => timestamp ? new Date(timestamp).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "Unknown";
 
@@ -131,13 +132,34 @@ const Requests: React.FC = () => {
       if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
+     if (isLoading) {
+      return (
+        <div className="flex h-screen bg-gray-50">
+          <DynamicSidebar />
+          <div className="flex-1 flex flex-col">
+            <AdminNavbar />
+            <div className="flex-1 p-6 flex items-center justify-center">
+              <div className="bg-white shadow rounded-lg p-6 text-center">
+                <p className="text-gray-500">Loading requests...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="flex min-h-screen bg-gradient-to-br from-white to-gray-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-white to-gray-50">
       <DynamicSidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <AdminNavbar />
         <main className="flex-1 p-6 overflow-auto">
+          <motion.div
+                      className="bg-white shadow-md rounded-lg p-6"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, ease: "easeOut" }}
+          >
           <div className="mb-4">
             <h1 className="text-2xl font-bold text-gray-900">Design Requests</h1>
             <p className="text-gray-600">Manage and review all design requests</p>
@@ -209,6 +231,7 @@ const Requests: React.FC = () => {
               </div>
             )}
           </div>
+          </motion.div>
         </main>
       </div>
 
@@ -221,7 +244,7 @@ const Requests: React.FC = () => {
           userType={userType}
         />
       )}
-    </motion.div>
+    </div>
   );
 };
 

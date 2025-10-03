@@ -65,21 +65,7 @@ const AdminDashboard: React.FC = () => {
 
   const isLoading = requests === undefined || stats === undefined;
 
-  const sendClerkInvite = useAction(api.functions.invites.sendClerkInvite);
-
-  const generateInvite = async () => {
-    const email = prompt("Enter designer email:");
-    if (!email) return;
-
-    try {
-      const result = await sendClerkInvite({ email });
-      if (result.emailSent) alert(`✅ Invite sent to ${email}!`);
-      else alert(`❌ Failed to send invite: ${result.message}`);
-    } catch (err) {
-      console.error("Error in generateInvite:", err);
-      alert("Failed to send invite. Check console for details.");
-    }
-  };
+  
 
   const formatTimeAgo = (timestamp?: number) => {
     if (!timestamp) return "Unknown";
@@ -152,15 +138,6 @@ const AdminDashboard: React.FC = () => {
         <AdminNavbar />
         <main className="p-6 md:p-8 flex flex-col gap-6 overflow-auto">
           <HeaderSection />
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={generateInvite}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-            >
-              Invite Designer
-            </button>
-          </div>
 
           <StatsCards stats={stats} />
           <ProjectsSection projects={projects} isLoading={isLoading} />

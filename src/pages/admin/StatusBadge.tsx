@@ -15,12 +15,22 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
       textColor = "text-yellow-800";
       icon = <Clock className="h-3 w-3 mr-1" />;
       break;
+    case "Approved":
+      bgColor = "bg-yellow-100";
+      textColor = "text-yellow-800";
+      icon = <Clock className="h-3 w-3 mr-1" />;
+      break;
     case "In Progress":
       bgColor = "bg-blue-100";
       textColor = "text-blue-800";
       icon = <CheckCircle className="h-3 w-3 mr-1" />;
       break;
     case "Completed":
+      bgColor = "bg-green-100";
+      textColor = "text-green-800";
+      icon = <CheckCircle className="h-3 w-3 mr-1" />;
+      break;
+    case "Pending":
       bgColor = "bg-green-100";
       textColor = "text-green-800";
       icon = <CheckCircle className="h-3 w-3 mr-1" />;

@@ -49,27 +49,36 @@ const Templates: React.FC = () => {
   }, [convexUser, isLoaded, navigate]);
 
   // ✅ Loading state
-  if (!isLoaded || convexUser === undefined) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="ml-2 text-gray-700">Loading...</p>
-      </div>
-    );
-  }
+
+   if (!isLoaded|| convexUser === undefined) {
+        return (
+          <div className="flex h-screen bg-gray-50">
+            <DynamicSidebar />
+            <div className="flex-1 flex flex-col">
+              <AdminNavbar />
+              <div className="flex-1 p-6 flex items-center justify-center">
+                <div className="bg-white shadow rounded-lg p-6 text-center">
+                  <p className="text-gray-500">Loading Designs...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="flex min-h-screen bg-gradient-to-br from-white to-teal-50"
-    >
+    <div className="flex min-h-screen bg-gradient-to-br from-white to-teal-50" >
       <DynamicSidebar />
       <div className="flex-1 flex flex-col">
         <AdminNavbar />
         <main className="p-6 md:p-8 flex flex-col gap-6 overflow-auto">
           {/* Header Section */}
+           <motion.div
+                className="bg-white shadow-md rounded-lg p-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }} >
+          <div className="mb-4">
           <div className="p-6 bg-white rounded-2xl shadow-md">
             <h1 className="text-2xl font-bold text-gray-900">Design Resources</h1>
             <p className="text-gray-600">Manage your templates and shirt sizes</p>
@@ -126,6 +135,7 @@ const Templates: React.FC = () => {
               </button>
             </div>
           </div>
+          </div>
 
           {/* Content Section */}
           <div className="bg-white rounded-2xl shadow-md p-6">
@@ -180,9 +190,10 @@ const Templates: React.FC = () => {
               {activeTab === "pricing" && <PricingManager />}
             </div>
           </div>
+          </motion.div>
         </main>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

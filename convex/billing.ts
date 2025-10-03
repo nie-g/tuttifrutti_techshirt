@@ -241,3 +241,9 @@ export const UpdateFinalAmount = mutation({
     return { success: true };
   },
 });
+
+export const listAll = query({
+  handler: async (ctx) => {
+    return await ctx.db.query("billing").collect();
+  },
+});

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Upload, Trash2, ImageIcon, TriangleAlert, CircleCheck } from "lucide-react";
+import { Upload, Trash2, ImageIcon, TriangleAlert, CircleCheck, CircleAlert } from "lucide-react";
 import ColorPalette from "../ColorPalettes";
 
 interface Step3Props {
@@ -24,6 +24,11 @@ interface Step3Props {
   setPreferredDesignerId: (id: string | null) => void;
   printType: "Sublimation" | "Dtf" | undefined;
   setPrintType: (type: "Sublimation" | "Dtf" | undefined) => void;
+  preferredDate: string | null;
+  setPreferredDate: (date: string | null) => void;
+  dateError: string | null;
+  setDateError: (error: string | null) => void;
+
 }
 
 const Step3: React.FC<Step3Props> = ({
@@ -46,6 +51,10 @@ const Step3: React.FC<Step3Props> = ({
   setPreferredDesignerId,
   printType,
   setPrintType,
+  preferredDate,
+  setPreferredDate,
+  dateError,
+  setDateError,
 }) => {
   const [isUploadingReference, setIsUploadingReference] = useState(false);
   const [showNewPaletteForm, setShowNewPaletteForm] = useState(false);
@@ -243,6 +252,36 @@ const Step3: React.FC<Step3Props> = ({
     [selectedFabric]
   );
 
+  // --- Inside Step3 component ---
+
+    // Minimum selectable date: 1 week from today
+  const minDate = useMemo(() => {
+    const today = new Date();
+    today.setDate(today.getDate() + 7);
+
+    // Use local date instead of ISO string
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }, []);
+
+    // Handle date change
+    const handlePreferredDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const selected = e.target.value;
+      const selectedDate = new Date(selected);
+      const todayPlusWeek = new Date();
+      todayPlusWeek.setDate(todayPlusWeek.getDate() + 7);
+
+      if (selectedDate < todayPlusWeek) {
+        setDateError("We do not accept orders that are needed within less than a week. Please select a date at least 7 days from today.");
+        setPreferredDate(null);
+      } else {
+        setDateError(null);
+        setPreferredDate(selected);
+      }
+    };
+
   // ✅ Auto-set print type if recommended
   useEffect(() => {
     if (!printType && recommendedPrintType) {
@@ -353,6 +392,7 @@ const Step3: React.FC<Step3Props> = ({
       </div>
 
       {/* Gender */}
+      <div className="grid grid-cols-2 gap-4">
       <div>
         <label className="block mb-2 text-sm font-semibold text-gray-700">
           Gender
@@ -368,6 +408,35 @@ const Step3: React.FC<Step3Props> = ({
           <option value="female">Female</option>
         </select>
       </div>
+      {/* Preferred Date */}
+        <div>
+          <label className="block mb-2 text-sm font-semibold text-gray-700">
+            Preferred Date (Optional)
+          </label>
+          <input
+            aria-label="Select a preferred date"
+            type="date"
+            value={preferredDate || ""}
+            min={minDate}
+            onChange={handlePreferredDateChange}
+            className={`w-full p-3 text-gray-700 bg-white border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
+              dateError ? "border-red-500" : "border-gray-300"
+            }`}
+          />
+          {!dateError && (
+            <div className="mt-1 text-xs bg-green-100 p-1 px-3 rounded-full">
+              <p className=" text-xs text-green-700">
+                We only accept orders that are needed at least 1 week from today.
+              </p>
+            </div>
+          )}
+          {dateError && (
+            <p className="mt-1 text-xs text-red-500">{dateError}</p>
+          )}
+        </div>
+      </div>
+      
+
 
       {/* Fabric/Textile + Print Type */}
       <div className="grid grid-cols-2 gap-4">

@@ -1,4 +1,5 @@
 import * as fabric from "fabric";
+import FloodFill from "q-floodfill";
 
 /** internal types */
 type ToolName = "brush" | "eraser" | "bucket" | "eyedropper" | null;
@@ -10,6 +11,9 @@ type AnyCanvas = fabric.Canvas & {
   _defaultColor?: string; // ✅ global default color
   _bucketHandler?: (opts: any) => void;
   _eyedropperHandler?: (opts: any) => void;
+
+  // ✅ add Fabric method typings
+  sendToBack?: (obj: fabric.Object) => void;
 };
 
 /* ---------- global color helpers ---------- */
@@ -105,13 +109,30 @@ export function addLine(canvas: fabric.Canvas) {
 /* ---------- drawing helpers ---------- */
 export function disableDrawingMode(canvas: fabric.Canvas) {
   const c = canvas as AnyCanvas;
+
+  // Disable drawing
   c.isDrawingMode = false;
-  c._activeTool = null;
   c.selection = true;
   c.defaultCursor = "default";
+  c._activeTool = null;
+
+  // Remove flood fill listeners
+  if (c._bucketHandler) {
+    canvas.off("mouse:down", c._bucketHandler as any);
+    c._bucketHandler = undefined;
+  }
+
+  // Remove eyedropper listeners
+  if (c._eyedropperHandler) {
+    canvas.off("mouse:down", c._eyedropperHandler as any);
+    c._eyedropperHandler = undefined;
+  }
+
+  // Reset cursor
   (canvas as any).discardActiveObject?.();
   canvas.requestRenderAll();
 }
+
 
 export function addBrush(canvas: fabric.Canvas, color?: string, width?: number) {
   const c = canvas as AnyCanvas;
@@ -170,7 +191,6 @@ export function setBrushSize(canvas: fabric.Canvas, size: number) {
 }
 
 /* ---------- eraser ---------- */
-/* ---------- eraser ---------- */
 export function addEraser(canvas: fabric.Canvas, size: number = 20) {
   const c = canvas as AnyCanvas;
 
@@ -182,30 +202,38 @@ export function addEraser(canvas: fabric.Canvas, size: number = 20) {
   const chosenSize = typeof c._eraserSize === "number" ? c._eraserSize : size;
   c._eraserSize = chosenSize;
 
-  // ✅ Make sure EraserBrush exists in fabric
-  if ((fabric as any).EraserBrush) {
-    const eraser = new (fabric as any).EraserBrush(canvas);
+  // ✅ Plain white brush instead of transparent erasing
+  const PencilBrush = (fabric as any).PencilBrush ?? (fabric as any).Brush;
+  const whiteBrush = new PencilBrush(canvas);
+  whiteBrush.width = chosenSize;
+  (whiteBrush as any).color = "#f5f5f5"; // plain white
 
-    eraser.width = chosenSize;
-    eraser.color = "rgba(0,0,0,1)"; // doesn't matter, ignored by eraser
-    canvas.freeDrawingBrush = eraser;
-  } else {
-    console.warn("EraserBrush is not available in this version of Fabric.js");
-  }
+  canvas.freeDrawingBrush = whiteBrush;
 
   c.isDrawingMode = true;
   c._activeTool = "eraser";
   c.selection = false;
   c.defaultCursor = "crosshair";
+
   (canvas as any).discardActiveObject?.();
   canvas.requestRenderAll();
 }
 
+
 export function setEraserSize(canvas: fabric.Canvas, size: number) {
   const c = canvas as AnyCanvas;
   c._eraserSize = size;
+
   const brush = (canvas as any).freeDrawingBrush;
-  if (brush) brush.width = size;
+  if (brush) {
+    if ("width" in brush) {
+      brush.width = size;
+    } else if ("brushWidth" in brush) {
+      brush.brushWidth = size;
+    }
+  }
+
+  canvas.requestRenderAll();
 }
 
 /* ---------- freeform ---------- */
@@ -224,28 +252,63 @@ export function addFreeform(canvas: fabric.Canvas) {
 }
 
 /* ---------- bucket fill ---------- */
+/* ---------- bucket fill ---------- */
 export function addBucketTool(canvas: fabric.Canvas, color?: string) {
   const c = canvas as AnyCanvas;
   disableDrawingMode(canvas);
   c._activeTool = "bucket";
   c.defaultCursor = "cell";
 
-  const chosenColor = color ?? getDefaultColor(canvas);
+  const chosenColor = color ?? "#ff0000";
 
   const handleClick = (opts: any) => {
-    const target = opts?.target as fabric.Object | undefined;
-    if (target) {
-      try {
-        setObjectColor(target, chosenColor); // ✅ use fill OR stroke correctly
-        canvas.requestRenderAll();
-      } catch {}
-    }
+    const pointer = canvas.getPointer(opts.e, true);
+    const x = Math.floor(pointer.x);
+    const y = Math.floor(pointer.y);
+
+    // draw current canvas content into offscreen raster
+    const raster = document.createElement("canvas");
+    raster.width = canvas.getWidth();
+    raster.height = canvas.getHeight();
+    const ctx = raster.getContext("2d")!;
+    canvas.renderAll();
+    ctx.drawImage(canvas.lowerCanvasEl, 0, 0);
+    ctx.drawImage(canvas.upperCanvasEl, 0, 0);
+
+    // flood fill into offscreen imageData
+    const imageData = ctx.getImageData(0, 0, raster.width, raster.height);
+    const flood = new FloodFill(imageData);
+    flood.fill(chosenColor, x, y, 0);
+    ctx.putImageData(flood.imageData, 0, 0);
+
+    // create <img> so fabric.Image has proper HTMLImageElement
+    const filledImg = new Image();
+    filledImg.src = raster.toDataURL("image/png");
+    filledImg.onload = () => {
+      const bucketImage = new fabric.Image(filledImg, {
+        selectable: false,
+        evented: true,
+        hasControls: true,
+        hasBorders: true,
+        erasable: true,
+      });
+
+      // Add to Fabric canvas
+      canvas.add(bucketImage);
+
+      // send behind everything else
+      (canvas as AnyCanvas).sendToBack?.(bucketImage);
+
+      canvas.setActiveObject(bucketImage);
+      canvas.requestRenderAll();
+    };
   };
 
   canvas.off("mouse:down", c._bucketHandler as any);
   c._bucketHandler = handleClick;
   canvas.on("mouse:down", handleClick);
 }
+
 
 /* ---------- eyedropper ---------- */
 function extractColorFromTarget(target: fabric.Object): string {
@@ -304,10 +367,15 @@ export function addEyedropperTool(
     }
   };
 
+  
+
   canvas.off("mouse:down", c._eyedropperHandler as any);
   c._eyedropperHandler = handleClick;
   canvas.on("mouse:down", handleClick);
 }
+
+
+
 
 export async function compressImageFile(
   file: File,
@@ -430,3 +498,4 @@ export async function addImage(canvas: fabric.Canvas) {
   document.body.appendChild(input);
   input.click();
 }
+

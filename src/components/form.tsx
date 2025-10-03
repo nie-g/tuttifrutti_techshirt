@@ -33,6 +33,9 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
   const [textileId, setTextileId] = useState<string | null>(null);
   const [preferredDesignerId, setPreferredDesignerId] = useState<string | null>(null);
   const [canvasSnapshot, setCanvasSnapshot] = useState<string | null>(null);
+  const [preferredDate, setPreferredDate] = useState<string | null>(null);
+  const [dateError, setDateError] = useState<string | null>(null);
+
 
   const canvasRef = useRef<fabric.Canvas | null>(null);
 
@@ -94,12 +97,16 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
         sketch: canvasDataURL,
         description: description || "",
         printType: printType || undefined, // ✅ changed from null to undefined
+        preferredDate: preferredDate || undefined,
       };
 
       // ✅ Only add preferredDesignerId if it exists
       if (preferredDesignerId) {
         requestPayload.preferredDesignerId = preferredDesignerId;
       }
+      if (preferredDate) {
+      requestPayload.preferredDate = preferredDate;
+    }
 
       const requestId = await createNewRequestMutation(requestPayload);
 
@@ -143,6 +150,7 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
         description: description || "",
         design_image: canvasDataURL,
         requestId,
+        preferredDate,
       });
     } catch (error) {
       console.error("Error saving design:", error);
@@ -269,6 +277,10 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
               setPreferredDesignerId={setPreferredDesignerId}
               printType={printType}
               setPrintType={setPrintType}
+              preferredDate={preferredDate}
+              setPreferredDate={setPreferredDate}
+              dateError={dateError}
+              setDateError={setDateError}
             />
           )}
         </div>

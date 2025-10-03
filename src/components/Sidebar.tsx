@@ -72,7 +72,7 @@ const Sidebar: React.FC = () => {
           { name: "Templates & Pricing", icon: <Layers />, route: "/admin/templates" },
           { name: "Inventory", icon: <Box />, route: "/admin/inventory" },
           { name: "Notifications", icon: <BellIcon />, route: "/notifications" },
-          { name: "Reports", icon: <BarChart />, route: "/admin/stats" },
+          { name: "Reports", icon: <BarChart />, route: "/admin/reports" },
          
         ];
       case "designer":

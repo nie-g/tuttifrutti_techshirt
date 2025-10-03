@@ -184,12 +184,8 @@ export const createRequest = mutation({
     description: v.optional(v.string()),
     textileId: v.id("inventory_items"),
     preferredDesignerId: v.optional(v.id("users")),
-    // Use a union with the exact literals to match your schema's allowed values
     printType: v.optional(
-      v.union(
-        v.literal("Sublimation"),
-        v.literal("Dtf")
-      )
+      v.union(v.literal("Sublimation"), v.literal("Dtf"))
     ),
     sizes: v.array(
       v.object({
@@ -197,8 +193,10 @@ export const createRequest = mutation({
         quantity: v.number(),
       })
     ),
+    preferredDate: v.optional(v.string()), // ✅ Add preferred date
   },
   handler: async (ctx, args) => {
+    // --- 1. Insert the request ---
     const requestId = await ctx.db.insert("design_requests", {
       client_id: args.clientId,
       request_title: args.requestTitle,
@@ -208,13 +206,13 @@ export const createRequest = mutation({
       description: args.description || "",
       textile_id: args.textileId,
       preferred_designer_id: args.preferredDesignerId || undefined,
-      // store print type in snake_case to match your schema
       print_type: args.printType ?? undefined,
+      preferred_date: args.preferredDate || undefined, // ✅ Save preferred date
       status: "pending",
       created_at: Date.now(),
     });
 
-    // Insert sizes
+    // --- 2. Insert sizes ---
     await Promise.all(
       args.sizes.map((s) =>
         ctx.db.insert("request_sizes", {
@@ -226,7 +224,46 @@ export const createRequest = mutation({
       )
     );
 
-    // Notify admins
+    // --- 3. Check fabric stock ---
+    const fabricItem = await ctx.db.get(args.textileId);
+    if (!fabricItem) throw new Error("Selected fabric not found in inventory");
+
+    // Yard per size lookup
+    const yardPerSize: Record<string, number> = {
+      XS: 0.8,
+      S: 1.0,
+      M: 1.2,
+      L: 1.4,
+      XL: 1.6,
+      XXL: 1.8,
+    };
+
+    // Fetch shirt sizes once
+    const sizeMap: Record<string, string> = {};
+    for (const s of args.sizes) {
+      const shirtSize = await ctx.db.get(s.sizeId);
+      if (shirtSize) sizeMap[s.sizeId] = shirtSize.size_label;
+    }
+
+    // Calculate total yards needed
+    let totalYardsNeeded = 0;
+    for (const s of args.sizes) {
+      const sizeLabel = sizeMap[s.sizeId] ?? "M";
+      totalYardsNeeded += s.quantity * (yardPerSize[sizeLabel] ?? 1.2);
+    }
+
+    // --- 4. If not enough fabric, notify client ---
+    if (totalYardsNeeded > fabricItem.stock) {
+      await ctx.db.insert("notifications", {
+        recipient_user_id: args.clientId,
+        recipient_user_type: "client",
+        notif_content: `Warning: Your order "${args.requestTitle}" may be delayed for at least 7 days due to insufficient stock of fabric that you have chosen.`,
+        created_at: Date.now(),
+        is_read: false,
+      });
+    }
+
+    // --- 5. Notify admins of new request ---
     const client = await ctx.db.get(args.clientId);
     const clientName = client
       ? `${client.firstName} ${client.lastName}`
@@ -250,6 +287,8 @@ export const createRequest = mutation({
     return requestId;
   },
 });
+
+
 
 export const getRequestsByIds = query({
   args: { ids: v.array(v.id("design_requests")) },
@@ -312,12 +351,13 @@ export const assignDesignRequest = mutation({
       revision_count: 0,
       status: "in_progress",
       created_at: now,
+      deadline: request.preferred_date ?? undefined, // ✅ Use preferred_date as deadline
     });
 
     // 3. Ensure a fabric canvas is created for this design
     await ctx.db.insert("fabric_canvases", {
       design_id: designId,
-      canvas_json: "",   // ✅ matches schema
+      canvas_json: "",   // matches schema
       thumbnail: undefined,
       version: "1.0.0",
       images: [],
@@ -335,6 +375,7 @@ export const assignDesignRequest = mutation({
     return { success: true, designId };
   },
 });
+
 
 export const updateDesignRequestStatus = mutation({
   args: {

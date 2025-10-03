@@ -16,6 +16,7 @@ import {
   setDefaultColor,
   getDefaultColor,
   setObjectColor,
+  setEraserSize as applyEraserSize,
 } from "./CanvasTools";
 import {
   Type,
@@ -214,12 +215,11 @@ export default function CanvasSettings({ canvas }: CanvasSettingsProps) {
     setBrushColor(canvas, color, val);
   };
 
-  const updateEraserSize = (val: number) => {
-    setEraserSize(val);
-    if (!canvas) return;
-    addEraser(canvas, val);
-  };
-
+const updateEraserSize = (val: number) => {
+  setEraserSize(val); // updates React state
+  if (!canvas) return;
+  applyEraserSize(canvas, val); // updates Fabric brush size
+};
   const updateFontSize = (val: number) => {
     setFontSize(val);
     if (!canvas || !selectedObject) return;
