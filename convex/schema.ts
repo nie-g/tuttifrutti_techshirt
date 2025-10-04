@@ -164,12 +164,13 @@ export default defineSchema({
     .index("by_request", ["request_id"])
     .index("by_size", ["size_id"]),
 
-  design_reference: defineTable({
-    design_image: v.string(),
+   design_reference: defineTable({
+    design_image: v.id("_storage"), // ← stores actual image in Convex storage
     description: v.optional(v.string()),
     request_id: v.id("design_requests"),
     created_at: v.optional(v.number()),
-  }),
+  }).index("by_request", ["request_id"]),  // 👈 add this
+  
 
   design_templates: defineTable({
     template_image: v.string(),
@@ -189,8 +190,6 @@ export default defineSchema({
       v.literal("finished"),
       v.literal("approved")
     ),
-    preview_image: v.optional(v.string()),
-    source_files: v.optional(v.array(v.string())),
     deadline: v.optional(v.string()),
     created_at: v.optional(v.number()),
   }).index("by_request", ["request_id"]),
@@ -241,6 +240,10 @@ export default defineSchema({
     // --- BILLING ---
     billing: defineTable({
     starting_amount: v.number(),
+    total_shirts: v.number(),
+    revision_fee: v.number(),
+    designer_fee:v.number(),
+    printing_fee:v.number(),
     final_amount: v.number(),
     negotiation_history: v.optional(
       v.array(
@@ -272,10 +275,10 @@ export default defineSchema({
     description: v.optional(v.string()), // e.g. "Logo Design", "Full Shirt Design"
     created_at: v.number(),
     updated_at: v.optional(v.number()),
-  })
-    .index("by_designer", ["designer_id"])
-    .index("by_normal_amount", ["normal_amount"])
-    .index("by_promo_amount", ["promo_amount"]),
+      })
+        .index("by_designer", ["designer_id"])
+        .index("by_normal_amount", ["normal_amount"])
+        .index("by_promo_amount", ["promo_amount"]),
 
 // --- INVOICES ---
 

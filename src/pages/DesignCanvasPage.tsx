@@ -40,6 +40,8 @@ const DesignerCanvasPage: React.FC = () => {
   const handleCanvasModified = useCallback(() => {
     setCanvasModifiedKey((prev) => prev + 1);
   }, []);
+   // Determine shirt type: prefer request.tshirt_type, fallback to 'tshirt'
+  
 
   const screenshotRef = useRef<() => string>(() => "");
 
@@ -48,6 +50,9 @@ const DesignerCanvasPage: React.FC = () => {
     api.fabric_canvases.getByDesign,
     request?.designId ? { designId: request.designId } : "skip"
   ) as FabricCanvasRecord | undefined;
+
+  const shirtType = (request?.tshirt_type?.toLowerCase?.() || "tshirt");
+
 
   // Left panel content
   let canvasContent;
@@ -106,7 +111,7 @@ const DesignerCanvasPage: React.FC = () => {
               <FabricTexturedTShirt
                 fabricCanvas={fabricCanvas}
                 canvasModifiedKey={canvasModifiedKey}
-                shirtType={request?.tshirt_type || "tshirt"}
+                shirtType={shirtType}
               />
             </Stage>
           </PresentationControls>

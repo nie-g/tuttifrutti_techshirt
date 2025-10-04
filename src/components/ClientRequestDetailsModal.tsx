@@ -5,18 +5,16 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import {
   X,
-  CheckCircle, XCircle, Clock,
-  Loader
+  CheckCircle,
+  XCircle,
+  Clock,
+  Loader,
 } from "lucide-react";
 import RequestColorsDisplay from "./RequestColorsDisplay";
 import RequestInfo from "./clientRequestDetails/RequestInfo";
-//git config --global user.name "nie-g"
-//git config --global user.email "niegonora@gmail.com"
+import RequestReferencesGallery from "./RequestReferencesGallery";
 
-// ✅ Local utilities (fallback if convexUtils not found)
-/*const formatDate = (timestamp: number) =>
-  new Date(timestamp).toLocaleDateString();
-*/
+
 const formatTimeAgo = (timestamp: number) => {
   const diff = Date.now() - timestamp;
   const minutes = Math.floor(diff / (1000 * 60));
@@ -65,7 +63,10 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   );
 };
 
-const ClientRequestDetailsModal: React.FC<ClientRequestDetailsModalProps> = ({request,onClose,isOpen,
+const ClientRequestDetailsModal: React.FC<ClientRequestDetailsModalProps> = ({
+  request,
+  onClose,
+  isOpen,
 }) => {
   const [activeTab, setActiveTab] = useState("details");
   const [requestData, setRequestData] = useState<any>(null);
@@ -78,11 +79,17 @@ const ClientRequestDetailsModal: React.FC<ClientRequestDetailsModalProps> = ({re
     api.design_requests.getById,
     requestId ? { requestId } : "skip"
   );
+
   const designReferences =
     useQuery(
       api.designReferences.getByRequestId,
       requestId ? { requestId } : "skip"
     ) || [];
+
+  // ✅ Extract storage IDs & resolve URLs
+  const storageIds = designReferences.map((r) => r.design_image);
+  const urls =
+    useQuery(api.getPreviewUrl.getPreviewUrls, { storageIds }) ?? [];
 
   useEffect(() => {
     const source = completeRequestData || request;
@@ -103,7 +110,11 @@ const ClientRequestDetailsModal: React.FC<ClientRequestDetailsModalProps> = ({re
       }
 
       if (designReferences.length > 0) {
-        enhanced.references = designReferences;
+        // Attach URLs to references
+        enhanced.references = designReferences.map((ref, idx) => ({
+          ...ref,
+          url: urls[idx] ?? null,
+        }));
       }
 
       if (enhanced.description) {
@@ -113,7 +124,7 @@ const ClientRequestDetailsModal: React.FC<ClientRequestDetailsModalProps> = ({re
       setRequestData(enhanced);
       setLoading(false);
     }
-  }, [request, completeRequestData, designReferences]);
+  }, [request, completeRequestData, designReferences, urls]);
 
   const handleModalClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -210,7 +221,6 @@ const ClientRequestDetailsModal: React.FC<ClientRequestDetailsModalProps> = ({re
             <div className="p-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
               {activeTab === "details" && (
                 <div className="space-y-4">
-                   {/* ✅ Request Info */}
                   <RequestInfo
                     request={{
                       shirtType: requestData.tshirt_type,
@@ -246,22 +256,7 @@ const ClientRequestDetailsModal: React.FC<ClientRequestDetailsModalProps> = ({re
               )}
 
               {activeTab === "references" && (
-                <div>
-                  {requestData.references?.length > 0 ? (
-                    requestData.references.map((ref: any, idx: number) => (
-                      <img
-                        key={idx}
-                        src={ref.design_image}
-                        alt={`Reference ${idx + 1}`}
-                        className="w-full h-auto mb-3 rounded border"
-                      />
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500 italic">
-                      No references provided.
-                    </p>
-                  )}
-                </div>
+                <RequestReferencesGallery requestId={requestId} />
               )}
             </div>
           </motion.div>

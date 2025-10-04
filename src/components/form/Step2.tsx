@@ -38,7 +38,7 @@ const Step2: React.FC<Step2Props> = ({
     if (!canvasElRef.current) return;
 
     const canvas = new fabric.Canvas(canvasElRef.current, {
-      backgroundColor: "#fff",
+      backgroundColor: "#f5f5f5",
       preserveObjectStacking: true,
     });
 
@@ -160,7 +160,7 @@ const Step2: React.FC<Step2Props> = ({
   const handleClearCanvas = () => {
     if (!localCanvas) return;
     localCanvas.clear();
-    localCanvas.backgroundColor = "#fff";
+    localCanvas.backgroundColor = "#f5f5f5";
     localCanvas.renderAll();
     localStorage.removeItem("savedCanvas");
     localStorage.removeItem("savedCanvasImage");

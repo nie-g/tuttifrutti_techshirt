@@ -4,6 +4,12 @@ import { v } from "convex/values";
 export const getBillingBreakdown = query({
   args: { designId: v.id("design") },
   handler: async (ctx, { designId }) => {
+
+    const billingDoc = await ctx.db
+    .query("billing")
+    .withIndex("by_design", (q) => q.eq("design_id", designId))
+    .first();
+
     const design = await ctx.db.get(designId);
     if (!design) throw new Error("Design not found");
 
@@ -21,30 +27,13 @@ export const getBillingBreakdown = query({
     const totalShirts = sizes.reduce((sum, s) => sum + s.quantity, 0);
 
     // Printing fee (based on print_type from request)
-    const printingFee =
-      request.print_type === "Sublimation" ? 550 : 500;
-
-    // Revision fee
-    const revisionCount = design.revision_count || 0;
-    let revisionFee = 0;
-    if (totalShirts >= 15) {
-      revisionFee = revisionCount > 2 ? (revisionCount - 2) * 400 : 0;
-    } else {
-      revisionFee = revisionCount * 400;
-    }
-
-    // Designer fee (only applies if shirts < 15)
-    const designerFee = totalShirts < 15 ? 400 : 0;
-
-    // Total
-    const total = totalShirts * printingFee + revisionFee + designerFee;
-
+    
     return {
-      shirtCount: totalShirts,
-      printFee: printingFee,
-      revisionFee,
-      designerFee,
-      total,
+      shirtCount: billingDoc?.total_shirts ?? 0,
+      printFee: billingDoc?.printing_fee ?? 0,
+      revisionFee: billingDoc?.revision_fee ?? 0,
+      designerFee: billingDoc?.designer_fee ?? 0,
+      total: billingDoc?.starting_amount ?? 0,
     };
   },
 });
@@ -102,18 +91,10 @@ export const getBillingByDesign = query({
       .withIndex("by_request", (q) => q.eq("request_id", design.request_id))
       .collect();
 
-    const totalShirts = sizes.reduce((sum, s) => sum + s.quantity, 0);
+    
 
     // 5. Calculate printing fee + revision fee
-    const printingFee = request.print_type === "Sublimation" ? 550 : 500;
-
-    const revisionCount = design.revision_count || 0;
-    let revisionFee = 0;
-    if (totalShirts >= 15) {
-      revisionFee = revisionCount > 2 ? (revisionCount - 2) * 400 : 0;
-    } else {
-      revisionFee = revisionCount * 400;
-    }
+    
 
     // 6. Fetch designer profile (from designers table)
     const designerProfile = await ctx.db
@@ -132,10 +113,7 @@ export const getBillingByDesign = query({
     const designerFee = pricing?.promo_amount ?? pricing?.normal_amount ?? 0;
 
     // 8. Calculate total
-    const total =
-      totalShirts * printingFee +
-      revisionFee +
-      (totalShirts < 15 ? designerFee : designerFee); // still always include designer fee
+   
 
     // 9. Return billing + breakdown
     return {
@@ -143,11 +121,11 @@ export const getBillingByDesign = query({
       createdAt: new Date(billingDoc._creationTime).toISOString(),
       invoiceNo,
       breakdown: {
-        shirtCount: totalShirts,
-        printFee: printingFee,
-        revisionFee,
-        designerFee,
-        total,
+      shirtCount: billingDoc?.total_shirts ?? 0,
+      printFee: billingDoc?.printing_fee ?? 0,
+      revisionFee: billingDoc?.revision_fee ?? 0,
+      designerFee: billingDoc?.designer_fee ?? 0,
+      total: billingDoc?.starting_amount ?? 0,
       },
     };
   },

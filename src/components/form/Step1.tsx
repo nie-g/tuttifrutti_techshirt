@@ -6,11 +6,11 @@ import { useGLTF, Stage, PresentationControls } from "@react-three/drei";
 function TShirtModel({ shirtType }: { shirtType: string }) {
   let modelPath = "/assets/tshirt.glb"; // default Round Neck model
   if (shirtType === "Polo") {
-    modelPath = "/assets/tshirt.glb";
+    modelPath = "/assets/polo.glb";
   } else if (shirtType === "V-neck") {
     modelPath = "/assets/tshirt.glb"; // swap later if you have a dedicated V-neck model
   } else if (shirtType === "Jersey") {
-    modelPath = "/assets/tshirt.glb"; // swap later if you have a jersey model
+    modelPath = "/assets/jersey_uv.glb"; // swap later if you have a jersey model
   }
   const { scene } = useGLTF(modelPath);
   return <primitive object={scene} scale={1.2} />;

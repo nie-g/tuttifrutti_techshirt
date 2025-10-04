@@ -332,17 +332,68 @@ export const assignDesignRequest = mutation({
   },
   handler: async (ctx, { requestId, designerId }) => {
     const request = await ctx.db.get(requestId);
-    if (!request) {
-      throw new Error("Request not found");
+    if (!request) throw new Error("Request not found");
+
+    // Fetch the selected textile/fabric
+    const fabricItem = await ctx.db.get(request.textile_id);
+    if (!fabricItem) throw new Error("Fabric not found in inventory");
+
+    // Fetch all request sizes
+    const sizes = await ctx.db
+      .query("request_sizes")
+      .withIndex("by_request", (q) => q.eq("request_id", requestId))
+      .collect();
+
+    // Yard per size lookup
+    const yardPerSize: Record<string, number> = {
+      XS: 0.8,
+      S: 1.0,
+      M: 1.2,
+      L: 1.4,
+      XL: 1.6,
+      XXL: 1.8,
+    };
+
+    // Fetch shirt size labels
+    const sizeMap: Record<string, string> = {};
+    for (const s of sizes) {
+      const sizeDoc = await ctx.db.get(s.size_id);
+      if (sizeDoc) sizeMap[s.size_id] = sizeDoc.size_label;
     }
 
-    // 1. Approve & assign the request
+    // Calculate total yards needed
+    let totalYardsNeeded = 0;
+    for (const s of sizes) {
+      const sizeLabel = sizeMap[s.size_id] ?? "M";
+      totalYardsNeeded += s.quantity * (yardPerSize[sizeLabel] ?? 1.2);
+    }
+
+    // --- 🧵 If fabric stock is insufficient, notify client
+    if (totalYardsNeeded > fabricItem.stock) {
+      await ctx.db.insert("notifications", {
+        recipient_user_id: request.client_id,
+        recipient_user_type: "client",
+        notif_content: `Heads up: Your order "${request.request_title}" has now been aprroved. However, production will be delayed due to insufficient stock of the chosen fabric. We’re sourcing additional yards to fulfill your request.`,
+        created_at: Date.now(),
+        is_read: false,
+      });
+    }else{ 
+       await ctx.db.insert("notifications", {
+        recipient_user_id: request.client_id,
+        recipient_user_type: "client",
+        notif_content: `Your order "${request.request_title}" has been approved and been assigned to a designer`,
+        created_at: Date.now(),
+        is_read: false,
+      });
+    }
+
+    // --- 1. Approve & assign the request
     await ctx.db.patch(requestId, {
       preferred_designer_id: designerId,
       status: "approved",
     });
 
-    // 2. Create a design entry linked to this request
+    // --- 2. Create design entry
     const now = Date.now();
     const designId = await ctx.db.insert("design", {
       client_id: request.client_id,
@@ -351,13 +402,13 @@ export const assignDesignRequest = mutation({
       revision_count: 0,
       status: "in_progress",
       created_at: now,
-      deadline: request.preferred_date ?? undefined, // ✅ Use preferred_date as deadline
+      deadline: request.preferred_date ?? undefined,
     });
 
-    // 3. Ensure a fabric canvas is created for this design
+    // --- 3. Create fabric canvas
     await ctx.db.insert("fabric_canvases", {
       design_id: designId,
-      canvas_json: "",   // matches schema
+      canvas_json: "",
       thumbnail: undefined,
       version: "1.0.0",
       images: [],
@@ -365,7 +416,7 @@ export const assignDesignRequest = mutation({
       updated_at: now,
     });
 
-    // 4. Notify the designer
+    // --- 4. Notify designer
     await ctx.runMutation(api.notifications.createNotification, {
       userId: designerId,
       userType: "designer",
@@ -375,7 +426,6 @@ export const assignDesignRequest = mutation({
     return { success: true, designId };
   },
 });
-
 
 export const updateDesignRequestStatus = mutation({
   args: {
@@ -424,6 +474,32 @@ export const cancelDesignRequest = mutation({
         { userId: client_id, userType: "client" as const },
       ],
       message: `Your request "${request.request_title}" has been cancelled.`,
+    });
+
+    return { success: true };
+  },
+});
+
+
+export const rejectDesignRequestWithReason = mutation({
+  args: {
+    requestId: v.id("design_requests"),
+    reason: v.string(),
+  },
+  handler: async (ctx, { requestId, reason }) => {
+    const request = await ctx.db.get(requestId);
+    if (!request) throw new Error("Request not found");
+
+    // Update request status
+    await ctx.db.patch(requestId, { status: "rejected" });
+
+    // Notify client
+    await ctx.db.insert("notifications", {
+      recipient_user_id: request.client_id,
+      recipient_user_type: "client",
+      notif_content: `Your design request "${request.request_title}" was rejected. Reason: ${reason}`,
+      created_at: Date.now(),
+      is_read: false,
     });
 
     return { success: true };

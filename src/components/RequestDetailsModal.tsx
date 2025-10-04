@@ -157,7 +157,7 @@ const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({
             </div>
 
             {/* Content */}
-            <div className="p-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
+            <div className="p-5 max-h-[50vh] overflow-y-auto custom-scrollbar">
               {activeTab === "details" && (
                 <RequestDetailsSection
                   request={request}

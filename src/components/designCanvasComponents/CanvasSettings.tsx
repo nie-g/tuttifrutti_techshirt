@@ -275,8 +275,7 @@ const updateEraserSize = (val: number) => {
 
         {/* bucket + eyedropper */}
         <button onClick={handleBucket} className={`p-2 rounded text-teal-900 ${activeTool==="bucket"?"bg-teal-400 text-white":"bg-gray-200 hover:bg-gray-300"}`} title="Bucket"><PaintBucket size={18} strokeWidth={2.3}/></button>
-        <button onClick={handleEyedropper} className={`p-2 rounded text-teal-900 ${activeTool==="eyedropper"?"bg-teal-400 text-white":"bg-gray-200 hover:bg-gray-300"}`} title="Eyedropper"><Pipette size={18} strokeWidth={2.3}/></button>
-
+        
         {/* selection */}
         <button
           onClick={() => {

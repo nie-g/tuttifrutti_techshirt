@@ -48,7 +48,7 @@ const PreviewWithComments: React.FC<{ preview: Preview; url?: string }> = ({
 
       {/* Comments Section */}
       <div className="flex-1">
-        <h3 className="font-semibold mb-2">Comments</h3>
+        <h3 className="font-semibold mb-2">Client Suggestions</h3>
         <div className="space-y-2 mb-3 max-h-48 overflow-y-auto">
           {comments && comments.length > 0 ? (
             comments.map((c) => (

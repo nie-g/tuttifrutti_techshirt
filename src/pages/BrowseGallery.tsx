@@ -127,47 +127,82 @@ const BrowseGallery: React.FC = () => {
                       className="w-full bg-white rounded-xl shadow-md hover:shadow-lg transition overflow-hidden"
                     >
                       {/* Designer Info */}
-                      <div className="p-4 border-b">
-                        <h2 className="text-lg font-semibold text-gray-800">
-                          {designer.first_name} {designer.last_name}
-                        </h2>
-                        <p className="text-sm text-gray-500 mb-2">
-                          {designerGalleries.length} Galleries &nbsp;|&nbsp; {designerPortfolios.length} Portfolios
-                        </p>
+                      <div className="p-6 border-b border-gray-100">
+                          <h2 className="text-xl font-semibold text-gray-800 mb-1">
+                            {designer.first_name} {designer.last_name}
+                          </h2>
 
-                        {/* Portfolio Details */}
-                        {designerPortfolios.length > 0 && (
-                          <div className="space-y-2">
-                            {designerPortfolios.map((p) => (
-                              <div key={p._id} className="p-2">
-                                <h3 className="font-semibold text-teal-800">Portfolio Details</h3>
-                                <p className="text-gray-600 text-sm">{p.description}</p>
-                                {p.specialization && <p className="text-gray-500 text-xs">Specialization: {p.specialization}</p>}
-                                {p.skills && (
-                                  <p className="text-gray-500 text-xs">
-                                    Skills: {p.skills.join(", ")}
-                                  </p>
-                                )}
-                                {p.social_links && (
-                                  <div className="flex gap-2 flex-wrap">
-                                    {p.social_links.map((link, i) => (
-                                      <a
-                                        key={i}
-                                        href={link.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-xs text-teal-600 underline"
-                                      >
-                                        {link.platform}
-                                      </a>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                          <h3 className="text-sm font-medium text-teal-700 uppercase tracking-wide mb-3">
+                            Portfolio Details
+                          </h3>
+
+                                  {/* Portfolio Details */}
+                                  {designerPortfolios.length > 0 ? (
+                                    <div className="space-y-4">
+                                      {designerPortfolios.map((p) => (
+                                        <div
+                                          key={p._id}
+                                          className="p-4 bg-teal-50/40 rounded-lg border border-teal-100 shadow-sm hover:shadow-md transition-all duration-300"
+                                        >
+                                          {/* Portfolio Title */}
+                                          {p.title && (
+                                            <h4 className="text-lg font-semibold text-gray-700 mb-2">{p.title}</h4>
+                                          )}
+
+                                          {/* Description */}
+                                          {p.description && (
+                                            <p className="text-gray-600 text-sm leading-relaxed mb-3">
+                                              {p.description}
+                                            </p>
+                                          )}
+
+                                          {/* Specialization */}
+                                          {p.specialization && (
+                                            <p className="text-gray-500 text-sm mb-2">
+                                              <span className="font-medium text-gray-700">Specialization:</span>{" "}
+                                              {p.specialization}
+                                            </p>
+                                          )}
+
+                                          {/* Skills */}
+                                          {p.skills && p.skills.length > 0 && (
+                                            
+                                            <div className="flex flex-wrap gap-2 mb-3">
+                                              {p.skills.map((skill, i) => (
+                                                <span
+                                                  key={i}
+                                                  className="bg-teal-100 text-teal-700 text-xs font-medium px-2 py-1 rounded-full"
+                                                >
+                                                  {skill}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          )}
+
+                                          {/* Social Links */}
+                                          {p.social_links && p.social_links.length > 0 && (
+                                            <div className="flex flex-wrap items-center gap-3">
+                                              {p.social_links.map((link, i) => (
+                                                <a
+                                                  key={i}
+                                                  href={link.url}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="flex items-center text-sm text-teal-600 hover:text-teal-800 transition-colors"
+                                                >
+                                                  <span className="underline font-medium">{link.platform}</span>
+                                                </a>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-gray-400 text-sm italic">No portfolio details available.</p>
+                                  )}
+                                </div>
+
 
                       {/* Horizontal Gallery Images */}
                       {designerImages.length > 0 ? (

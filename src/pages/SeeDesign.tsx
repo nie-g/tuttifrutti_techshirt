@@ -66,6 +66,7 @@ const SeeDesign: React.FC = () => {
     design?.request_id ? { requestId: design.request_id } : "skip"
   ) as DesignRequestRecord | null | undefined;
 
+
   // fetch the fabric canvas JSON stored for this design
   const canvasDoc = useQuery(
     api.fabric_canvases.getByDesign,
@@ -328,7 +329,11 @@ function createWhiteFallbackCanvas(): HTMLCanvasElement {
   }, [canvasDoc]);
 
 
-  const shirtType = designRequest?.shirt_type ?? "tshirt";
+ const shirtType =
+  (designRequest?.shirt_type ||
+    (designRequest as any)?.tshirt_type ||
+    "tshirt")
+    .toLowerCase();
 
   return (
     <motion.div

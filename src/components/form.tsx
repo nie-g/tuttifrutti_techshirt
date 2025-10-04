@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import * as fabric from "fabric";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
 
@@ -45,8 +45,8 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
   });
 
   const createNewRequestMutation = useMutation(api.design_requests.createRequest);
-  const saveMultipleReferencesMutation = useMutation(api.designReferences.saveMultipleReferences);
   const saveSelectedColorsMutation = useMutation(api.colors.saveSelectedColors);
+  const saveDesignReferencesAction = useAction(api.designReferences.saveDesignReferences);
 
   const handleNext = () => setStep((prev) => Math.min(prev + 1, 3));
   const handleBack = () => setStep((prev) => Math.max(prev - 1, 1));
@@ -114,15 +114,20 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
         throw new Error("Failed to create design request");
       }
 
-      if (referenceImages.length > 0) {
-        await saveMultipleReferencesMutation({
-          requestId,
-          references: referenceImages.map((ref) => ({
-            designImage: ref.image,
+     if (referenceImages.length > 0) {
+        for (const ref of referenceImages) {
+          // Convert base64/URL to ArrayBuffer
+          const res = await fetch(ref.image);
+          const buffer = await res.arrayBuffer();
+
+          await saveDesignReferencesAction({
+            requestId,
+            fileBytes: buffer,
             description: ref.description || "",
-          })),
-        });
+          });
+        }
       }
+
 
       if (newPaletteColors.length > 0) {
         await Promise.all(

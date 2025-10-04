@@ -588,3 +588,37 @@ export async function addImage(canvas: fabric.Canvas) {
   document.body.appendChild(input);
   input.click();
 }
+
+export async function addImageFromUrl(canvas: fabric.Canvas, imageUrl: string) {
+  await flattenCanvasBeforeAdding(canvas);
+
+  return new Promise<void>((resolve, reject) => {
+    const imgEl = new Image();
+    imgEl.crossOrigin = "anonymous";
+    imgEl.src = imageUrl;
+
+    imgEl.onload = () => {
+      const imgInstance = new fabric.Image(imgEl, {
+        selectable: true,
+        erasable: true,
+      });
+
+      const cw = canvas.getWidth() || 500;
+      const ch = canvas.getHeight() || 500;
+      const scale = Math.min(
+        1,
+        Math.min((cw * 0.6) / (imgEl.width || 1), (ch * 0.6) / (imgEl.height || 1))
+      );
+      imgInstance.scale(scale || 0.6);
+
+      canvas.add(imgInstance);
+      canvas.selection = true;
+      canvas.skipTargetFind = false;
+      canvas.setActiveObject(imgInstance);
+      canvas.requestRenderAll();
+      resolve();
+    };
+
+    imgEl.onerror = reject;
+  });
+}

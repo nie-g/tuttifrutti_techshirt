@@ -25,7 +25,7 @@ export const getDashboardStats = query({
       total: designRequests.length,
       pending: designRequests.filter((r) => r.status === "pending").length,
       approved: designRequests.filter((r) => r.status === "approved").length,
-      completed: designs.filter((d) => d.preview_image).length,
+    
       rejected: designRequests.filter((r) => r.status === "rejected").length,
     };
 
@@ -92,7 +92,6 @@ export const getDashboardStats = query({
       requests: requestCounts,
       designs: {
         total: designs.length,
-        completed: designs.filter((d) => d.preview_image).length,
       },
       templates: { total: templates.length },
       shirtSizes: { total: shirtSizes.length },

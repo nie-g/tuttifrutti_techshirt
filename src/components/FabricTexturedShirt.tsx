@@ -13,6 +13,7 @@ interface Props {
 const shirtModels: Record<string, string> = {
   tshirt: "/assets/tshirt.glb",
   long_sleeve: "/assets/long_sleeve.glb",
+  polo: "/assets/polo.glb",
   hoodie: "/assets/hoodie.glb",
 };
 

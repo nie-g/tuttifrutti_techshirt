@@ -11,7 +11,8 @@ interface Props {
 const shirtModels: Record<string, string> = {
   tshirt: "/assets/tshirt.glb",
   long_sleeve: "/assets/longsleeve.glb",
-  hoodie: "/assets/hoodie.glb",
+  polo: "/assets/polo.glb",
+  jersey: "/assets/jersey_uv.glb",
 };
 
 const shirtRotations: Record<string, [number, number, number]> = {
@@ -56,12 +57,12 @@ const FabricTexturedShirt: React.FC<Props> = ({
     const tex = new THREE.CanvasTexture(flippedCanvas);
 
     // ⚡ Alignment settings (from your basis file)
- tex.wrapS = THREE.RepeatWrapping;
-tex.wrapT = THREE.RepeatWrapping;
+   tex.wrapS = THREE.ClampToEdgeWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
 
     tex.flipY = false;
 
-     tex.center.set(0.5, 0.5);
+    tex.center.set(0.5, 0.5);
     tex.repeat.set(0.5, 0.5);
     tex.offset.set(0.25, 0.0);
 

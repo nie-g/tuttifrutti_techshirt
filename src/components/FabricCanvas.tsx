@@ -2,13 +2,16 @@ import React, { useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
 import CanvasSettings from "./designCanvasComponents/CanvasSettings";
 import DesignDetails from "./designCanvasComponents/CanvasDesignDetails";
-import { Save, Upload, Info, Wrench, ArrowLeft, ReceiptText } from "lucide-react"; // added Back icon
+import { Save, Upload, Info, Wrench, ArrowLeft, ReceiptText, Image } from "lucide-react"; // added Back icon
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useMutation, useAction } from "convex/react";
 import { useNavigate } from "react-router-dom";
 import DesignerBillModal from "./DesignerBillModal";
+import { addImageFromUrl } from "./designCanvasComponents/CanvasTools";
+
+import ReferencesGallery from "./designCanvasComponents/CanvasDesignReferences";
 // 🔹 Bigger canvas size
 const CANVAS_WIDTH = 730;
 const CANVAS_HEIGHT = 515;
@@ -34,9 +37,13 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
   const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
   const navigate = useNavigate();
   const notifyClientUpdate = useMutation(api.design_notifications.notifyClientDesignUpdate);
+  
+
+  const [showReferences, setShowReferences] = useState(false);
+
 
   // 🔹 Floating panel state
-  const [activeTab, setActiveTab] = useState<"none" | "details" | "tools">(
+  const [activeTab, setActiveTab] = useState<"none" | "details" | "tools"| "references">(
     "none"
   );
 
@@ -45,9 +52,12 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
   const designDoc = useQuery(api.designs.getById, { designId });
   const isApproved = designDoc?.status === "approved";
   const isDisabled = designDoc?.status === "approved" || designDoc?.status === "finished";
+  const requestId = designDoc?.request_id; 
 
-
-
+  const references = useQuery(
+    api.designReferences.getByRequestId,
+    requestId ? { requestId } : "skip"
+  );
   const notifyParent = (c?: fabric.Canvas) => {
     if (notifyTimeoutRef.current) {
       window.clearTimeout(notifyTimeoutRef.current);
@@ -176,6 +186,8 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
   const billingDoc = useQuery(api.billing.getBillingByDesign, { designId });
   const [isDesignerBillOpen, setIsDesignerBillOpen] = useState(false);
 
+  
+
   return (
     <div className="p-2 relative">
       {/* Top row: Back button + Controls */}
@@ -204,6 +216,24 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
               <ReceiptText size={18} />
             </button>
           )}
+          {/* References button */}
+          <button
+            type="button"
+            onClick={() => {
+              // When clicked: open the gallery modal and mark the active tab as "references"
+              setShowReferences(true);
+              setActiveTab(activeTab === "references" ? "none" : "references");
+            }}
+            className={`p-2 rounded ${
+              activeTab === "references"
+                ? "bg-blue-500 text-white"
+                : "bg-gray-200 text-gray-700"
+            }`}
+            title="See References"
+          >
+            <Image size={18} />
+          </button>
+
           {/* Details button */}
           <button
             type="button"
@@ -296,6 +326,35 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
             onClose={() => setIsDesignerBillOpen(false)}
           />
         )}
+        {showReferences && requestId && (
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-4">
+            <h2 className="text-lg font-semibold mb-3">Design References</h2>
+
+            <ReferencesGallery
+              requestId={requestId}
+              onSelectImage={async (url) => {
+                if (canvas) {
+                  await addImageFromUrl(canvas, url);
+                  setShowReferences(false);
+                }
+              }}
+            />
+
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setShowReferences(false)
+                  
+                }
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
         
 
     </div>

@@ -73,8 +73,7 @@ export const approveDesign = mutation({
     const revisionCount = design.revision_count ?? 0;
 
     // --- printing fee per shirt ---
-    const printFee =
-      printType.toLowerCase() === "sublimation" ? 550 : 500;
+    const printFee =printType.toLowerCase() === "sublimation" ? 550 : 500;
 
     // --- revision fee ---
     let revisionFee = 0;
@@ -83,7 +82,7 @@ export const approveDesign = mutation({
     } else {
       revisionFee = revisionCount * 400;
     }
-
+    
     // --- Fetch designer profile (from designers table) ---
     const designerProfile = await ctx.db
       .query("designers")
@@ -98,14 +97,17 @@ export const approveDesign = mutation({
       .withIndex("by_designer", (q) => q.eq("designer_id", designerProfile._id))
       .first();
 
-    const designerFee = pricing?.promo_amount ?? pricing?.normal_amount ?? 0;
+     const designerFee =
+      shirtCount <= 15
+        ? pricing?.normal_amount ?? 0
+        : pricing?.promo_amount ?? 0;
 
     // --- base calculation ---
     let startingAmount = 0;
     if (shirtCount >= 15) {
       startingAmount = shirtCount * printFee + revisionFee + designerFee;
     } else {
-      startingAmount = shirtCount * printFee + 400 + revisionFee + designerFee;
+      startingAmount = shirtCount * printFee + revisionFee + designerFee;
     }
 
     // --- Update design status ---
@@ -120,6 +122,10 @@ export const approveDesign = mutation({
     if (!existingBilling) {
       await ctx.db.insert("billing", {
         starting_amount: startingAmount,
+        total_shirts: shirtCount,
+        revision_fee: revisionFee,
+        designer_fee: designerFee,
+        printing_fee: printFee,
         final_amount: 0,
         negotiation_history: [],
         negotiation_rounds: 0,
