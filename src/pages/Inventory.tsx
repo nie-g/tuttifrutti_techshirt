@@ -1,4 +1,3 @@
-// src/pages/InventoryPage.tsx
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation } from "convex/react";
@@ -15,7 +14,6 @@ interface InventoryItem {
   categoryName: string;
   unit: string;
   stock: number;
-  reorder_level?: number;
   description?: string;
   created_at: number;
   updated_at: number;
@@ -37,9 +35,11 @@ const InventoryPage: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentItem, setCurrentItem] = useState<Partial<InventoryItem>>({});
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState<{ key: keyof InventoryItem; direction: "asc" | "desc" }>({ key: "created_at", direction: "desc" });
+  const [sortConfig, setSortConfig] = useState<{ key: keyof InventoryItem; direction: "asc" | "desc" }>({
+    key: "created_at",
+    direction: "desc",
+  });
 
-  // --- Stock Modal state ---
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [stockAmount, setStockAmount] = useState(0);
   const [stockItem, setStockItem] = useState<InventoryItem | null>(null);
@@ -49,13 +49,9 @@ const InventoryPage: React.FC = () => {
     categoryId: "",
     unit: "",
     stock: 0,
-    reorderLevel: 0,
     description: "",
   });
 
-  /* -------------------------
-     Effects
-  ------------------------- */
   useEffect(() => {
     if (isEditMode && currentItem) {
       setFormState({
@@ -63,17 +59,13 @@ const InventoryPage: React.FC = () => {
         categoryId: currentItem.category_id || "",
         unit: currentItem.unit || "",
         stock: currentItem.stock || 0,
-        reorderLevel: currentItem.reorder_level || 0,
         description: currentItem.description || "",
       });
     } else {
-      setFormState({ name: "", categoryId: "", unit: "", stock: 0, reorderLevel: 0, description: "" });
+      setFormState({ name: "", categoryId: "", unit: "", stock: 0, description: "" });
     }
   }, [isModalOpen, isEditMode, currentItem]);
 
-  /* -------------------------
-     Stock Modal
-  ------------------------- */
   const handleOpenStockModal = (item: InventoryItem) => {
     setStockItem(item);
     setStockAmount(0);
@@ -90,8 +82,7 @@ const InventoryPage: React.FC = () => {
         name: stockItem.name,
         categoryId: stockItem.category_id,
         unit: stockItem.unit,
-        stock: stockItem.stock + stockAmount, // increment stock
-        reorderLevel: stockItem.reorder_level ?? 0,
+        stock: stockItem.stock + stockAmount, // increment stock only
         description: stockItem.description ?? "",
       });
       setIsStockModalOpen(false);
@@ -101,19 +92,16 @@ const InventoryPage: React.FC = () => {
     }
   };
 
-  /* -------------------------
-     Handlers
-  ------------------------- */
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
-    setFormState(prev => ({
+    setFormState((prev) => ({
       ...prev,
-      [id]: id === "stock" || id === "reorderLevel" ? Number(value) : value,
+      [id]: id === "stock" ? Number(value) : value,
     }));
   };
 
   const handleSelectChange = (value: string, id: string) => {
-    setFormState(prev => ({ ...prev, [id]: value }));
+    setFormState((prev) => ({ ...prev, [id]: value }));
   };
 
   const handleAddItem = () => {
@@ -144,7 +132,6 @@ const InventoryPage: React.FC = () => {
           categoryId: formState.categoryId as Id<"inventory_categories">,
           unit: formState.unit,
           stock: formState.stock,
-          reorderLevel: formState.reorderLevel,
           description: formState.description,
         });
       } else {
@@ -152,8 +139,8 @@ const InventoryPage: React.FC = () => {
           name: formState.name,
           categoryId: formState.categoryId as Id<"inventory_categories">,
           unit: formState.unit,
+          pendingRestock: 0,
           stock: formState.stock,
-          reorderLevel: formState.reorderLevel,
           description: formState.description,
         });
       }
@@ -169,11 +156,8 @@ const InventoryPage: React.FC = () => {
     setSortConfig({ key, direction });
   };
 
-  /* -------------------------
-     Filter + Sort
-  ------------------------- */
   const filteredItems = (inventoryItems ?? [])
-    .filter(i => {
+    .filter((i) => {
       if (!searchTerm) return true;
       const term = searchTerm.toLowerCase();
       return (
@@ -191,39 +175,57 @@ const InventoryPage: React.FC = () => {
     });
 
   const isLoading = inventoryItems === undefined || inventoryCategories === undefined;
+   if (isLoading) {
+        return (
+          <div className="flex h-screen bg-gray-50">
+            <DynamicSidebar />
+            <div className="flex-1 flex flex-col">
+              <AdminNavbar />
+              <div className="flex-1 p-6 flex items-center justify-center">
+                <div className="bg-white shadow rounded-lg p-6 text-center">
+                  <p className="text-gray-500">Loading requests...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+    );
+  }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}
-      className="flex min-h-screen bg-gradient-to-br from-white to-gray-50">
+    <div  className="flex min-h-screen bg-gradient-to-br from-white to-gray-50">
       <DynamicSidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <AdminNavbar />
         <main className="flex-1 p-6 overflow-auto">
-          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
               <p className="text-gray-600">Track and manage your inventory items</p>
             </div>
-            <button onClick={handleAddItem}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium">
+            <button
+              onClick={handleAddItem}
+              className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium"
+            >
               <Plus className="h-4 w-4" /> Add Item
             </button>
           </div>
 
-          {/* Search */}
           <div className="mb-4 relative w-full max-w-md">
             <input
               type="text"
               placeholder="Search inventory..."
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
             />
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           </div>
 
-          {/* Table */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             {isLoading ? (
               <div className="p-6 text-center">Loading inventory...</div>
@@ -237,10 +239,12 @@ const InventoryPage: React.FC = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      {["name", "categoryName", "unit", "stock", "reorder_level"].map(col => (
-                        <th key={col}
+                      {["name", "categoryName", "unit", "stock","pending_restock"].map((col) => (
+                        <th
+                          key={col}
                           onClick={() => handleSort(col as keyof InventoryItem)}
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        >
                           <div className="flex items-center">
                             {col.replace("_", " ").toUpperCase()}
                             {sortConfig.key === col && <ArrowUpDown className="ml-1 h-4 w-4" />}
@@ -252,13 +256,13 @@ const InventoryPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredItems.map(item => (
+                    {filteredItems.map((item) => (
                       <tr key={item._id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.name}</td>
                         <td className="px-6 py-4 text-sm text-gray-600">{item.categoryName}</td>
                         <td className="px-6 py-4 text-sm text-gray-600">{item.unit}</td>
                         <td className="px-6 py-4 text-sm text-gray-600">{item.stock}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{item.reorder_level ?? "N/A"}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{item.pending_restock}</td>
                         <td className="px-6 py-4 text-sm text-gray-600">{item.description || "N/A"}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                           <button onClick={() => handleEditItem(item)} className="inline-flex items-center px-2 py-1 text-blue-600 hover:text-blue-800 rounded-md hover:bg-blue-50">
@@ -288,7 +292,6 @@ const InventoryPage: React.FC = () => {
                 transition={{ duration: 0.2 }}
                 className="bg-white rounded-xl shadow-lg w-full max-w-sm p-5 relative"
               >
-                {/* Close button */}
                 <button
                   aria-label="Close modal"
                   type="button"
@@ -305,15 +308,31 @@ const InventoryPage: React.FC = () => {
                 <form onSubmit={handleSubmit} className="space-y-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
-                    <input aria-label="Item name" id="name" value={formState.name} onChange={handleInputChange} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500" required />
+                    <input
+                      aria-label="Name"
+                      id="name"
+                      value={formState.name}
+                      onChange={handleInputChange}
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500"
+                      required
+                    />
                   </div>
 
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
-                    <select aria-label="Item category" id="categoryId" value={formState.categoryId} onChange={e => handleSelectChange(e.target.value, "categoryId")} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500" required>
+                    <select
+                      aria-label="Category"
+                      id="categoryId"
+                      value={formState.categoryId}
+                      onChange={(e) => handleSelectChange(e.target.value, "categoryId")}
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500"
+                      required
+                    >
                       <option value="">Select a category</option>
                       {inventoryCategories?.map((cat: InventoryCategory) => (
-                        <option key={cat._id} value={cat._id}>{cat.category_name}</option>
+                        <option key={cat._id} value={cat._id}>
+                          {cat.category_name}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -321,29 +340,55 @@ const InventoryPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Unit</label>
-                      <input aria-label="Item unit" id="unit" value={formState.unit} onChange={handleInputChange} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500" required />
+                      <input
+                        aria-label="Unit"
+                        id="unit"
+                        value={formState.unit}
+                        onChange={handleInputChange}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500"
+                        required
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Stock</label>
-                      <input aria-label="Item stock" id="stock" type="number" value={formState.stock} onChange={handleInputChange} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500" required />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Reorder Level</label>
-                      <input aria-label="Item reorder level" id="reorderLevel" type="number" value={formState.reorderLevel} onChange={handleInputChange} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500" />
+                      <input
+                        id="stock"
+                        aria-label="Stock"
+                        type="number"
+                        value={formState.stock}
+                        onChange={handleInputChange}
+                        className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500"
+                        required
+                      />
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
-                    <textarea aria-label="Item description" id="description" value={formState.description} onChange={handleInputChange} rows={2} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500" />
+                    <textarea
+                      id="description"
+                      aria-label="Description"
+                      value={formState.description}
+                      onChange={handleInputChange}
+                      rows={2}
+                      className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500"
+                    />
                   </div>
 
                   <div className="flex justify-end gap-2 pt-2">
-                    <button type="button" onClick={() => setIsModalOpen(false)} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-100">Cancel</button>
-                    <button type="submit" className="px-3 py-1.5 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700">{isEditMode ? "Save" : "Add"}</button>
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-100"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-3 py-1.5 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700"
+                    >
+                      {isEditMode ? "Save" : "Add"}
+                    </button>
                   </div>
                 </form>
               </motion.div>
@@ -368,7 +413,9 @@ const InventoryPage: React.FC = () => {
                   <X className="h-5 w-5" />
                 </button>
 
-                <h2 className="text-lg font-semibold mb-4">Add Stock – {stockItem.name}</h2>
+                <h2 className="text-lg font-semibold mb-4">
+                  Add Stock – {stockItem.name}
+                </h2>
 
                 <form onSubmit={handleAddStockSubmit} className="space-y-3">
                   <div>
@@ -376,9 +423,9 @@ const InventoryPage: React.FC = () => {
                       Amount to Add
                     </label>
                     <input
-                      aria-label="Amount to add"
                       type="number"
                       min="1"
+                      aria-label="Amount to add"
                       value={stockAmount}
                       onChange={(e) => setStockAmount(Number(e.target.value))}
                       className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500"
@@ -405,9 +452,10 @@ const InventoryPage: React.FC = () => {
               </motion.div>
             </div>
           )}
+          </motion.div>
         </main>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

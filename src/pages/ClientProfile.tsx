@@ -78,24 +78,24 @@ const Profile: React.FC = () => {
     }
   };
 
-  if (!isLoaded || !dbUser) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="p-4 text-center">
-          <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
+  if (!isLoaded|| !dbUser) {
+        return (
+          <div className="flex h-screen bg-gray-50">
+            <DynamicSidebar />
+            <div className="flex-1 flex flex-col">
+              <ClientNavbar />
+              <div className="flex-1 p-6 flex items-center justify-center">
+                <div className="bg-white shadow rounded-lg p-6 text-center">
+                  <p className="text-gray-500">Loading requests...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="flex min-h-screen bg-gradient-to-br from-white to-teal-50"
-    >
+    <div  className="flex min-h-screen bg-gradient-to-br from-white to-teal-50">
       {/* Sidebar */}
       <DynamicSidebar />
 
@@ -108,10 +108,10 @@ const Profile: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-5xl space-y-6"
           >
-            <h1 className="text-2xl font-bold mb-6">My Profile</h1>
+            <h1 className="text-2xl font-bold mb-6 text-gray-600">My Profile</h1>
 
             {/* === First Container: Profile Info === */}
-            <div className="p-4 bg-white rounded-2xl shadow-md flex items-center gap-6">
+            <div className="p-4 bg-white rounded-2xl shadow-md border border-gray-200 flex items-center gap-6">
               <img
                 src={user?.imageUrl}
                 alt="Profile"
@@ -127,7 +127,7 @@ const Profile: React.FC = () => {
 
               <button
                 onClick={() => openUserProfile()}
-                className="ml-auto flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition"
+                className="ml-auto flex items-center gap-2 px-3 py-2  rounded-lg bg-gray-100 border border-gray-300 hover:bg-gray-200 transition"
                 aria-label="Manage Account"
               >
                 <span className="text-sm font-medium text-gray-600">
@@ -139,14 +139,14 @@ const Profile: React.FC = () => {
 
            {/* === Second Container: Client Info (view + edit) === */}
               {dbUser.role === "client" && (
-                <div className=" bg-white rounded-2xl shadow-md p-10  ">
-                  <div className="  justify-items-center mb-10">
-                    <h2 className="text-2xl font-semibold text-gray-800">Client Contact Information</h2>
+                <div className=" bg-white rounded-2xl shadow-md p-4 border border-gray-200 ">
+                  <div className="  justify-items-start mb-10 border-b border-gray-200 p-3">
+                    <h2 className="text-xl font-semibold text-gray-600">Client Contact Information</h2>
                   </div>
                   
                   {!isEditing ? (
                     <>
-                      <div className="space-y-3 text-gray-700">
+                      <div className="space-y-3 text-gray-700 p-3">
                         
                         <p>
                           <span className="font-medium text-gray-600">Contact Number:</span>{" "}
@@ -161,7 +161,7 @@ const Profile: React.FC = () => {
                       <div className="mt-6 flex justify-end">
                         <button
                           onClick={() => setIsEditing(true)}
-                          className="flex items-center gap-2 bg-gray-100 text-gray-700 px-6 py-2 rounded-lg shadow hover:bg-gray-200 transition"
+                          className="flex items-center gap-2 bg-gray-100 border font-semibold border-gray-300 text-gray-700 px-6 py-2 rounded-lg shadow hover:bg-gray-200 transition"
                         >
                           <Settings size={18} />
                           {(!clientProfile?.phone && !clientProfile?.address)
@@ -240,7 +240,7 @@ const Profile: React.FC = () => {
           </motion.div>
         </main>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

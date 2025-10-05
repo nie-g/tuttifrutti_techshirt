@@ -25,6 +25,8 @@ import Designs from './pages/Designs';
 import AdminDesigns from './pages/AdminDesigns';
 import BrowseGallery from './pages/BrowseGallery';
 import Register from './pages/Register';
+import RegisterDesigner from './pages/RegisterDesigner';
+import RegisterAdmin from './pages/RegisterAdmin';
 import Login from './pages/Login';
 import Reports from './pages/AdminReports';
 
@@ -36,9 +38,10 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/home" element={<LandingPage />} />
-        <Route path="/sign-up/*" element={<SignUpPage />} />
-        <Route path="/sign-in/*" element={<SignInPage />} />
-        <Route path="/signup/designer" element={<DesignerSignUpPage />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/register/designer" element={<RegisterDesigner />} />
+        <Route path="/register/admin" element={<RegisterAdmin />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin" element={<AdminDashboardPage />} />
@@ -60,8 +63,7 @@ function App() {
         <Route path="/designer/designs" element={<Designs />} />
         <Route path="/admin/designs" element={<AdminDesigns />} />
         <Route path="/client/browse" element={<BrowseGallery />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login />} />
+      
         <Route path="/admin/reports" element={<Reports />} />
       </Routes>
     </BrowserRouter>

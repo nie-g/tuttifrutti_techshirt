@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
 import CanvasSettings from "./designCanvasComponents/CanvasSettings";
 import DesignDetails from "./designCanvasComponents/CanvasDesignDetails";
-import { Save, Upload, Info, Wrench, ArrowLeft, ReceiptText, Image } from "lucide-react"; // added Back icon
+import { Save, Upload, Info, Wrench, ArrowLeft, ReceiptText, Image, MessageCircleMore } from "lucide-react"; // added Back icon
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -10,7 +10,7 @@ import { useMutation, useAction } from "convex/react";
 import { useNavigate } from "react-router-dom";
 import DesignerBillModal from "./DesignerBillModal";
 import { addImageFromUrl } from "./designCanvasComponents/CanvasTools";
-
+import CommentsModal from "./designCanvasComponents/CanvasComments";
 import ReferencesGallery from "./designCanvasComponents/CanvasDesignReferences";
 // 🔹 Bigger canvas size
 const CANVAS_WIDTH = 730;
@@ -53,6 +53,9 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
   const isApproved = designDoc?.status === "approved";
   const isDisabled = designDoc?.status === "approved" || designDoc?.status === "finished";
   const requestId = designDoc?.request_id; 
+  const [showComments, setShowComments] = useState(false);
+  const previewDoc = useQuery(api.design_preview.getByDesign, { designId });
+
 
   const references = useQuery(
     api.designReferences.getByRequestId,
@@ -158,7 +161,7 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
       alert("Error saving canvas. Check console.");
     }
   };
-
+ const updateDesignStatus = useMutation(api.designs.updateStatus);
   // 🔹 Save only Preview Image
   const handlePostUpdate = async () => {
   if (!getThreeScreenshot) {
@@ -173,6 +176,7 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
 
       // 1️⃣ Save the preview
       await savePreview({ designId, previewImage: previewBuffer });
+      await updateDesignStatus({ designId, status: "in_progress" });
 
       // 2️⃣ Notify the client & update status
       await notifyClientUpdate({ designId });
@@ -196,7 +200,7 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
        <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 px-3 py-2 bg-gray-200 rounded hover:bg-gray-300"
+          className="flex items-center gap-2 px-3 py-2 bg-gray-100  border border-gray-300 rounded hover:bg-gray-300"
         >
           <ArrowLeft size={18} />
           <span className="text-sm font-medium">Back</span>
@@ -216,6 +220,17 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
               <ReceiptText size={18} />
             </button>
           )}
+          {/* Comments button */}
+          <button
+            type="button"
+            onClick={() => setShowComments(true)}
+            className={`p-2 rounded ${
+              showComments ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
+            }`}
+            title="Comments"
+          >
+          <MessageCircleMore size={18} />
+          </button>
           {/* References button */}
           <button
             type="button"
@@ -326,6 +341,20 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
             onClose={() => setIsDesignerBillOpen(false)}
           />
         )}
+        {showComments && previewDoc?._id && (
+        <CommentsModal
+          previewId={previewDoc._id}
+          onClose={() => setShowComments(false)}
+          onSelectImage={async (url) => {
+            if (canvas) {
+              await addImageFromUrl(canvas, url);
+              setShowComments(false);
+            }
+          }}
+        />
+      )}
+
+
         {showReferences && requestId && (
         <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
           <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-4">

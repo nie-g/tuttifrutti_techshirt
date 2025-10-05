@@ -1,4 +1,3 @@
-// src/pages/Templates.tsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -11,9 +10,9 @@ import TemplateGallery from "../components/TemplateGallery";
 import TemplateUploader from "../components/TemplateUploader";
 import ShirtSizeManager from "../components/ShirtSizeManager";
 import PricingManager from "../components/PricingManager";
+import PrintPricingManager from "../components/PrintPricing";
 import { Shirt, Upload, Layers, Plus } from "lucide-react";
 
-// ✅ Define User type (based on Convex schema "users" table)
 interface User {
   _id: string;
   clerkId: string;
@@ -24,172 +23,125 @@ interface User {
   createdAt: number;
 }
 
-type TabOption = "templates" | "upload" | "sizes" | "pricing";
-
+type TabOption = "templates" | "upload" | "sizes" | "pricing"|"printpricing";
 
 const Templates: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabOption>("templates");
   const { user: clerkUser, isLoaded } = useUser();
 
-  // ✅ Fetch Convex user by Clerk ID
   const convexUser = useQuery(
     api.userQueries.getUserByClerkId,
     clerkUser?.id ? { clerkId: clerkUser.id } : "skip"
   ) as User | null | undefined;
 
-  // ✅ Redirect if not admin
   useEffect(() => {
-    if (!isLoaded) return; // Wait until Clerk finishes loading
-    if (convexUser === undefined) return; // Still loading Convex query
-
+    if (!isLoaded) return;
+    if (convexUser === undefined) return;
     if (!convexUser || convexUser.role !== "admin") {
       navigate("/sign-in", { replace: true });
     }
   }, [convexUser, isLoaded, navigate]);
 
-  // ✅ Loading state
-
-   if (!isLoaded|| convexUser === undefined) {
-        return (
-          <div className="flex h-screen bg-gray-50">
-            <DynamicSidebar />
-            <div className="flex-1 flex flex-col">
-              <AdminNavbar />
-              <div className="flex-1 p-6 flex items-center justify-center">
-                <div className="bg-white shadow rounded-lg p-6 text-center">
-                  <p className="text-gray-500">Loading Designs...</p>
-                </div>
-              </div>
+  if (!isLoaded || convexUser === undefined) {
+    return (
+      <div className="flex h-screen bg-gray-50">
+        <DynamicSidebar />
+        <div className="flex-1 flex flex-col">
+          <AdminNavbar />
+          <div className="flex-1 p-6 flex items-center justify-center">
+            <div className="bg-white shadow rounded-lg p-6 text-center">
+              <p className="text-gray-500">Loading Designs...</p>
             </div>
           </div>
-        );
-      }
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-white to-teal-50" >
+    <div className="flex min-h-screen bg-gradient-to-br from-white to-teal-50">
       <DynamicSidebar />
-      <div className="flex-1 flex flex-col">
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0">
         <AdminNavbar />
-        <main className="p-6 md:p-8 flex flex-col gap-6 overflow-auto">
-          {/* Header Section */}
-           <motion.div
-                className="bg-white shadow-md rounded-lg p-6"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: "easeOut" }} >
-          <div className="mb-4">
-          <div className="p-6 bg-white rounded-2xl shadow-md">
-            <h1 className="text-2xl font-bold text-gray-900">Design Resources</h1>
-            <p className="text-gray-600">Manage your templates and shirt sizes</p>
-            <div className="mt-2">
-              <span className="px-3 py-1 text-xs font-medium rounded-full bg-teal-100 text-teal-800">
-                Resources
-              </span>
+
+        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto">
+          <motion.div
+            className="bg-white shadow-md rounded-lg p-4 sm:p-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
+            {/* Header Section */}
+            <div className="space-y-4">
+              <div className="text-center sm:text-left">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                  Templates and Pricing
+                </h1>
+                <p className="text-gray-600 text-sm sm:text-base">
+                  Manage your templates, shirt sizes, and designer pricing
+                </p>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex flex-wrap sm:flex-nowrap gap-2 sm:gap-3 overflow-x-auto hide-scrollbar justify-center sm:justify-start">
+                {[
+                  { key: "templates", label: "Browse Templates", icon: <Layers className="w-4 h-4" /> },
+                  { key: "upload", label: "Upload Template", icon: <Upload className="w-4 h-4" /> },
+                  { key: "sizes", label: "Manage Shirt Sizes", icon: <Shirt className="w-4 h-4" /> },
+                  { key: "pricing", label: "Designer Pricing", icon: <Plus  className="w-4 h-4" /> },
+                  { key: "printpricing", label: "Print Pricing", icon: <Layers className="w-4 h-4" /> },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key as TabOption)}
+                    className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors
+                      ${
+                        activeTab === tab.key
+                          ? "bg-teal-100 text-teal-800"
+                          : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                      }`}
+                  >
+                    {tab.icon}
+                    <span className="whitespace-nowrap">{tab.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="flex flex-wrap mt-6 gap-4">
-              <button
-                onClick={() => setActiveTab("templates")}
-                className={`px-6 py-3 transition border-2 rounded-lg flex items-center gap-2 ${
-                  activeTab === "templates"
-                    ? "bg-teal-500 text-white border-teal-500"
-                    : "text-teal-500 border-teal-500 hover:bg-teal-500 hover:text-white"
-                }`}
-              >
-                <Layers size={18} />
-                Browse Templates
-              </button>
-              <button
-                onClick={() => setActiveTab("upload")}
-                className={`px-6 py-3 transition border-2 rounded-lg flex items-center gap-2 ${
-                  activeTab === "upload"
-                    ? "bg-teal-500 text-white border-teal-500"
-                    : "text-teal-500 border-teal-500 hover:bg-teal-500 hover:text-white"
-                }`}
-              >
-                <Plus size={18} />
-                Upload Template
-              </button>
-              <button
-                onClick={() => setActiveTab("sizes")}
-                className={`px-6 py-3 transition border-2 rounded-lg flex items-center gap-2 ${
-                  activeTab === "sizes"
-                    ? "bg-teal-500 text-white border-teal-500"
-                    : "text-teal-500 border-teal-500 hover:bg-teal-500 hover:text-white"
-                }`}
-              >
-                <Shirt size={18} />
-                Manage Shirt Sizes
-              </button>
-              <button
-                onClick={() => setActiveTab("pricing")}
-                className={`px-6 py-3 transition border-2 rounded-lg flex items-center gap-2 ${
-                  activeTab === "pricing"
-                    ? "bg-teal-500 text-white border-teal-500"
-                    : "text-teal-500 border-teal-500 hover:bg-teal-500 hover:text-white"
-                }`}
-              >
-                <Plus size={18} />
-                Manage Pricing
-              </button>
-            </div>
-          </div>
-          </div>
+            {/* Content Section */}
+            <div className="mt-6 bg-white rounded-2xl shadow-sm p-4 sm:p-6 border border-gray-100">
+              <div className="overflow-hidden">
+                {activeTab === "templates" && (
+                  <div className="w-full">
+                    <TemplateGallery />
+                  </div>
+                )}
+                {activeTab === "upload" && (
+                  <div className="w-full">
+                    <TemplateUploader />
+                  </div>
+                )}
+                {activeTab === "sizes" && (
+                  <div className="w-full">
+                    <ShirtSizeManager />
+                  </div>
+                )}
+                {activeTab === "pricing" && (
+                  <div className="w-full">
+                    <PricingManager />
+                  </div>
+                )}
+                {activeTab === "printpricing" && (
+                  <div className="w-full">
+                    <PrintPricingManager />
+                  </div>
+                )}
 
-          {/* Content Section */}
-          <div className="bg-white rounded-2xl shadow-md p-6">
-            {/* Section Title */}
-            <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
-              {activeTab === "templates" && (
-                <>
-                  <div className="p-2 bg-indigo-100 rounded-full mr-3">
-                    <Layers className="h-5 w-5 text-indigo-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-800">Design Templates</h2>
-                    <p className="text-sm text-gray-500">
-                      Browse and manage your template collection
-                    </p>
-                  </div>
-                </>
-              )}
-              {activeTab === "upload" && (
-                <>
-                  <div className="p-2 bg-teal-100 rounded-full mr-3">
-                    <Upload className="h-5 w-5 text-teal-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-800">Upload New Template</h2>
-                    <p className="text-sm text-gray-500">
-                      Add new design templates to your collection
-                    </p>
-                  </div>
-                </>
-              )}
-              {activeTab === "sizes" && (
-                <>
-                  <div className="p-2 bg-purple-100 rounded-full mr-3">
-                    <Shirt className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-800">Shirt Size Management</h2>
-                    <p className="text-sm text-gray-500">
-                      Manage shirt sizes for your design projects
-                    </p>
-                  </div>
-                </>
-              )}
+              </div>
             </div>
-
-            {/* Tab Content */}
-            <div className="overflow-hidden">
-              {activeTab === "templates" && <TemplateGallery />}
-              {activeTab === "upload" && <TemplateUploader />}
-              {activeTab === "sizes" && <ShirtSizeManager />}
-              {activeTab === "pricing" && <PricingManager />}
-            </div>
-          </div>
           </motion.div>
         </main>
       </div>

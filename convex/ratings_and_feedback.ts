@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const addRating = mutation({
@@ -19,4 +19,8 @@ export const addRating = mutation({
       created_at: Date.now(),
     });
   },
+});
+
+export const listAll = query(async ({ db }) => {
+  return await db.query("ratings_feedback").collect();
 });

@@ -259,6 +259,18 @@ const ClientRequestDetailsModal: React.FC<ClientRequestDetailsModalProps> = ({
                 <RequestReferencesGallery requestId={requestId} />
               )}
             </div>
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Close
+              </button>
+
+            </div>
+
+
           </motion.div>
         </motion.div>
       )}

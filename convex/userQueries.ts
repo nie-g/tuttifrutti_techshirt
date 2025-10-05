@@ -48,3 +48,16 @@ export const listDesigners = query(async ({ db }) => {
     };
   });
 });
+
+export const listAll = query({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("users").collect();
+    return all.map((u) => ({
+      _id: u._id,
+      first_name: u.firstName,
+      last_name: u.lastName,
+      email: u.email,
+    }));
+  },
+});

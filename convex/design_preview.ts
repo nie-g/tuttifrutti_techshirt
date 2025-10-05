@@ -53,6 +53,7 @@ export const getByDesign = query({
       .first();
   },
 });
+
 export const getLatestByDesign = query({
   args: { designId: v.id("design") },
   handler: async (ctx, args) => {

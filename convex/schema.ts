@@ -141,7 +141,7 @@ export default defineSchema({
     gender: v.optional(v.string()),
     sketch: v.optional(v.string()),
     description: v.optional(v.string()),
-    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected")),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected"), v.literal("cancelled")),
     textile_id: v.id("inventory_items"),
     preferred_designer_id: v.optional(v.id("users")),
     print_type: v.optional(
@@ -187,6 +187,7 @@ export default defineSchema({
     status: v.union(
       v.literal("in_progress"),
       v.literal("pending_revision"),
+      v.literal("in_production"),
       v.literal("finished"),
       v.literal("approved")
     ),
@@ -221,7 +222,7 @@ export default defineSchema({
     category_id: v.id("inventory_categories"),
     unit: v.string(),
     stock: v.number(),
-    reorder_level: v.optional(v.number()),
+    pending_restock: v.optional(v.number()), // ✅ Amount of materials needed for pending orders
     description: v.optional(v.string()),
     created_at: v.number(),
     updated_at: v.number(),
@@ -229,14 +230,21 @@ export default defineSchema({
     .index("by_name", ["name"])
     .index("by_category", ["category_id"]),
 
-  comments: defineTable({
-    preview_id: v.id("design_preview"),
-    user_id: v.id("users"),
-    comment: v.string(),
-    created_at: v.number(),
-  })
-    .index("by_preview", ["preview_id"])
-    .index("by_user", ["user_id"]),
+    comments: defineTable({
+      preview_id: v.id("design_preview"),
+      user_id: v.id("users"),
+      comment: v.string(),
+      created_at: v.number(),
+    })
+      .index("by_preview", ["preview_id"])
+      .index("by_user", ["user_id"]),
+
+      comment_images: defineTable({
+      comment_id: v.id("comments"),
+      storage_id: v.id("_storage"), // stores the image file in Convex storage
+      created_at: v.number(),
+    })
+      .index("by_comment", ["comment_id"]),
     // --- BILLING ---
     billing: defineTable({
     starting_amount: v.number(),
@@ -276,9 +284,20 @@ export default defineSchema({
     created_at: v.number(),
     updated_at: v.optional(v.number()),
       })
-        .index("by_designer", ["designer_id"])
-        .index("by_normal_amount", ["normal_amount"])
-        .index("by_promo_amount", ["promo_amount"]),
+      .index("by_designer", ["designer_id"])
+      .index("by_normal_amount", ["normal_amount"])
+      .index("by_promo_amount", ["promo_amount"]),
+      // --- PRINT PRICING ---
+   print_pricing: defineTable({
+    print_type: v.union(
+      v.literal("Sublimation"),
+      v.literal("Dtf"),
+    ), // ✅ you can adjust print types as needed
+    amount: v.number(), // 💰 price per print or base rate
+    description: v.optional(v.string()), // optional explanation (e.g. "Full front print")
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+  }).index("by_print_type", ["print_type"]),
 
 // --- INVOICES ---
 

@@ -466,7 +466,7 @@ export const cancelDesignRequest = mutation({
     }
 
     // Mark as rejected
-    await ctx.db.patch(request_id, { status: "rejected" });
+    await ctx.db.patch(request_id, { status: "cancelled" });
 
     // Optional: notify admins or designers
     await ctx.runMutation(api.notifications.createNotificationForMultipleUsers, {

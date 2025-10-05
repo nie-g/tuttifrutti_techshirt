@@ -1,10 +1,13 @@
-import { action } from "../_generated/server"; 
+import { action } from "../_generated/server";
 import { v } from "convex/values";
 import type { ActionCtx } from "../_generated/server";
 
 export const sendClerkInvite = action({
-  args: v.object({ email: v.string() }),
-  handler: async (_ctx: ActionCtx, { email }) => {
+  args: v.object({
+    email: v.string(),
+    role: v.union(v.literal("admin"), v.literal("client"), v.literal("designer")),
+  }),
+  handler: async (_ctx: ActionCtx, { email, role }) => {
     if (!email) throw new Error("Email is required");
 
     const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY;
@@ -17,7 +20,7 @@ export const sendClerkInvite = action({
     };
 
     try {
-      // Fetch existing invitations
+      // ✅ Check if there’s already a pending invitation for this email
       const listResponse = await fetch("https://api.clerk.com/v1/invitations", { headers });
       const listData = await listResponse.json();
 
@@ -26,7 +29,7 @@ export const sendClerkInvite = action({
       );
 
       if (pending) {
-        // Resend existing pending invite
+        // ✅ Resend existing invite instead of creating a new one
         const resendResponse = await fetch(
           `https://api.clerk.com/v1/invitations/${pending.id}/resend`,
           { method: "POST", headers }
@@ -35,19 +38,28 @@ export const sendClerkInvite = action({
         return {
           clerkInvitation: resendData,
           emailSent: true,
-          message: `Invitation resent to ${email}`,
+          message: `Existing invitation resent to ${email}`,
         };
       }
 
-      // Create a new invitation
+      // ✅ Dynamic redirect based on role
+      const roleRedirectMap: Record<string, string> = {
+        admin: `${CLIENT_BASE_URL}/register/admin`,
+        client: `${CLIENT_BASE_URL}/register`,
+        designer: `${CLIENT_BASE_URL}/register/designer`,
+      };
+
+      const redirect_url = roleRedirectMap[role] || `${CLIENT_BASE_URL}/signup`;
+
+      // ✅ Create a new invitation
       const createResponse = await fetch("https://api.clerk.com/v1/invitations", {
         method: "POST",
         headers,
         body: JSON.stringify({
           email_address: email,
-          redirect_url: `${CLIENT_BASE_URL}/signup/designer`,
-          public_metadata: { role: "designer" },
-          notify: true, // ensures Clerk sends the email
+          redirect_url,
+          public_metadata: { role },
+          notify: true, // Sends the email invite automatically
         }),
       });
 
@@ -61,7 +73,7 @@ export const sendClerkInvite = action({
       return {
         clerkInvitation: createData,
         emailSent: true,
-        message: `Invitation sent to ${email}`,
+        message: `Invitation sent to ${email} as ${role}`,
       };
     } catch (err: any) {
       console.error("Error sending invite:", err);

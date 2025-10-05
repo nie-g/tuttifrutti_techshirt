@@ -46,10 +46,7 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
 
   if (!design) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-        <div className="p-4 text-sm sm:p-6 sm:text-base bg-white rounded-lg shadow-xl">
-          Loading design...
-        </div>
+      <div >
       </div>
     );
   }

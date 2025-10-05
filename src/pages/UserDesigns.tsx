@@ -142,23 +142,25 @@ const UserDesigns: React.FC = () => {
       return 0;
     });
 
-  if (!user || isLoading)
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="p-4 text-center">
-          <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading designs...</p>
+  if (isLoading|| !user) {
+      return (
+        <div className="flex h-screen bg-gray-50">
+          <DynamicSidebar />
+          <div className="flex-1 flex flex-col">
+            <AdminNavbar />
+            <div className="flex-1 p-6 flex items-center justify-center">
+              <div className="bg-white shadow rounded-lg p-6 text-center">
+                <p className="text-gray-500">Loading requests...</p>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="flex min-h-screen bg-gradient-to-br from-white to-teal-50"
-    >
+    <div className="flex min-h-screen bg-gradient-to-br from-white to-teal-50">
       {/* Sidebar always visible */}
       <DynamicSidebar />
 
@@ -167,6 +169,12 @@ const UserDesigns: React.FC = () => {
         <AdminNavbar />
         <main className="p-4 sm:p-6 md:p-8 flex flex-col gap-6 w-full max-w-7xl mx-auto overflow-x-hidden">
           {/* Header */}
+          <motion.div
+            className="bg-white shadow-md rounded-lg p-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
           <div className="p-6 bg-white rounded-2xl shadow-md w-full">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
               My Designs
@@ -187,7 +195,7 @@ const UserDesigns: React.FC = () => {
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex overflow-x-auto pb-2 hide-scrollbar">
+          <div className="flex overflow-x-auto pb-2 hide-scrollbar mt-6">
             <div className="flex space-x-2 min-w-max">
               {["all", "in_progress", "finished", "pending_revision", "approved"].map(
                 (tab) => (
@@ -318,13 +326,14 @@ const UserDesigns: React.FC = () => {
               </>
             )}
           </div>
+          </motion.div>
         </main>
       </div>
 
       {selectedRequestId && isModalOpen && (
         <UserDesignModal requestId={selectedRequestId} onClose={closeModal} />
       )}
-    </motion.div>
+    </div>
   );
 };
 

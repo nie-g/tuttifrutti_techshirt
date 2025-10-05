@@ -9,6 +9,7 @@ import { useUser } from "@clerk/clerk-react";
 import { Bell, CheckCircle, Clock, AlertTriangle, Trash2 } from "lucide-react";
 import { formatTimeAgo } from "./utils/convexUtils";
 
+
 interface Notification {
   id: any; // Id<"notifications"> from Convex (use `any` or proper Id type)
   notif_content: string;
@@ -19,7 +20,7 @@ interface Notification {
 
 const Notifications: React.FC = () => {
   const navigate = useNavigate();
-  const { user: clerkUser } = useUser();
+  const { user: clerkUser, isLoaded } = useUser();
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<"admin" | "designer" | "client" | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,23 +30,26 @@ const Notifications: React.FC = () => {
   const userRecord = useQuery(api.userQueries.getUserByClerkId, clerkUser ? { clerkId: clerkUser.id } : "skip");
 
   useEffect(() => {
-    if (!clerkUser) {
-      navigate("/sign-in");
-      return;
-    }
+  if (!isLoaded) return; // Wait for Clerk to load user session
 
-    if (userRecord) {
-      setUserId(userRecord._id);
-      setUserRole(userRecord.role);
-      setIsLoading(false);
-    } else if (userRecord === undefined) {
-      return; // still loading
-    } else {
-      setError("Could not retrieve your user data. Please log in again.");
-      localStorage.removeItem("user");
-      navigate("/sign-in");
-    }
-  }, [clerkUser, userRecord, navigate]);
+  if (!clerkUser) {
+    navigate("/sign-in");
+    return;
+  }
+
+  if (userRecord) {
+    setUserId(userRecord._id);
+    setUserRole(userRecord.role);
+    setIsLoading(false);
+  } else if (userRecord === undefined) {
+    return; // still loading Convex data
+  } else {
+    setError("Could not retrieve your user data. Please log in again.");
+    localStorage.removeItem("user");
+    navigate("/sign-in");
+  }
+}, [isLoaded, clerkUser, userRecord, navigate]);
+
 
   // Fetch notifications for the current user
   const notificationsRaw = useQuery(
@@ -102,28 +106,25 @@ const Notifications: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="flex min-h-screen bg-gradient-to-br from-white to-teal-50">
-        <DynamicSidebar />
-        <div className="flex-1 flex flex-col">
-          <AdminNavbar />
-          <main className="p-6 md:p-8 flex flex-col items-center justify-center">
-            <div className="bg-white p-8 rounded-2xl shadow-md text-center max-w-md w-full">
-              <div className="p-4 bg-teal-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-                <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+      return (
+        <div className="flex h-screen bg-gray-50">
+          <DynamicSidebar />
+          <div className="flex-1 flex flex-col">
+            <AdminNavbar />
+            <div className="flex-1 p-6 flex items-center justify-center">
+              <div className="bg-white shadow rounded-lg p-6 text-center">
+                <p className="text-gray-500">Loading requests...</p>
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Loading Notifications</h2>
-              <p className="text-gray-600">Please wait while we retrieve your notifications...</p>
             </div>
-          </main>
+          </div>
         </div>
-      </motion.div>
-    );
-  }
+      );
+    }
+
 
   if (error) {
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="flex min-h-screen bg-gradient-to-br from-white to-teal-50">
+      <div  className="flex min-h-screen bg-gradient-to-br from-white to-teal-50">
         <DynamicSidebar />
         <div className="flex-1 flex flex-col">
           <AdminNavbar />
@@ -140,24 +141,29 @@ const Notifications: React.FC = () => {
             </div>
           </main>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="flex min-h-screen bg-gradient-to-br from-white to-teal-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-white to-teal-50">
       <DynamicSidebar />
       <div className="flex-1 flex flex-col">
         <AdminNavbar />
         <main className="p-4 sm:p-6 md:p-8 flex flex-col gap-4 sm:gap-6 overflow-auto">
           {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
           <div className="p-4 sm:p-6 bg-white rounded-xl sm:rounded-2xl shadow-md">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Notifications</h1>
             <p className="text-sm sm:text-base text-gray-600 mt-1">Stay updated with your latest activities</p>
           </div>
 
           {/* Stats Card */}
-          <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md border-l-4 border-teal-500 hover:shadow-lg transition-shadow">
+          <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-md border-l-4 border-teal-500 hover:shadow-lg transition-shadow mt-4">
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm font-medium text-gray-500">Notifications</p>
@@ -174,7 +180,7 @@ const Notifications: React.FC = () => {
           </div>
 
           {/* Notifications List */}
-          <div className="bg-white rounded-xl sm:rounded-2xl shadow-md p-4 sm:p-6">
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-md p-4 sm:p-6 mt-4">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 gap-3 sm:gap-0">
               <div className="flex items-center">
                 <Bell className="text-teal-500 mr-2 h-5 w-5 sm:h-6 sm:w-6" />
@@ -227,9 +233,10 @@ const Notifications: React.FC = () => {
               </div>
             )}
           </div>
+          </motion.div>
         </main>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

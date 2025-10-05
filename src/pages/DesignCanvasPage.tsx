@@ -86,7 +86,7 @@ const DesignerCanvasPage: React.FC = () => {
 
       {/* Left side: Fabric Canvas */}
       <motion.div
-       className="basis-4/7 border rounded-lg h-[43.6vw] p-2 shadow-sm bg-white flex items-center justify-center"
+       className="basis-4/7 border border-gray-400 rounded-lg h-[43.6vw] p-2 shadow-sm bg-white flex items-center justify-center"
   initial={{ x: -50, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ delay: 0.1, duration: 0.4 }}
@@ -96,7 +96,7 @@ const DesignerCanvasPage: React.FC = () => {
 
       {/* Right side: 3D shirt preview */}
       <motion.div
-         className="basis-3/7 border h-[43.5vw] rounded-lg p-2 shadow-sm bg-white"
+         className="basis-3/7 border border-gray-400 h-[43.5vw] rounded-lg p-2 shadow-sm bg-white"
         initial={{ x: 50, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.4 }}

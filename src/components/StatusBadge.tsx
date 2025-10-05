@@ -35,6 +35,13 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
           In Progress
         </span>
       );
+    case "in_production":
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+          <Activity className="w-3 h-3 mr-1" />
+          In Production
+        </span>
+      );
     case "finished":
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">

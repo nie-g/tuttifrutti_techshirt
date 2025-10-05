@@ -16,6 +16,7 @@ import type {
 import type * as billing from "../billing.js";
 import type * as clients from "../clients.js";
 import type * as colors from "../colors.js";
+import type * as comment_images from "../comment_images.js";
 import type * as comments from "../comments.js";
 import type * as designReferences from "../designReferences.js";
 import type * as design_notifications from "../design_notifications.js";
@@ -36,6 +37,7 @@ import type * as http from "../http.js";
 import type * as inventory from "../inventory.js";
 import type * as notifications from "../notifications.js";
 import type * as portfolio from "../portfolio.js";
+import type * as print_pricing from "../print_pricing.js";
 import type * as ratings_and_feedback from "../ratings_and_feedback.js";
 import type * as shirt_sizes from "../shirt_sizes.js";
 import type * as shirt_types from "../shirt_types.js";
@@ -55,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   billing: typeof billing;
   clients: typeof clients;
   colors: typeof colors;
+  comment_images: typeof comment_images;
   comments: typeof comments;
   designReferences: typeof designReferences;
   design_notifications: typeof design_notifications;
@@ -75,6 +78,7 @@ declare const fullApi: ApiFromModules<{
   inventory: typeof inventory;
   notifications: typeof notifications;
   portfolio: typeof portfolio;
+  print_pricing: typeof print_pricing;
   ratings_and_feedback: typeof ratings_and_feedback;
   shirt_sizes: typeof shirt_sizes;
   shirt_types: typeof shirt_types;

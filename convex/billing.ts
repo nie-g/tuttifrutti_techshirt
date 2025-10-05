@@ -41,7 +41,7 @@ export const getBillingBreakdown = query({
 export const approveBill = mutation({
   args: { designId: v.id("design") },
   handler: async (ctx, { designId }) => {
-    // find the billing record linked to this design
+    // --- Find the billing record linked to this design ---
     const billingDoc = await ctx.db
       .query("billing")
       .withIndex("by_design", (q) => q.eq("design_id", designId))
@@ -51,12 +51,23 @@ export const approveBill = mutation({
       throw new Error("No billing record found for this design");
     }
 
-    // update billing status
-    await ctx.db.patch(billingDoc._id, { status: "approved" });
+    // --- Determine final amount ---
+    const finalAmount =
+      billingDoc.final_amount && billingDoc.final_amount > 0
+        ? billingDoc.final_amount
+        : billingDoc.starting_amount;
 
-    return { success: true, billingId: billingDoc._id };
+    // --- Update billing status and amount ---
+    await ctx.db.patch(billingDoc._id, {
+      status: "approved",
+      final_amount: finalAmount,
+      created_at: Date.now(),
+    });
+
+    return { success: true, billingId: billingDoc._id, finalAmount };
   },
 });
+
 
 export const getBillingByDesign = query({
   args: { designId: v.id("design") },

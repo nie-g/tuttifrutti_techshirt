@@ -1,7 +1,6 @@
-// src/pages/UserRequests.tsx
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -12,382 +11,270 @@ import DynamicSidebar from "../components/Sidebar";
 import ShirtDesignForm from "../components/form";
 import RequestDetailsModal from "../components/ClientRequestDetailsModal";
 
-import { FileText, CheckCircle, Clock, AlertTriangle, Activity, Plus, Search, Filter, ArrowUpDown } from "lucide-react";
+import {
+  CheckCircle, Clock, AlertTriangle, XCircle,
+  Search, FileText, Plus
+} from "lucide-react";
 
-/* -------------------------
+/* ---------------------------
    Helpers
-   ------------------------- */
-
-function formatTimeAgo(timestamp?: number) {
+--------------------------- */
+const formatTimeAgo = (timestamp?: number) => {
   if (!timestamp) return "Unknown";
   const diff = Date.now() - timestamp;
-  if (diff < 60 * 60 * 1000) return "Just now";
-  if (diff < 24 * 60 * 60 * 1000) return "Today";
-  if (diff < 48 * 60 * 60 * 1000) return "1 day ago";
-  if (diff < 7 * 24 * 60 * 60 * 1000) return `${Math.floor(diff / (24 * 60 * 60 * 1000))} days ago`;
+  if (diff < 3600000) return "Just now";
+  if (diff < 86400000) return "Today";
+  if (diff < 172800000) return "1 day ago";
+  if (diff < 604800000) return `${Math.floor(diff / 86400000)} days ago`;
   return new Date(timestamp).toLocaleDateString();
-}
-
-function formatStatus(status: string) {
-  switch (status) {
-    case "pending":
-      return "Planning";
-    case "approved":
-      return "In Progress";
-    case "rejected":
-      return "Cancelled";
-    default:
-      return status;
-  }
-}
-
-/* -------------------------
-   Types
-   ------------------------- */
-
-interface ConvexUser {
-  _id: Id<"users">;
-  clerkId?: string;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  role?: "client" | "designer" | "admin";
-  createdAt?: number;
-}
-
-interface DesignRequestRecord {
-  _id: Id<"design_requests">;
-  request_title: string;
-  description?: string;
-  tshirt_type?: string;
-  gender?: string;
-  status: "pending" | "approved" | "rejected";
-  created_at?: number;
-  _creationTime?: number;
-  designer?: { full_name?: string } | null;
-  [k: string]: any;
-}
-
-/* -------------------------
-   Status Badge (UI)
-   ------------------------- */
-
-const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
-  let bgColor = "bg-gray-100";
-  let textColor = "text-gray-800";
-  let icon = <FileText className="h-3 w-3 mr-1" />;
-
-  if (status === "Planning") {
-    bgColor = "bg-yellow-100";
-    textColor = "text-yellow-800";
-    icon = <Clock className="h-3 w-3 mr-1" />;
-  } else if (status === "In Progress") {
-    bgColor = "bg-blue-100";
-    textColor = "text-blue-800";
-    icon = <Activity className="h-3 w-3 mr-1" />;
-  } else if (status === "Completed") {
-    bgColor = "bg-green-100";
-    textColor = "text-green-800";
-    icon = <CheckCircle className="h-3 w-3 mr-1" />;
-  } else if (status === "Cancelled") {
-    bgColor = "bg-red-100";
-    textColor = "text-red-800";
-    icon = <AlertTriangle className="h-3 w-3 mr-1" />;
-  }
-
-  return (
-    <span className={`text-xs px-2 py-1 rounded-full flex items-center ${bgColor} ${textColor}`}>
-      {icon}
-      {status}
-    </span>
-  );
 };
 
-/* -------------------------
-   Component
-   ------------------------- */
+/* ---------------------------
+   Status Badge
+--------------------------- */
+const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+  switch (status) {
+    case "pending":
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+          <Clock className="w-3 h-3 mr-1" /> Pending
+        </span>
+      );
+    case "approved":
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          <CheckCircle className="w-3 h-3 mr-1" /> Approved
+        </span>
+      );
+    case "rejected":
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          <XCircle className="w-3 h-3 mr-1" /> Rejected
+        </span>
+      );
+    case "cancelled":
+    return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+          <XCircle className="w-3 h-3 mr-1" /> Cancelled
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+          <AlertTriangle className="w-3 h-3 mr-1" /> Unknown
+        </span>
+      );
+  }
+};
 
+/* ---------------------------
+   Component
+--------------------------- */
 const UserRequests: React.FC = () => {
   const { user: clerkUser } = useUser();
   const navigate = useNavigate();
 
-  const currentUser = useQuery(api.userQueries.getUserByClerkId, clerkUser ? { clerkId: clerkUser.id } : "skip") as
-    | ConvexUser
-    | null
-    | undefined;
-
+  const currentUser = useQuery(api.userQueries.getUserByClerkId, clerkUser ? { clerkId: clerkUser.id } : "skip");
   const clientRequests = useQuery(
     api.design_requests.getRequestsByClient,
     currentUser ? { clientId: currentUser._id } : "skip"
-  ) as DesignRequestRecord[] | undefined;
+  ) as any[];
 
   const cancelRequest = useMutation(api.design_requests.cancelDesignRequest);
-
-  const [convexUserId, setConvexUserId] = useState<Id<"users"> | null>(null);
   const [showRequestForm, setShowRequestForm] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<DesignRequestRecord | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
-  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
+  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<"all" | "pending" | "approved" | "rejected">("all");
 
   useEffect(() => {
-    if (!currentUser) return;
-    if (currentUser.role !== "client") {
-      navigate("/sign-in");
-      return;
-    }
-    setConvexUserId(currentUser._id);
+    if (currentUser && currentUser.role !== "client") navigate("/sign-in");
   }, [currentUser, navigate]);
 
-  const handleCancelRequest = async (requestId: Id<"design_requests">) => {
-    if (!convexUserId) return;
-    if (!window.confirm("Are you sure you want to cancel this request?")) return;
-
-    try {
-      await cancelRequest({ request_id: requestId, client_id: convexUserId });
-      alert("Request cancelled successfully!");
-    } catch (err) {
-      console.error("Error cancelling request:", err);
-      alert("Failed to cancel request. Please try again.");
-    }
-  };
-
-  const openRequestModal = (request: DesignRequestRecord) => {
-    setSelectedRequest(request);
-    setIsModalOpen(true);
-    
-  };
-
-  const closeModal = () => {
-    setSelectedRequest(null);
-    setIsModalOpen(false);
-  };
-
-  const handleSubmitRequest = async (formData: any) => {
-    if (!convexUserId) return;
-    setIsSubmitting(true);
-    try {
-      console.log("submit request form data:", formData);
-      setShowRequestForm(false);
-      alert("Request submitted!");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (currentUser === undefined || clientRequests === undefined) {
+  if (currentUser === undefined || clientRequests === undefined)
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <p className="text-gray-600">Loading...</p>
-      </div>
-    );
-  }
+          <div className="flex h-screen bg-gray-50">
+            <DynamicSidebar />
+            <div className="flex-1 flex flex-col">
+              <ClientNavbar/>
+              <div className="flex-1 p-6 flex items-center justify-center">
+                <div className="bg-white shadow rounded-lg p-6 text-center">
+                  <p className="text-gray-500">Loading requests...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+  if (currentUser === null)
+    return <div className="flex items-center justify-center min-h-screen bg-gray-50 text-gray-600">User not found.</div>;
 
-  if (currentUser === null) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <p className="text-gray-600">User not found. Please sign in.</p>
-      </div>
-    );
-  }
-
+  /* --- Filtering --- */
   const filteredRequests = (clientRequests ?? [])
-    .filter((r) => {
-      const matchesSearch =
-        !searchTerm ||
-        r.request_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (r.description || "").toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "all" || r.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => {
-      const aTime = a.created_at ?? (a as any)._creationTime ?? 0;
-      const bTime = b.created_at ?? (b as any)._creationTime ?? 0;
-      return sortOrder === "newest" ? bTime - aTime : aTime - bTime;
-    });
+    .filter((r) => (activeTab === "all" ? true : r.status === activeTab))
+    .filter((r) =>
+      !searchTerm
+        ? true
+        : r.request_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (r.description || "").toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => (b.created_at ?? b._creationTime ?? 0) - (a.created_at ?? a._creationTime ?? 0));
 
-  const projects = filteredRequests.map((r) => ({
-    id: r._id,
-    name: r.request_title,
-    lastUpdate: formatTimeAgo(r.created_at ?? (r as any)._creationTime),
-    status: formatStatus(r.status),
-    rawStatus: r.status,
-    designer: r.designer?.full_name ?? "Unassigned",
-    type: r.tshirt_type ?? "T-Shirt",
-    gender: r.gender ?? "",
-    description: r.description ?? "",
-  }));
+  /* --- Actions --- */
+  const handleCancelRequest = async (id: Id<"design_requests">) => {
+    if (!window.confirm("Cancel this request?")) return;
+    try {
+      await cancelRequest({ request_id: id, client_id: currentUser._id });
+      alert("Request cancelled successfully!");
+    } catch {
+      alert("Failed to cancel request.");
+    }
+  };
+
+ 
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.35 }}
-      className="flex min-h-screen bg-gradient-to-br from-white to-teal-50"
-    >
+    <div className="flex min-h-screen bg-gradient-to-br from-white to-gray-50">
       <DynamicSidebar />
       <div className="flex-1 flex flex-col">
         <ClientNavbar />
-        <main className="p-6 md:p-8 flex flex-col gap-6 overflow-auto">
-          {/* Header */}
-          <div className="p-6 bg-white rounded-2xl shadow-md">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <main className="flex-1 p-6 overflow-auto">
+          <motion.div
+            className="bg-white shadow-md rounded-lg p-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">My Design Requests</h1>
-                <p className="text-gray-600">Manage and track your t-shirt design requests</p>
+                <p className="text-gray-600 text-sm">Manage and track your submitted t-shirt requests</p>
               </div>
-            <button
-              onClick={() => setShowRequestForm(true)}
-              disabled={isSubmitting}
-              className={`px-6 py-3 text-white rounded-lg flex items-center gap-2 self-start transition-colors ${
-                isSubmitting
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-teal-600 hover:bg-teal-700"
-              }`}
-            >
-              {isSubmitting ? "Submitting..." : <><Plus size={18} /> New Request</>}
-            </button>
+              <button
+                onClick={() => setShowRequestForm(true)}
+                disabled={isSubmitting}
+                className={`px-4 py-2 text-sm font-medium text-white rounded-lg flex items-center gap-2 transition-all ${
+                  isSubmitting
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-teal-600 hover:bg-teal-700 active:scale-[0.97]"
+                }`}
+              >
+                <Plus className="w-4 h-4" />
+                {isSubmitting ? "Submitting..." : "New Request"}
+              </button>
             </div>
-          </div>
 
-          {/* Filters */}
-          <div className="p-6 bg-white rounded-2xl shadow-md">
-            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-              <div className="relative w-full md:w-96">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
+            {/* Search + Tabs */}
+            <div className="mb-4 flex flex-col gap-3">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
+                  placeholder="Search requests..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search requests..."
-                  className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
                 />
               </div>
-
-              <div className="flex flex-wrap gap-3 w-full md:w-auto">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Filter className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <select
-                    aria-label="Filter requests by status"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
-                    className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none bg-white"
+              <div className="flex space-x-2 overflow-x-auto pb-2 hide-scrollbar">
+                {["all", "pending", "approved", "rejected"].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab as typeof activeTab)}
+                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                      activeTab === tab
+                        ? "bg-teal-100 text-teal-800"
+                        : "bg-white text-gray-600 hover:bg-gray-100"
+                    }`}
                   >
-                    <option value="all">All</option>
-                    <option value="pending">Pending</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Cancelled</option>
-                  </select>
-                </div>
-
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <ArrowUpDown className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <select
-                    aria-label="Sort requests by creation date"
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value as "newest" | "oldest")}
-                    className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none bg-white"
-                  >
-                    <option value="newest">Newest First</option>
-                    <option value="oldest">Oldest First</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 text-sm text-gray-600">
-              Showing {projects.length} {projects.length === 1 ? "request" : "requests"}
-              {searchTerm && <span> matching "{searchTerm}"</span>}
-              {statusFilter !== "all" && <span> with status "{statusFilter}"</span>}
-            </div>
-          </div>
-
-          {/* Requests list */}
-          <div className="bg-white p-6 rounded-2xl shadow-md">
-            {projects.length === 0 ? (
-              <div className="py-8 text-center">
-                <div className="inline-block p-3 bg-gray-100 rounded-full mb-4">
-                  <FileText className="h-6 w-6 text-gray-500" />
-                </div>
-                <p className="text-gray-600">No requests found.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {projects.map((project) => (
-                  <div
-                    key={(project.id as unknown) as string}
-                    className="p-5 transition-all border border-gray-200 shadow-sm bg-gradient-to-r from-white to-teal-50 rounded-xl hover:shadow-md hover:border-teal-200"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <h3 className="text-base font-semibold text-gray-800 line-clamp-1">{project.name}</h3>
-                      <StatusBadge status={project.status} />
-                    </div>
-
-                    <p className="text-sm text-gray-600 mb-1">
-                      Type: <span className="font-medium">{project.type}</span>
-                    </p>
-
-                    <p className="text-sm text-gray-600 mb-1">
-                      Gender: <span className="font-medium">{project.gender}</span>
-                    </p>
-
-                    <p className="text-sm text-gray-600 mb-3">
-                      Designer: <span className="font-medium">{project.designer}</span>
-                    </p>
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-gray-500">{project.lastUpdate}</span>
-                      <div className="flex gap-2">
-                        {project.rawStatus === "pending" && (
-                          <button
-                            onClick={() => handleCancelRequest(project.id)}
-                            className="px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        )}
-                        <button
-                          onClick={() => openRequestModal((project as unknown) as DesignRequestRecord)}
-                          className="px-3 py-1.5 text-sm font-medium text-teal-600 hover:text-teal-800 hover:bg-teal-50 rounded-lg transition-colors"
-                        >
-                          View Details →
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </button>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+
+            {/* Requests Table */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              {filteredRequests.length === 0 ? (
+                <div className="p-6 text-center">
+                  <FileText className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-600 text-sm">No requests found</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Designer</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Update</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      
+                      {filteredRequests.map((req) => (
+                        
+                        <tr key={req._id.toString()} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{req.request_title}</div>
+                            <div className="text-sm text-gray-500 line-clamp-1">{req.description || "No description"}</div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700">{req.tshirt_type || "T-shirt"}</td>
+                          <td className="px-6 py-4">
+                            <StatusBadge status={req.status} />
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-700">
+                            {req.designer?.full_name || "Unassigned"}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-500">
+                            {formatTimeAgo(req.created_at ?? req._creationTime)}
+                          </td>
+                          <td className="px-6 py-4 text-right space-x-2">
+                            {req.status === "pending" && (
+                              <button
+                                onClick={() => handleCancelRequest(req._id)}
+                                className="text-xs px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setSelectedRequest(req)}
+                              className="text-xs px-3 py-1.5 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+                            >
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </motion.div>
         </main>
       </div>
 
-      {/* Conditionally render ShirtDesignForm */}
+      {/* Form Modal */}
       {showRequestForm && (
-        <ShirtDesignForm
-          onClose={() => setShowRequestForm(false)}
-          onSubmit={handleSubmitRequest}
-        />
+        <ShirtDesignForm onClose={() => setShowRequestForm(false)} onSubmit={() => setShowRequestForm(false)} />
       )}
 
-      <RequestDetailsModal
-        isOpen={!!selectedRequest}
-        onClose={closeModal}
-        request={selectedRequest}
-        userType="client"
-        onStartProject={() => {
-          console.log("Project started for request:", selectedRequest?._id);
-        }}
-      />
-    </motion.div>
+      {/* Request Details Modal */}
+      {selectedRequest && (
+        <RequestDetailsModal
+          onStartProject={() => setSelectedRequest(null)}
+          isOpen={!!selectedRequest}
+          onClose={() => setSelectedRequest(null)}
+          request={selectedRequest}
+          userType="client"
+        />
+      )}
+    </div>
   );
 };
 

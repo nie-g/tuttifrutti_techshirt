@@ -6,22 +6,32 @@ import { motion } from "framer-motion";
 // ✅ Shared components
 import ClientNavbar from "../components/UsersNavbar";
 import ClientSidebar from "../components/Sidebar";
+import { User2 } from "lucide-react";
 
 const Users: React.FC = () => {
   const users = useQuery(api.users.listAllUsers);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
 
-  // ✅ Convex mutation for updating Clerk users
+  // ✅ Convex actions
   const updateUserMutation = useAction(api.functions.updateClerkUser.updateClerkUser);
+  const sendInvite = useAction(api.functions.invites.sendClerkInvite); // 🟢 New invite action
 
-  // Modal state
+  // ✅ Modal states
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false); // 🟢 Invite modal state
+
+  // Edit modal fields
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
 
-  // Open modal
+  // Invite modal fields 🟢
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"admin" | "client" | "designer">("designer");
+
+
+  // ✅ Open/Close modals
   const openEditModal = (user: any) => {
     setEditingUser(user);
     setFirstName(user.firstName);
@@ -29,7 +39,6 @@ const Users: React.FC = () => {
     setEmail(user.email);
   };
 
-  // Close modal
   const closeEditModal = () => {
     setEditingUser(null);
     setFirstName("");
@@ -37,39 +46,55 @@ const Users: React.FC = () => {
     setEmail("");
   };
 
-  // Handle update
-  // Handle update
-    const handleUpdate = async () => {
-      if (!editingUser) return;
+  const openInviteModal = () => setInviteModalOpen(true); // 🟢
+  const closeInviteModal = () => {
+    setInviteModalOpen(false);
+    setInviteEmail("");
+    setInviteRole("designer");
+  };
 
-      // Build the payload
-      const payload: any = {
-        userId: editingUser.clerkId,
-        firstName,
-        lastName,
-      };
+  // ✅ Handle Update User
+  const handleUpdate = async () => {
+    if (!editingUser) return;
+    const payload: any = { userId: editingUser.clerkId, firstName, lastName };
+    if (email !== editingUser.email) payload.email = email;
 
-      // Only include email if it changed
-      if (email !== editingUser.email) {
-        payload.email = email;
+    try {
+      const result = await updateUserMutation(payload);
+      if (result.success) {
+        alert("✅ User updated!");
+        closeEditModal();
+      } else {
+        alert(`❌ Failed: ${result.message}`);
       }
+    } catch (err) {
+      console.error(err);
+      alert("❌ Error updating user");
+    }
+  };
 
-      try {
-        const result = await updateUserMutation(payload);
+  // 🟢 Handle Invite User
+  const handleInviteUser = async () => {
+    if (!inviteEmail) {
+      alert("Please enter an email");
+      return;
+    }
 
-        if (result.success) {
-          alert("✅ User updated!");
-          closeEditModal();
-        } else {
-          alert(`❌ Failed: ${result.message}`);
-        }
-      } catch (err) {
-        console.error(err);
-        alert("❌ Error updating user");
+    try {
+      const result = await sendInvite({ email: inviteEmail, role: inviteRole });
+      if (result.emailSent) {
+        alert(`✅ Invitation sent to ${inviteEmail} as ${inviteRole}`);
+        closeInviteModal();
+      } else {
+        alert(`❌ Failed to send invite: ${result.message}`);
       }
-    };
+    } catch (err) {
+      console.error("Error sending invite:", err);
+      alert("❌ Failed to send invite. Check console for details.");
+    }
+  };
 
-
+  // ✅ Handle Loading State
   if (!users) {
     return (
       <div className="flex h-screen bg-gray-50">
@@ -86,6 +111,7 @@ const Users: React.FC = () => {
     );
   }
 
+  // ✅ Filtered users
   const filteredUsers = users.filter((user: any) => {
     const matchesSearch =
       user.firstName?.toLowerCase().includes(search.toLowerCase()) ||
@@ -110,6 +136,13 @@ const Users: React.FC = () => {
           >
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-2xl font-bold">Users</h1>
+              {/* 🟢 Invite Button */}
+              <button
+                onClick={openInviteModal}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Invite User
+              </button>
             </div>
 
             {/* Search + Filter */}
@@ -181,7 +214,60 @@ const Users: React.FC = () => {
         </div>
       </div>
 
-      {/* Edit Modal */}
+      {/* 🟢 Invite Modal */}
+      {inviteModalOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+          <div className="bg-white rounded-lg p-6 w-96">
+            <div className="flex justify-start ">
+              <h2 className="text-xl font-bold mb-6  text-gray-600">Invite New User</h2>
+            </div>
+            
+
+            <div className="flex flex-col gap-2 mb-4">
+              <label className="text-sm font-medium text-gray-700">User Email</label>
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                className="border border-gray-400 w-full rounded-lg p-2 text-gray-700"
+                placeholder="Enter user email"
+              />
+            </div>
+            <div className="flex flex-col gap-2 mb-4">
+              <label className="text-sm font-medium text-gray-700">User Role</label>    
+              <select
+              aria-label="Select user role"
+              className="border border-gray-400 w-full rounded-lg p-2 mb-3 text-gray-700"
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value as "admin" | "client" | "designer")}
+            >
+              <option value="admin">Admin</option>
+              <option value="client">Client</option>
+              <option value="designer">Designer</option>
+            </select>
+            </div>
+
+            
+
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                className="px-4 py-2 bg-gray-300 rounded-lg text-gray-700 hover:bg-gray-400 hover:text-gray-100"
+                onClick={closeInviteModal}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                onClick={handleInviteUser}
+              >
+                Send Invite
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal (Existing) */}
       {editingUser && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
           <div className="bg-white rounded-lg p-6 w-96">

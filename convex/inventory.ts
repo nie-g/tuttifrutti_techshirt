@@ -8,7 +8,7 @@ export const createInventoryItem = mutation({
     categoryId: v.id("inventory_categories"),
     unit: v.string(),
     stock: v.number(),
-    reorderLevel: v.optional(v.number()),
+    pendingRestock: v.optional(v.number()),
     description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -18,7 +18,7 @@ export const createInventoryItem = mutation({
       category_id: args.categoryId,
       unit: args.unit,
       stock: args.stock,
-      reorder_level: args.reorderLevel,
+      pending_restock: args.pendingRestock,
       description: args.description,
       created_at: now,
       updated_at: now,
@@ -60,7 +60,7 @@ export const updateInventoryItem = mutation({
     categoryId: v.id("inventory_categories"),
     unit: v.string(),
     stock: v.number(),
-    reorderLevel: v.optional(v.number()),
+    pendingRestock: v.optional(v.number()),
     description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -70,7 +70,7 @@ export const updateInventoryItem = mutation({
       category_id: args.categoryId,
       unit: args.unit,
       stock: args.stock,
-      reorder_level: args.reorderLevel,
+      pending_restock: args.pendingRestock,
       description: args.description,
       updated_at: now,
     });

@@ -8,7 +8,7 @@ import { useUser } from "@clerk/clerk-react";
 // Steps
 import ProgressTrackingStep from "./adminDesignSteps/ProgressTrackingStep";
 import SeeDesignStep from "./adminDesignSteps/SeeDesignStep";
-import FinalizeDesignStep from "./adminDesignSteps/FinalizeStep"; // ✅ New step
+import FinalizeDesignStep from "./adminDesignSteps/FinalizeStep";
 
 // Modal header
 import DesignHeader from "./designDetailsModal/DesignHeader";
@@ -23,34 +23,22 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
   const { user } = useUser();
 
   const convexUser = useQuery(api.userQueries.getUserByClerkId, user ? { clerkId: user.id } : "skip");
-
-  // Fetch design
   const design = useQuery(api.designs.getDesignByRequestId, { requestId });
-
-  // Fetch previews
   const previewsResult = useQuery(
     api.design_preview.getByDesign,
     design ? { designId: design._id } : "skip"
   );
+  const billing = useQuery(
+    api.billing.getBillingByDesign,
+    design ? { designId: design._id } : "skip"
+  );
 
-  // Fetch Convex user by Clerk ID
-  useQuery(api.userQueries.getUserByClerkId, user ? { clerkId: user.id } : "skip");
-
-  const previews = previewsResult
-    ? Array.isArray(previewsResult)
-      ? previewsResult
-      : [previewsResult]
-    : [];
+  const markCompleted = useMutation(api.designs.markAsCompleted);
+  const markInProduction = useMutation(api.designs.markAsInProduction); // ✅ add this mutation
 
   const totalSteps = 3;
   const handleNext = () => setStep((prev) => Math.min(prev + 1, totalSteps));
   const handleBack = () => setStep((prev) => Math.max(prev - 1, 1));
-  const markCompleted = useMutation(api.designs.markAsCompleted);
-  const billing = useQuery(
-    api.billing.getBillingByDesign,
-    design ? { designId: design._id } : "skip"
-    );
-
 
   if (!design) {
     return (
@@ -61,6 +49,54 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
       </div>
     );
   }
+
+  // ✅ Helper to determine which button to show
+    const renderActionButton = () => {
+        if (design.status === "in_production") {
+          return (
+            <button
+              onClick={() => {
+                if (!convexUser?._id) return;
+                markCompleted({ designId: design._id, userId: convexUser._id });
+              }}
+              className="px-4 sm:px-6 md:px-8 py-2 text-xs sm:text-sm text-white bg-green-500 rounded-lg shadow-md hover:bg-green-600"
+            >
+              Mark as Completed
+            </button>
+          );
+        }
+
+        if (design.status === "approved") {
+          return (
+            <button
+              onClick={() => {
+                if (!convexUser?._id) return;
+                markInProduction({ designId: design._id, userId: convexUser._id });
+              }}
+              className="px-4 sm:px-6 md:px-8 py-2 text-xs sm:text-sm text-white bg-teal-500 rounded-lg shadow-md hover:bg-teal-600"
+            >
+              Mark as In Production
+            </button>
+          );
+        }
+
+        // Default close button
+        return (
+          <button
+            onClick={onClose}
+            className="px-4 sm:px-6 md:px-8 py-2 text-xs sm:text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+          >
+            Close
+          </button>
+        );
+      };
+
+
+  const previews = previewsResult
+    ? Array.isArray(previewsResult)
+      ? previewsResult
+      : [previewsResult]
+    : [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -99,43 +135,31 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
         <div className="mt-2 sm:mt-4 flex-1 overflow-y-auto pr-1 sm:pr-2">
           {step === 1 && <SeeDesignStep designId={design._id} />}
           {step === 2 && <ProgressTrackingStep designId={design._id} />}
-          {step === 3 && convexUser && (<FinalizeDesignStep design={design}  />
-)}
+          {step === 3 && convexUser && <FinalizeDesignStep design={design} />}
         </div>
 
-       {/* Navigation */}
+        {/* Navigation */}
         <div className="flex justify-between mt-4 sm:mt-6">
-        {/* Back button */}
-                <button
-                    onClick={handleBack}
-                    className={`px-4 sm:px-6 md:px-8 py-2 text-xs sm:text-sm text-gray-700 transition border rounded-md hover:bg-gray-100 ${
-                    step === 1 ? "invisible" : ""
-                    }`}
-                >
-                    Back
-                </button>
+          {/* Back button */}
+          <button
+            onClick={handleBack}
+            className={`px-4 sm:px-6 md:px-8 py-2 text-xs sm:text-sm text-gray-700 transition border rounded-md hover:bg-gray-100 ${
+              step === 1 ? "invisible" : ""
+            }`}
+          >
+            Back
+          </button>
 
-                {/* Next OR Mark Completed (only if bill approved) */}
-                {step === totalSteps ? (
-                    billing?.status === "approved"  && design.status === "approved" && convexUser ?  (
-                    <button
-                        onClick={() => markCompleted({ designId: design._id, userId: convexUser?._id  })}
-                        className="px-4 sm:px-6 md:px-8 py-2 text-xs sm:text-sm text-white bg-teal-500 rounded-lg shadow-md hover:bg-teal-600"
-                    >
-                        Mark Design Completed
-                    </button>
-                    ) : null
-                ) : (
-                    <button
-                    onClick={handleNext}
-                    className="px-4 sm:px-6 md:px-8 py-2 text-xs sm:text-sm text-white bg-teal-500 rounded-lg shadow-md hover:bg-teal-600"
-                    >
-                    Next
-                    </button>
-                )}
-                </div>
-
-
+          {/* Conditional Action Button */}
+          {step === totalSteps ? renderActionButton() : (
+            <button
+              onClick={handleNext}
+              className="px-4 sm:px-6 md:px-8 py-2 text-xs sm:text-sm text-white bg-teal-500 rounded-lg shadow-md hover:bg-teal-600"
+            >
+              Next
+            </button>
+          )}
+        </div>
       </motion.div>
     </div>
   );
