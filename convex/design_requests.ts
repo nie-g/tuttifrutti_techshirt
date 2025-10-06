@@ -180,7 +180,6 @@ export const createRequest = mutation({
     requestTitle: v.string(),
     tshirtType: v.optional(v.string()),
     gender: v.optional(v.string()),
-    sketch: v.optional(v.string()),
     description: v.optional(v.string()),
     textileId: v.id("inventory_items"),
     preferredDesignerId: v.optional(v.id("users")),
@@ -202,7 +201,6 @@ export const createRequest = mutation({
       request_title: args.requestTitle,
       tshirt_type: args.tshirtType || "",
       gender: args.gender || "",
-      sketch: args.sketch || "",
       description: args.description || "",
       textile_id: args.textileId,
       preferred_designer_id: args.preferredDesignerId || undefined,
@@ -503,5 +501,61 @@ export const rejectDesignRequestWithReason = mutation({
     });
 
     return { success: true };
+  },
+});
+
+
+export const getFullRequestDetails = query({
+  args: { requestId: v.id("design_requests") },
+  handler: async (ctx, { requestId }) => {
+    // --- Fetch the main design request ---
+    const request = await ctx.db.get(requestId);
+    if (!request) {
+      throw new Error("Request not found");
+    }
+
+    // --- Linked client ---
+    const client = request.client_id
+      ? await ctx.db.get(request.client_id)
+      : null;
+
+    // --- Linked fabric/textile ---
+    const fabric = request.textile_id
+      ? await ctx.db.get(request.textile_id)
+      : null;
+
+    // --- Selected colors ---
+    const colors = await ctx.db
+      .query("selected_colors")
+       .filter((q) => q.eq(q.field("request_id"), request._id))
+      .collect();
+
+    // --- Sizes (join request_sizes -> shirt_sizes) ---
+    const reqSizes = await ctx.db
+      .query("request_sizes")
+      .withIndex("by_request", (q) => q.eq("request_id", request._id))
+      .collect();
+
+    const sizes = (
+      await Promise.all(
+        reqSizes.map(async (rs) => {
+          const size = await ctx.db.get(rs.size_id);
+          return size
+            ? { size_label: size.size_label, quantity: rs.quantity }
+            : null;
+        })
+      )
+    ).filter(
+      (r): r is { size_label: string; quantity: number } => r !== null
+    );
+
+    // --- Return aggregated data ---
+    return {
+      request,
+      client,
+      fabric,
+      colors,
+      sizes,
+    };
   },
 });

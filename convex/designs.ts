@@ -322,7 +322,6 @@ export const markAsInProduction = mutation({
   args: { designId: v.id("design"), userId: v.id("users") },
   handler: async (ctx, { designId }) => {
 
-    // --- Helper function to notify clients ---
     const notifyUsers = async (requestTitle: string, userIds: Id<"users">[]) => {
       for (const uid of userIds) {
         await ctx.db.insert("notifications", {
@@ -335,20 +334,6 @@ export const markAsInProduction = mutation({
       }
     };
 
-    // --- Helper function to notify admin of restock needs ---
-
-     const notifyAdminForLowStock = async (requestTitle: string, shortage: number) => {
-      const adminUser = await ctx.db.query("users").first();
-      if (adminUser) {
-        await ctx.db.insert("notifications", {
-          recipient_user_id: adminUser._id,
-          recipient_user_type: "admin",
-          notif_content: `Low stock alert for "${requestTitle}". Additional ${shortage} yards needed to fulfill the order.`,
-          created_at: Date.now(),
-          is_read: false,
-        });
-      }
-    };
      const notifyAdmin = async (requestTitle: string) => {
       const adminUser = await ctx.db.query("users").first();
       if (adminUser) {
@@ -372,79 +357,18 @@ export const markAsInProduction = mutation({
     if (!request) throw new Error("Request not found");
     if (!request.textile_id) throw new Error("No fabric selected for this request");
 
-    // 3. Get all request_sizes for this request
-    const sizes = await ctx.db
-      .query("request_sizes")
-      .withIndex("by_request", (q) => q.eq("request_id", request._id))
-      .collect();
-    if (!sizes.length) throw new Error("No sizes found for this request");
-
-    // 4. Fetch all shirt sizes once and store in a map
-    const sizeMap: Record<string, string> = {};
-    for (const s of sizes) {
-      const shirtSize = await ctx.db.get(s.size_id);
-      if (!shirtSize) throw new Error(`Shirt size not found: ${s.size_id}`);
-      sizeMap[s._id] = shirtSize.size_label;
-    }
-
-    // 5. Define yardage per size
-    const yardPerSize: Record<string, number> = {
-      XS: 0.8,
-      S: 1.0,
-      M: 1.2,
-      L: 1.4,
-      XL: 1.6,
-      XXL: 1.8,
-    };
-
-    // 6. Calculate total yards needed
-    let totalYardsNeeded = 0;
-    for (const s of sizes) {
-      const sizeLabel = sizeMap[s._id] ?? "M";
-      totalYardsNeeded += s.quantity * (yardPerSize[sizeLabel] ?? 1.2);
-    }
-
-    // 7. Fetch the selected fabric item
-    const fabricItem = await ctx.db.get(request.textile_id);
-    if (!fabricItem) throw new Error("Selected fabric not found in inventory");
-
-    // 8. Compute remaining stock and pending restock
-    let remainingStock = fabricItem.stock;
-    let pendingRestock = fabricItem.pending_restock ?? 0;
-
-    if (fabricItem.stock >= totalYardsNeeded) {
-      // ✅ Enough stock
-      remainingStock = fabricItem.stock - totalYardsNeeded;
-      await notifyAdmin(request.request_title);
-      // Pending restock unchanged
-    } else {
-      // ⚠️ Not enough stock — calculate shortage
-      const shortage = totalYardsNeeded - fabricItem.stock;
-      remainingStock = 0;
-      pendingRestock += shortage;
-
-      // Notify admin about shortage
-      await notifyAdminForLowStock(request.request_title, shortage);
-    }
+    
 
     // 9. Update fabric stock
-    await ctx.db.patch(fabricItem._id, {
-      stock: remainingStock,
-      pending_restock: pendingRestock,
-      updated_at: Date.now(),
-    });
-
     // 10. Notify client
     await notifyUsers(request.request_title, [request.client_id]);
+    await notifyAdmin(request.request_title);
 
     // 11. Mark design as finished
     await ctx.db.patch(designId, { status: "in_production", created_at: Date.now() });
 
     return {
       success: true,
-      deducted: totalYardsNeeded,
-      remaining: remainingStock,
-      pendingRestock,
     };
   },
 });
@@ -459,7 +383,7 @@ export const markAsCompleted = mutation({
         await ctx.db.insert("notifications", {
           recipient_user_id: uid,
           recipient_user_type: "client",
-          notif_content: `Heads up: The production for your order "${requestTitle}" has now been finished. You can now proceed to payment then pick up your order.`,
+          notif_content: `Order completed for "${requestTitle}". Thank you for your appretiating our service.`,
           created_at: Date.now(),
           is_read: false,
         });
@@ -489,29 +413,60 @@ export const markAsCompleted = mutation({
     // 2. Get the associated request
     const request = await ctx.db.get(design.request_id);
     if (!request) throw new Error("Request not found");
-    if (!request.textile_id) throw new Error("No fabric selected for this request");
-
-    // 3. Get all request_sizes for this request
-   
-
-    // 6. Calculate total yards needed
-    
-    // 8. Compute remaining stock and pending restock
-   
-    // 9. Update fabric stock
+  
     await notifyAdmin(request.request_title);
 
     // 10. Notify client
     await notifyUsers(request.request_title, [request.client_id]);
 
     // 11. Mark design as finished
-    await ctx.db.patch(designId, { status: "finished", created_at: Date.now() });
+    await ctx.db.patch(designId, { status: "completed", created_at: Date.now() });
 
     return {
       success: true,
     };
   },
 });
+
+export const pendingPickup = mutation({
+  args: { designId: v.id("design"), userId: v.id("users") },
+  handler: async (ctx, { designId }) => {
+
+    // --- Helper function to notify clients ---
+    const notifyUsers = async (requestTitle: string, userIds: Id<"users">[]) => {
+      for (const uid of userIds) {
+        await ctx.db.insert("notifications", {
+          recipient_user_id: uid,
+          recipient_user_type: "client",
+          notif_content: ` The production for your order "${requestTitle}" has now been finished. You can now proceed to payment then pick up your order.`,
+          created_at: Date.now(),
+          is_read: false,
+        });
+      }
+    };
+
+    // --- Helper function to notify admin of restock needs ---
+
+
+    // 1. Get the design
+    const design = await ctx.db.get(designId);
+    if (!design) throw new Error("Design not found");
+
+    // 2. Get the associated request
+    const request = await ctx.db.get(design.request_id);
+    if (!request) throw new Error("Request not found");
+    // 10. Notify client
+    await notifyUsers(request.request_title, [request.client_id]);
+
+    // 11. Mark design as finished
+    await ctx.db.patch(designId, { status: "pending_pickup", created_at: Date.now() });
+
+    return {
+      success: true,
+    };
+  },
+});
+
 
 export const updateStatus = mutation({
   args: {
@@ -521,7 +476,8 @@ export const updateStatus = mutation({
       v.literal("in_progress"),
       v.literal("pending_revision"),
       v.literal("in_production"),
-      v.literal("finished")
+      v.literal("pending_pickup"),
+      v.literal("completed")
     ),
   },
   handler: async (ctx, { designId, status }) => {
@@ -534,3 +490,15 @@ export const updateStatus = mutation({
 });
 
 
+// convex/design.ts
+export const fetchAllDesigns = query({
+  handler: async (ctx) => {
+    const designs = await ctx.db.query("design").collect();
+    return await Promise.all(designs.map(async (design) => {
+      const designer = design.designer_id
+        ? await ctx.db.get(design.designer_id)
+        : null;
+      return { ...design, designer };
+    }));
+  },
+});

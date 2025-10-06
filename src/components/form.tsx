@@ -4,7 +4,7 @@ import * as fabric from "fabric";
 import { useMutation, useQuery, useAction } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react";
-
+import type { Id } from "../../convex/_generated/dataModel";
 import Step1 from "./form/Step1";
 import Step2 from "./form/Step2";
 import Step3 from "./form/Step3";
@@ -35,6 +35,7 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
   const [canvasSnapshot, setCanvasSnapshot] = useState<string | null>(null);
   const [preferredDate, setPreferredDate] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
+  const saveDesignSketchAction = useAction(api.designSketch.saveDesignSketch);
 
 
   const canvasRef = useRef<fabric.Canvas | null>(null);
@@ -94,7 +95,6 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
         requestTitle: projectName,
         tshirtType: shirtType || "",
         gender: gender || "",
-        sketch: canvasDataURL,
         description: description || "",
         printType: printType || undefined, // ✅ changed from null to undefined
         preferredDate: preferredDate || undefined,
@@ -113,6 +113,10 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
       if (!requestId) {
         throw new Error("Failed to create design request");
       }
+     if (canvasDataURL) {
+        await saveCanvasSketchToDatabase(requestId as Id<"design_requests">, canvasDataURL);
+      }
+
 
      if (referenceImages.length > 0) {
         for (const ref of referenceImages) {
@@ -165,6 +169,31 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
     }
   };
   
+
+  const saveCanvasSketchToDatabase = async (
+  requestId: Id<"design_requests">,
+  canvasDataURL: string
+) => {
+  if (!canvasDataURL) {
+    console.warn("⚠️ No canvas snapshot to save.");
+    return;
+  }
+
+  try {
+    const response = await fetch(canvasDataURL);
+    const arrayBuffer = await response.arrayBuffer();
+
+    await saveDesignSketchAction({
+      requestId, // ✅ Now typed correctly
+      fileBytes: arrayBuffer,
+    });
+
+    console.log("✅ Canvas sketch saved successfully to request_sketches table.");
+  } catch (error) {
+    console.error("❌ Failed to save canvas sketch:", error);
+  }
+};
+
   const shirtSizes = useQuery(api.shirt_sizes.getAll) || [];  
     const calculateTotalYards = (): number => {
       if (!sizes || sizes.length === 0 || !textileId) return 0;

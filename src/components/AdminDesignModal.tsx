@@ -9,7 +9,7 @@ import { useUser } from "@clerk/clerk-react";
 import ProgressTrackingStep from "./adminDesignSteps/ProgressTrackingStep";
 import SeeDesignStep from "./adminDesignSteps/SeeDesignStep";
 import FinalizeDesignStep from "./adminDesignSteps/FinalizeStep";
-
+import NeededStockModal from "./NeededStock";
 // Modal header
 import DesignHeader from "./designDetailsModal/DesignHeader";
 
@@ -34,7 +34,9 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
   );
 
   const markCompleted = useMutation(api.designs.markAsCompleted);
-  const markInProduction = useMutation(api.designs.markAsInProduction); // ✅ add this mutation
+  const markPendingPickup = useMutation(api.designs.pendingPickup);
+   // ✅ add this mutation
+  const [showNeededStockModal, setShowNeededStockModal] = useState(false);
 
   const totalSteps = 3;
   const handleNext = () => setStep((prev) => Math.min(prev + 1, totalSteps));
@@ -52,7 +54,33 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
 
   // ✅ Helper to determine which button to show
     const renderActionButton = () => {
+       
+       if (design.status === "approved") {
+            return (
+              <button
+                onClick={() => {
+                  if (!convexUser?._id) return;
+                  setShowNeededStockModal(true);
+                }}
+                className="px-4 sm:px-6 md:px-8 py-2 text-xs sm:text-sm text-white bg-teal-500 rounded-lg shadow-md hover:bg-teal-600"
+              >Start Production
+              </button>
+            );
+          }
         if (design.status === "in_production") {
+          return (
+            <button
+              onClick={() => {
+                if (!convexUser?._id) return;
+                markPendingPickup({ designId: design._id, userId: convexUser._id });
+              }}
+              className="px-4 sm:px-6 md:px-8 py-2 text-xs sm:text-sm text-white bg-teal-500 rounded-lg shadow-md hover:bg-teal-600"
+            >
+              Mark as Pending Pickup
+            </button>
+            );
+          }
+         if (design.status === "pending_pickup") {
           return (
             <button
               onClick={() => {
@@ -66,19 +94,8 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
           );
         }
 
-        if (design.status === "approved") {
-          return (
-            <button
-              onClick={() => {
-                if (!convexUser?._id) return;
-                markInProduction({ designId: design._id, userId: convexUser._id });
-              }}
-              className="px-4 sm:px-6 md:px-8 py-2 text-xs sm:text-sm text-white bg-teal-500 rounded-lg shadow-md hover:bg-teal-600"
-            >
-              Mark as In Production
-            </button>
-          );
-        }
+
+
 
         // Default close button
         return (
@@ -161,6 +178,15 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
           )}
         </div>
       </motion.div>
+       {showNeededStockModal && convexUser && (
+          <NeededStockModal
+            onClose={() => setShowNeededStockModal(false)}
+            designId={design._id}
+            userId={convexUser._id}
+            onSubmitSuccess={() => setShowNeededStockModal(false)}
+          />
+        )}
+
     </div>
   );
 };

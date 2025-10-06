@@ -100,3 +100,39 @@ export const getTextileItems = query({
     return textiles.filter((item) => item.categoryName.toLowerCase() === "fabric");
   },
 });
+
+export const updateStockForNeededItem = mutation({
+  args: {
+    itemId: v.id("inventory_items"),
+    neededQty: v.number(),
+  },
+  handler: async (ctx, { itemId, neededQty }) => {
+    const item = await ctx.db.get(itemId);
+    if (!item) throw new Error("Item not found");
+
+    const currentStock = item.stock;
+    const currentPending = item.pending_restock ?? 0;
+
+    let newStock = currentStock;
+    let newPending = currentPending;
+
+    if (neededQty > currentStock) {
+      // Not enough stock — consume all and queue restock
+      const shortage = neededQty - currentStock;
+      newStock = 0;
+      newPending = currentPending + shortage;
+    } else {
+      // Enough stock — reduce available
+      newStock = currentStock - neededQty;
+      // pending stays same
+    }
+
+    await ctx.db.patch(itemId, {
+      stock: newStock,
+      pending_restock: newPending,
+      updated_at: Date.now(),
+    });
+
+    return { newStock, newPending };
+  },
+});

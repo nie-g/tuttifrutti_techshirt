@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useGLTF } from "@react-three/drei";
 import ThreeScreenshotHelper from "../../components/ThreeScreenshotHelper";
@@ -34,11 +34,6 @@ const shirtPositions: Record<string, [number, number, number]> = {
   jersey: [0, -1.2, 0],
 };
 
-/**
- * Texture alignment config per shirt type
- * repeat.x / repeat.y = scale (smaller = zoom in)
- * offset.x / offset.y = shift of texture
- */
 const shirtTextureAlignments: Record<
   string,
   { repeat: [number, number]; offset: [number, number] }
@@ -60,47 +55,72 @@ const FabricTexturedTShirt: React.FC<Props> = ({
   const { scene: loadedScene } = useGLTF(modelPath);
   const scene = useMemo(() => loadedScene.clone(), [loadedScene]);
 
-  useEffect(() => {
+  // Persistent texture reference
+  const textureRef = useRef<THREE.CanvasTexture | null>(null);
+
+  // 🧩 Function to (re)draw the texture from the Fabric canvas
+  const drawToTexture = () => {
     if (!fabricCanvas) return;
 
-    // Flip the canvas horizontally
+    // Mirror the fabric canvas horizontally
     const flippedCanvas = document.createElement("canvas");
     flippedCanvas.width = fabricCanvas.width;
     flippedCanvas.height = fabricCanvas.height;
     const ctx = flippedCanvas.getContext("2d");
-
     if (ctx) {
       ctx.translate(fabricCanvas.width, 0);
       ctx.scale(-1, 1);
       ctx.drawImage(fabricCanvas, 0, 0);
     }
 
-    // Create texture
-    const tex = new THREE.CanvasTexture(flippedCanvas);
-    tex.wrapS = THREE.ClampToEdgeWrapping;
-    tex.wrapT = THREE.ClampToEdgeWrapping;
-    tex.flipY = false;
+    if (!textureRef.current) {
+      // Create once
+      const tex = new THREE.CanvasTexture(flippedCanvas);
+      tex.wrapS = THREE.ClampToEdgeWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.flipY = false;
+      tex.anisotropy = 8;
+      tex.needsUpdate = true;
 
-    // 🎯 Apply per-shirt-type alignment
-    const align = shirtTextureAlignments[shirtType] || shirtTextureAlignments["tshirt"];
-    tex.center.set(0.5, 0.5);
-    tex.repeat.set(...align.repeat);
-    tex.offset.set(...align.offset);
+      const align =
+        shirtTextureAlignments[shirtType] || shirtTextureAlignments["tshirt"];
+      tex.center.set(0.5, 0.5);
+      tex.repeat.set(...align.repeat);
+      tex.offset.set(...align.offset);
 
-    tex.anisotropy = 8;
-    tex.needsUpdate = true;
+      textureRef.current = tex;
 
-    // Apply texture to all meshes
-    scene.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        const mat = mesh.material as THREE.MeshStandardMaterial;
+      // Apply to all meshes
+      scene.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          const mat = mesh.material as THREE.MeshStandardMaterial;
+          mat.map = tex;
+          mat.needsUpdate = true;
+        }
+      });
+    } else {
+      // Update the existing texture image
+      textureRef.current.image = flippedCanvas;
+      textureRef.current.needsUpdate = true;
+    }
+  };
 
-        mat.map = tex;
-        mat.needsUpdate = true;
+  // Re-draw texture whenever the Fabric canvas or key changes
+  useEffect(() => {
+    drawToTexture();
+  }, [fabricCanvas, canvasModifiedKey, shirtType]);
+
+  // Optional: refresh texture every frame (live updates while drawing)
+  useEffect(() => {
+    if (!fabricCanvas) return;
+    const interval = setInterval(() => {
+      if (textureRef.current && fabricCanvas) {
+        drawToTexture();
       }
-    });
-  }, [scene, fabricCanvas, canvasModifiedKey, shirtType]);
+    }, 200); // update ~5x per second
+    return () => clearInterval(interval);
+  }, [fabricCanvas]);
 
   const rotation = shirtRotations[shirtType] || [0, 0, 0];
   const position = shirtPositions[shirtType] || [0, -1.2, 0];

@@ -24,7 +24,7 @@ interface DesignRecord {
   request_id: Id<"design_requests">;
   client_id: Id<"users">;
   designer_id: Id<"users">;
-  status: "in_progress" | "finished" | "billed" | "approved";
+  status: "in_progress" | "completed" | "approved" | "pending_revision" | "in_production"| "pending_pickup";
   created_at?: number;
   _creationTime?: number;
 }
@@ -50,7 +50,7 @@ const Designs: React.FC = () => {
   const { user: clerkUser } = useUser();
   const [user, setUser] = useState<ConvexUser | null>(null);
   const [activeTab, setActiveTab] = useState<
-  "all" | "in_progress" | "finished" | "billed" | "approved" | "pending_revision"
+  "all" | "in_progress" | "finished" | "billed" | "approved" | "pending_revision"| "in_production" | "pending_pickup"
   >("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{
@@ -199,7 +199,7 @@ const Designs: React.FC = () => {
                    {/* Filter Tabs */}
           <div className="flex overflow-x-auto pb-2 hide-scrollbar">
             <div className="flex space-x-2 min-w-max">
-              {["all", "in_progress","pending_revision", "finished", "billed", "approved"].map(
+              {["all", "in_progress","pending_revision", "completed", "pending_pickup", "in_production", "approved"].map(
                 (tab) => (
                   <button
                     key={tab}

@@ -213,7 +213,7 @@ const Gallery: React.FC = () => {
                             <img
                               src={img.preview}
                               alt="Gallery"
-                              className="object-contain max-w-full max-h-64"
+                              className="object-contain max-w-s max-h-[20vh]"
                             />
                           </div>
                           <div className="flex-1 flex items-center justify-between">

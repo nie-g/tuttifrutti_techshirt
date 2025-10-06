@@ -222,12 +222,7 @@ const ClientRequestDetailsModal: React.FC<ClientRequestDetailsModalProps> = ({
               {activeTab === "details" && (
                 <div className="space-y-4">
                   <RequestInfo
-                    request={{
-                      shirtType: requestData.tshirt_type,
-                      styleTemplate: requestData.styleTemplate,
-                      description: requestData.description,
-                      status: requestData.status,
-                    }}
+                    requestId={requestData._id || requestData.id}
                   />
                 </div>
               )}

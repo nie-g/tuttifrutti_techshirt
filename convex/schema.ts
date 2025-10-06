@@ -139,7 +139,6 @@ export default defineSchema({
     request_title: v.string(),
     tshirt_type: v.optional(v.string()),
     gender: v.optional(v.string()),
-    sketch: v.optional(v.string()),
     description: v.optional(v.string()),
     status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected"), v.literal("cancelled")),
     textile_id: v.id("inventory_items"),
@@ -153,6 +152,12 @@ export default defineSchema({
     preferred_date: v.optional(v.string()),
     created_at: v.optional(v.number()),
   }),
+  
+  request_sketches: defineTable({
+    request_id: v.id("design_requests"),
+    sketch_image: v.id("_storage"),
+    created_at: v.optional(v.number()),
+  }).index("by_request", ["request_id"]),
 
   // --- NEW: sizes per request ---
   request_sizes: defineTable({
@@ -188,7 +193,8 @@ export default defineSchema({
       v.literal("in_progress"),
       v.literal("pending_revision"),
       v.literal("in_production"),
-      v.literal("finished"),
+      v.literal("pending_pickup"),
+      v.literal("completed"),
       v.literal("approved")
     ),
     deadline: v.optional(v.string()),

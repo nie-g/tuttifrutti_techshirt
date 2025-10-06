@@ -1,129 +1,193 @@
-// src/components/clientRequestDetails/RequestInfo.tsx
 import React from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import type { Id } from "../../../convex/_generated/dataModel";
 import {
-  User,
-  FileText,
   Shirt,
-  Tag,
+  FileText,
+  Calendar,
+  User,
   CheckCircle,
-  XCircle,
-  Clock,
+  Layers,
+  Package,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-interface RequestInfoProps {
-  request: {
-    client?: { full_name?: string; email?: string };
-    shirtType?: string;
-    styleTemplate?: string;
-    description?: string;
-    status?: string;
-  };
-}
-
-const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
-  if (status === "approved") {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
-        <CheckCircle className="w-3 h-3 mr-1" /> Approved
-      </span>
-    );
-  }
-  if (status === "rejected") {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700">
-        <XCircle className="w-3 h-3 mr-1" /> Rejected
-      </span>
-    );
-  }
-  if (status === "pending") {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700">
-        <Clock className="w-3 h-3 mr-1" /> Pending
-      </span>
-    );
-  }
-  if (status === "cancelled") {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-50 text-orange-700">
-        <Clock className="w-3 h-3 mr-1" /> cancelled
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-      {status || "Unknown"}
-    </span>
-  );
-};
-
-const InfoRow: React.FC<{
-  icon: React.ReactNode;
+/* -------------------------
+   Reusable Info Row
+------------------------- */
+const InfoRow = ({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
   label: string;
-  value: React.ReactNode;
-}> = ({ icon, label, value }) => (
-  <div className="flex items-start space-x-3">
-    <div className="mt-0.5 text-gray-400">{icon}</div>
+  value: string | React.ReactNode;
+}) => (
+  <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition">
+    <div className="p-2 rounded-lg bg-white shadow-sm text-gray-600 flex items-center justify-center">
+      <Icon size={18} />
+    </div>
     <div>
-      <p className="text-sm font-medium text-gray-500">{label}</p>
-      <div className="text-sm text-gray-900">{value}</div>
+      <p className="text-xs uppercase font-medium text-gray-500 tracking-wide">
+        {label}
+      </p>
+      <p className="text-sm font-semibold text-gray-900">{value}</p>
     </div>
   </div>
 );
 
-const RequestInfo: React.FC<RequestInfoProps> = ({ request }) => {
+interface RequestDetailsSectionProps {
+  requestId: Id<"design_requests">; // ✅ Convex Id type
+}
+
+const RequestDetailsSection: React.FC<RequestDetailsSectionProps> = ({ requestId }) => {
+  const design = useQuery(api.design_requests.getFullRequestDetails, { requestId });
+
+  const formatDate = (timestamp?: number) => {
+    if (!timestamp) return "N/A";
+    return new Date(timestamp).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  if (design === undefined) {
+    return <p className="text-gray-500 italic">Loading design details…</p>;
+  }
+  if (design === null) {
+    return <p className="text-red-500 font-medium">Design not found.</p>;
+  }
+
   return (
-    <div className="space-y-5">
-      {/* Client */}
-      <InfoRow
-        icon={<User className="h-5 w-5" />}
-        label="Client"
-        value={
-          <div>
-            <p className="font-medium">
-              {request.client?.full_name || "Unknown"}
-            </p>
-            {request.client?.email && (
-              <p className="text-xs text-gray-500">{request.client.email}</p>
-            )}
+    <div className="space-y-8">
+     
+
+      {design.request && (
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Left Column */}
+          <div className="space-y-3">
+            
+            <InfoRow
+              icon={User}
+              label="Client"
+              value={
+                design.client
+                  ? `${design.client.firstName} ${design.client.lastName} `
+                  : "N/A"
+              }
+            />
+            <InfoRow
+              icon={CheckCircle}
+              label="Request Status"
+              value={design.request.status || "N/A"}
+            />
+            <InfoRow
+              icon={FileText}
+              label="Request Title"
+              value={design.request.request_title || "N/A"}
+            />
+            <InfoRow
+              icon={Shirt}
+              label="Shirt Type"
+              value={design.request.tshirt_type || "N/A"}
+            />
+            <InfoRow
+              icon={User}
+              label="Gender"
+              value={design.request.gender || "N/A"}
+            />
           </div>
-        }
-      />
 
-      {/* Description */}
-      <InfoRow
-        icon={<FileText className="h-5 w-5" />}
-        label="Description"
-        value={
-          request.description ? (
-            <p className="whitespace-pre-wrap">{request.description}</p>
+          {/* Right Column */}
+          <div className="space-y-3">
+            <InfoRow
+              icon={Layers}
+              label="Fabric"
+              value={design.fabric?.name || "N/A"}
+            />
+            <InfoRow
+              icon={Package}
+              label="Print Type"
+              value={design.request.print_type || "N/A"}
+            />
+           
+            <InfoRow
+              icon={FileText}
+              label="Request Description"
+              value={design.request.description || "No description"}
+            />
+            <InfoRow
+              icon={Calendar}
+              label="Preferred Date"
+              value={
+                design.request.preferred_date
+                  ? new Date(design.request.preferred_date).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })
+                  : "N/A"
+              }
+            />
+            <InfoRow
+              icon={Calendar}
+              label="Requested At"
+              value={formatDate(design.request.created_at)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Sizes */}
+      <div className="bg-gray-50 rounded-xl p-4 shadow-sm">
+        <p className="text-sm font-semibold text-gray-700 mb-2">Shirt Sizes</p>
+        <ul className="space-y-1 text-sm text-gray-900">
+          {design.sizes?.length > 0 ? (
+            design.sizes.map((s, idx) => (
+              <li
+                key={idx}
+                className="flex justify-between bg-white px-3 py-1.5 rounded-md shadow-sm"
+              >
+                <span>{s.size_label}</span>
+                <span className="text-gray-600">{s.quantity} pcs</span>
+              </li>
+            ))
           ) : (
-            <p className="italic text-gray-500">No description provided.</p>
-          )
-        }
-      />
+            <li className="text-gray-500 italic">No sizes specified</li>
+          )}
+        </ul>
+      </div>
 
-      {/* Shirt Type */}
-      <InfoRow
-        icon={<Shirt className="h-5 w-5" />}
-        label="Shirt Type"
-        value={request.shirtType || "—"}
-      />
-
-      {/* Style Template */}
-      <InfoRow
-        icon={<Tag className="h-5 w-5" />}
-        label="Style Template"
-        value={request.styleTemplate || "Custom"}
-      />
-
-      {/* Status */}
-      <InfoRow
-        icon={<CheckCircle className="h-5 w-5" />}
-        label="Status"
-        value={<StatusBadge status={request.status} />}
-      />
+      {/* Colors */}
+      <div className="bg-gray-50 rounded-xl p-4 shadow-sm">
+        <p className="text-sm font-semibold text-gray-700 mb-2">
+          Selected Colors
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {design.colors?.length > 0 ? (
+            design.colors.map((c, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white shadow-sm border border-gray-400"
+              >
+                <span
+                  
+                  className="inline-block w-5 h-5 rounded-full border"
+                  style={{ backgroundColor: c.hex }}
+                />
+                <span className="text-sm text-gray-800">{c.hex}</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500 italic">No colors selected</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
 
-export default RequestInfo;
+export default RequestDetailsSection;

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
 import CanvasSettings from "./designCanvasComponents/CanvasSettings";
 import DesignDetails from "./designCanvasComponents/CanvasDesignDetails";
-import { Save, Upload, Info, Wrench, ArrowLeft, ReceiptText, Image, MessageCircleMore } from "lucide-react"; // added Back icon
+import { Save, Upload, Info, Wrench, ArrowLeft, ReceiptText, Image, MessageCircleMore, Notebook } from "lucide-react"; // added Back icon
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -12,6 +12,7 @@ import DesignerBillModal from "./DesignerBillModal";
 import { addImageFromUrl } from "./designCanvasComponents/CanvasTools";
 import CommentsModal from "./designCanvasComponents/CanvasComments";
 import ReferencesGallery from "./designCanvasComponents/CanvasDesignReferences";
+import CanvasSketch from "./designCanvasComponents/CanvasSketchModal";
 // 🔹 Bigger canvas size
 const CANVAS_WIDTH = 730;
 const CANVAS_HEIGHT = 515;
@@ -43,7 +44,7 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
 
 
   // 🔹 Floating panel state
-  const [activeTab, setActiveTab] = useState<"none" | "details" | "tools"| "references">(
+  const [activeTab, setActiveTab] = useState<"none" | "details" | "tools"| "references"| "comments"| "sketch">(
     "none"
   );
 
@@ -51,10 +52,11 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
   const savePreview = useAction(api.design_preview.savePreview);
   const designDoc = useQuery(api.designs.getById, { designId });
   const isApproved = designDoc?.status === "approved";
-  const isDisabled = designDoc?.status === "approved" || designDoc?.status === "finished";
+  const isDisabled = designDoc?.status === "approved" || designDoc?.status === "completed";
   const requestId = designDoc?.request_id; 
   const [showComments, setShowComments] = useState(false);
   const previewDoc = useQuery(api.design_preview.getByDesign, { designId });
+  const [showSketch, setShowSketch] = useState(false);
 
 
   const references = useQuery(
@@ -220,7 +222,21 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
               <ReceiptText size={18} />
             </button>
           )}
+
+          {/*See Sketch*/}
+           <button
+            type="button"
+            onClick={() => setShowSketch(true)}
+            className={`p-2 rounded ${
+              showSketch ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
+            }`}
+            title="Sketch"
+          >
+          <Notebook size={18} />
+         
+          </button>
           {/* Comments button */}
+
           <button
             type="button"
             onClick={() => setShowComments(true)}
@@ -234,15 +250,9 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
           {/* References button */}
           <button
             type="button"
-            onClick={() => {
-              // When clicked: open the gallery modal and mark the active tab as "references"
-              setShowReferences(true);
-              setActiveTab(activeTab === "references" ? "none" : "references");
-            }}
+            onClick={() => setShowReferences(true)}
             className={`p-2 rounded ${
-              activeTab === "references"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 text-gray-700"
+              showReferences ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
             }`}
             title="See References"
           >
@@ -366,6 +376,7 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
                 if (canvas) {
                   await addImageFromUrl(canvas, url);
                   setShowReferences(false);
+                  setActiveTab("none");
                 }
               }}
             />
@@ -373,6 +384,7 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
             <div className="mt-4 flex justify-end">
               <button
                 onClick={() => setShowReferences(false)
+                  
                   
                 }
                 className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
@@ -383,6 +395,24 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
           </div>
         </div>
       )}
+
+      {showSketch && requestId && (
+            <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
+              <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-4">
+                <h2 className="text-lg font-semibold mb-3">Request Sketch</h2>
+                <CanvasSketch requestId={requestId} />
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => setShowSketch(false)}
+                    className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
 
         
 

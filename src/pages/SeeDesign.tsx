@@ -377,37 +377,56 @@ function createWhiteFallbackCanvas(): HTMLCanvasElement {
   // Load fabric JSON into hidden canvas
   // Load fabric JSON into hidden canvas (or fallback to plain white)
   useEffect(() => {
-    if (!canvasDoc) return;
+  if (!canvasDoc) return;
 
-    const tempCanvasEl = document.createElement("canvas");
-    tempCanvasEl.width = 730;
-    tempCanvasEl.height = 515;
+  // --- Step 1: Show an instant fallback while loading ---
+  const whiteCanvas = createWhiteFallbackCanvas();
+  setFabricCanvas(whiteCanvas);
+  setCanvasModifiedKey((k) => k + 1);
 
-    const fabricInstance = new fabric.Canvas(tempCanvasEl, {
-      backgroundColor: "#f5f5f5",
-      renderOnAddRemove: false,
-    });
+  // --- Step 2: Load actual design asynchronously ---
+  const tempCanvasEl = document.createElement("canvas");
+  tempCanvasEl.width = 730;
+  tempCanvasEl.height = 515;
 
-    if (canvasDoc.canvas_json) {
-      try {
-        fabricInstance.loadFromJSON(canvasDoc.canvas_json, () => {
-          fabricInstance.renderAll();
-          fabricInstance.requestRenderAll();
-          setFabricCanvas(tempCanvasEl);
-          setCanvasModifiedKey((k) => k + 1);
-        });
-      } catch (e) {
-        console.error("Failed to load fabric canvas JSON", e);
-        // fallback to white
-        setFabricCanvas(createWhiteFallbackCanvas());
+  const fabricInstance = new fabric.Canvas(tempCanvasEl, {
+    backgroundColor: "#f5f5f5",
+    renderOnAddRemove: false,
+  });
+
+  // Make sure Fabric is using async image loading efficiently
+  fabricInstance.renderOnAddRemove = false;
+
+  if (canvasDoc.canvas_json) {
+    try {
+      fabricInstance.loadFromJSON(canvasDoc.canvas_json, async () => {
+        // Force all image elements to fully load before renderAll
+        const objects = fabricInstance.getObjects();
+        const imagePromises = objects
+          .filter((obj) => obj.type === "image")
+          .map(
+            (img: any) =>
+              new Promise<void>((resolve) => {
+                if (img._element?.complete) resolve();
+                else img._element?.addEventListener("load", () => resolve());
+              })
+          );
+
+        // Wait for all images
+        await Promise.all(imagePromises);
+
+        // Final render and set
+        fabricInstance.renderAll();
+        fabricInstance.requestRenderAll();
+
+        setFabricCanvas(tempCanvasEl);
         setCanvasModifiedKey((k) => k + 1);
-      }
-    } else {
-      // no JSON → fallback to white
-      setFabricCanvas(createWhiteFallbackCanvas());
-      setCanvasModifiedKey((k) => k + 1);
+      });
+    } catch (e) {
+      console.error("❌ Failed to load fabric canvas JSON", e);
     }
-  }, [canvasDoc]);
+  }
+}, [canvasDoc]);
 
 
  const shirtType =
@@ -437,10 +456,10 @@ function createWhiteFallbackCanvas(): HTMLCanvasElement {
         </div>
 
         <div className="absolute top-4 right-4 z-20 flex gap-3">
-          {design && design.status === "approved" || design?.status === "finished" ? (
+          {design && design.status === "approved" ||design?.status === "completed"? (
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 bg-green-50 text-green-700 border border-green-600 px-4 py-2 rounded-lg shadow">
-                Approved
+                {design?.status === "approved" ? "Approved" : "Completed"}
               </div>
               {/* 🆕 Billing button only visible when approved */}
               <motion.button
@@ -456,7 +475,7 @@ function createWhiteFallbackCanvas(): HTMLCanvasElement {
                 Rate Design
               </motion.button>
             </div>
-          ) :design && design.status === "in_production" ? (
+          ) :design && design.status === "in_production" ||design?.status === "pending_pickup" ? (
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 bg-purple-200 border border-purple-300 text-purple-700  px-4 py-2 rounded-lg shadow">
                 In Production
