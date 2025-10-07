@@ -77,12 +77,12 @@ const InventoryPage: React.FC = () => {
     if (!stockItem) return;
 
     try {
-      await updateItem({
+     await updateItem({
         id: stockItem._id,
         name: stockItem.name,
         categoryId: stockItem.category_id,
         unit: stockItem.unit,
-        stock: stockItem.stock + stockAmount, // increment stock only
+        stock: stockAmount,
         description: stockItem.description ?? "",
       });
       setIsStockModalOpen(false);

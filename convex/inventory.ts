@@ -65,17 +65,45 @@ export const updateInventoryItem = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+
+    // Fetch current inventory item
+    const currentItem = await ctx.db.get(args.id);
+    if (!currentItem) {
+      throw new Error("Inventory item not found");
+    }
+
+    // Compute how much stock the user is trying to add
+    const stockAdded = args.stock;
+    let newStock = currentItem.stock;
+    let newPendingRestock = currentItem.pending_restock ?? 0;
+
+    if (stockAdded > 0) {
+      if (stockAdded < newPendingRestock) {
+        // Not enough to fulfill pending restock → stock stays the same
+
+        newPendingRestock -= stockAdded;
+        newStock = currentItem.stock+0;
+      } else {
+        // Stock added covers pending restock and more
+        const excess = stockAdded - newPendingRestock;
+        newPendingRestock = 0;
+        newStock = currentItem.stock + excess;
+      }
+    }
+
+    // Apply updates
     await ctx.db.patch(args.id, {
       name: args.name,
       category_id: args.categoryId,
       unit: args.unit,
-      stock: args.stock,
-      pending_restock: args.pendingRestock,
+      stock: newStock,
+      pending_restock: newPendingRestock,
       description: args.description,
       updated_at: now,
     });
   },
 });
+
 
 // Delete an inventory item
 export const deleteInventoryItem = mutation({

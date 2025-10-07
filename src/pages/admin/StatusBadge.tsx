@@ -25,6 +25,11 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
       textColor = "text-blue-800";
       icon = <CheckCircle className="h-3 w-3 mr-1" />;
       break;
+    case "Rejected":
+      bgColor = "bg-red-100";
+      textColor = "text-red-800";
+      icon = <AlertTriangle className="h-3 w-3 mr-1" />;
+      break;
     case "Completed":
       bgColor = "bg-green-100";
       textColor = "text-green-800";

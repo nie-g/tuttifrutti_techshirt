@@ -25,7 +25,7 @@ export const getDashboardStats = query({
       total: designRequests.length,
       pending: designRequests.filter((r) => r.status === "pending").length,
       approved: designRequests.filter((r) => r.status === "approved").length,
-    
+      cancelled: designRequests.filter((r) => r.status === "cancelled").length,
       rejected: designRequests.filter((r) => r.status === "rejected").length,
     };
 

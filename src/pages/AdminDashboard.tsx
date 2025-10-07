@@ -35,20 +35,20 @@ interface ActivityItem {
   title: string;
   timestamp: number;
 }
-
 interface DashboardStats {
   users: { total: number; admin: number; designer: number; client: number };
-  requests: { total: number; pending: number; approved: number; completed: number; rejected: number };
-  designs: { total: number; completed: number };
+  requests: { total: number; pending: number; approved: number; cancelled: number; rejected: number };
+  designs: { total: number };
   templates: { total: number };
   shirtSizes: { total: number };
   recentActivity: ActivityItem[];
 }
 
+
 const defaultStats: DashboardStats = {
   users: { total: 0, admin: 0, designer: 0, client: 0 },
-  requests: { total: 0, pending: 0, approved: 0, completed: 0, rejected: 0 },
-  designs: { total: 0, completed: 0 },
+  requests: { total: 0, pending: 0, approved: 0, rejected: 0, cancelled: 0 },
+  designs: { total: 0 },
   templates: { total: 0 },
   shirtSizes: { total: 0 },
   recentActivity: [],
@@ -82,11 +82,11 @@ const AdminDashboard: React.FC = () => {
       case "pending":
         return "Planning";
       case "approved":
-        return "In Progress";
-      case "completed":
-        return "Completed";
-      case "rejected":
+        return "Approved";
+      case "cancelled":
         return "Cancelled";
+      case "rejected":
+        return "Rejected";
       default:
         return "Review";
     }

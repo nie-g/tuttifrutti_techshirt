@@ -86,10 +86,15 @@ const AdminReports: React.FC = () => {
   }, [isLoaded, isSignedIn, clerkUser, navigate]);
 
   // derived: filter approved billings only for revenue/statistics
-  const approvedBillings = useMemo(
-    () => billings.filter((b: any) => b.status === "approved"),
-    [billings]
-  );
+  const approvedBillings = useMemo(() => {
+  // Only include billings that are approved AND linked to a completed design
+  return billings.filter((b: any) => {
+    if (b.status !== "approved") return false;
+    const linkedDesign = designs.find((d: any) => d._id === b.design_id || d._id === b.design);
+    return linkedDesign?.status === "completed";
+  });
+}, [billings, designs]);
+
 
   // totals & stats
   const totalRevenue = useMemo(
@@ -118,7 +123,7 @@ const AdminReports: React.FC = () => {
   const designStats = useMemo(() => {
     return {
       total: designs.length,
-      finished: designs.filter((d: any) => d.status === "finished").length,
+      finished: designs.filter((d: any) => d.status === "completed").length,
       approved: designs.filter((d: any) => d.status === "approved").length,
       revisions: designs.filter((d: any) => d.status === "pending_revision").length,
     };
@@ -481,7 +486,7 @@ const AdminReports: React.FC = () => {
                   <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-center">
                     <div className="bg-gray-50 p-2 rounded">
                       <div className="text-sm font-semibold">{designStats.finished}</div>
-                      <div className="text-gray-500">Finished</div>
+                      <div className="text-gray-500">Completed</div>
                     </div>
                     <div className="bg-gray-50 p-2 rounded">
                       <div className="text-sm font-semibold">{designStats.approved}</div>

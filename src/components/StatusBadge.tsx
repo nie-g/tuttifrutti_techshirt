@@ -58,7 +58,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
       );
      case "pending_pickup":
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">
           <AlertTriangle className="w-3 h-3 mr-1" />
           Pending Pickup
         </span>

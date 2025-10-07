@@ -2,7 +2,7 @@ import { Users, FileText, Layers, PieChart } from "lucide-react";
 
 interface Stats {
   users: { total: number; designer: number; client: number; admin: number };
-  requests: { total: number; pending: number; approved: number; completed: number; rejected: number };
+  requests: { total: number; pending: number; approved: number; rejected: number };
   templates: { total: number };
   shirtSizes: { total: number };
 }
