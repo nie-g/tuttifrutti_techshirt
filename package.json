@@ -10,7 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@clerk/backend": "^2.18.0",
     "@clerk/clerk-react": "^5.45.0",
+    "@clerk/clerk-sdk-node": "^4.13.23",
     "@react-email/render": "^1.2.1",
     "@react-three/drei": "^10.7.3",
     "@react-three/fiber": "^9.3.0",
