@@ -1,7 +1,8 @@
 // convex/design_templates.ts
-import { mutation, query } from "./_generated/server";
+import { mutation, query, action } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
+import { api } from "./_generated/api";
 
 // ============================
 // Get all design templates
@@ -47,65 +48,7 @@ export const getDesignTemplates = query({
 // ============================
 // Migration (for old schema with designer_id)
 // ============================
-export const migrateTemplates = mutation({
-  args: { defaultShirtTypeId: v.id("shirt_types") }, // 👈 required shirt_type_id
-  handler: async (ctx, { defaultShirtTypeId }) => {
-    console.log("Starting design_templates migration...");
 
-    try {
-      const existingTemplates = await ctx.db.query("design_templates").collect();
-      console.log(`Found ${existingTemplates.length} templates`);
-
-      const templatesNeedingMigration = existingTemplates.filter((t: any) =>
-        "designer_id" in t
-      );
-
-      if (templatesNeedingMigration.length === 0) {
-        return {
-          success: true,
-          message: "No templates need migration",
-          migratedCount: 0,
-          totalCount: existingTemplates.length,
-        };
-      }
-
-      const migratedIds: { oldId: Id<"design_templates">; newId: Id<"design_templates"> }[] = [];
-
-      for (const template of templatesNeedingMigration) {
-        try {
-          const newId = await ctx.db.insert("design_templates", {
-            template_name: template.template_name || "Unnamed Template",
-            template_image: template.template_image || "",
-            created_at: template.created_at || Date.now(),
-            shirt_type_id: defaultShirtTypeId, // 👈 required field
-          });
-
-          migratedIds.push({ oldId: template._id, newId });
-        } catch (err) {
-          console.error(`Error migrating template ${template._id}:`, err);
-        }
-      }
-
-      for (const { oldId } of migratedIds) {
-        try {
-          await ctx.db.delete(oldId);
-        } catch (err) {
-          console.error(`Error deleting old template ${oldId}:`, err);
-        }
-      }
-
-      return {
-        success: true,
-        message: `Migrated ${migratedIds.length} templates`,
-        migratedCount: migratedIds.length,
-        totalCount: existingTemplates.length,
-      };
-    } catch (err: any) {
-      console.error("Migration error:", err);
-      return { success: false, error: err.message };
-    }
-  },
-});
 
 // ============================
 // (Legacy) Get by designerId
@@ -127,52 +70,64 @@ export const getByDesigner = query({
 // ============================
 // Create new template
 // ============================
-export const create = mutation({
-  args: {
-    designerId: v.optional(v.string()), // kept for backward compatibility
-    templateName: v.string(),
-    templateImage: v.string(),
-    shirtTypeId: v.id("shirt_types"), // 👈 required
-  },
-  handler: async (ctx, { templateName, templateImage, shirtTypeId }) => {
-    try {
-      const id = await ctx.db.insert("design_templates", {
-        template_name: templateName,
-        template_image: templateImage,
-        created_at: Date.now(),
-        shirt_type_id: shirtTypeId, // 👈 required field
-      });
-      return id;
-    } catch (err: any) {
-      console.error("Error creating template:", err);
-      throw new Error("Failed to create template: " + err.message);
-    }
-  },
-});
+
 
 // ============================
 // Update template
 // ============================
-export const update = mutation({
+export const updateDesignTemplate = action({
   args: {
     templateId: v.id("design_templates"),
     templateName: v.optional(v.string()),
-    templateImage: v.optional(v.string()),
-    shirtTypeId: v.optional(v.id("shirt_types")), // 👈 allow updating type
+    shirtTypeId: v.optional(v.id("shirt_types")),
+    templateImage: v.optional(v.bytes()), // optional image update
   },
-  handler: async (ctx, { templateId, templateName, templateImage, shirtTypeId }) => {
+  handler: async (ctx, args): Promise<string> => {
+    const { templateId, templateName, shirtTypeId, templateImage } = args;
+
+    let storageId: Id<"_storage"> | undefined = undefined;
+
+    // Only upload new image if provided
+    if (templateImage !== undefined) {
+      const blob = new Blob([new Uint8Array(templateImage)], { type: "image/png" });
+      storageId = await ctx.storage.store(blob);
+    }
+
+    // Run the mutation to update DB record
+    return await ctx.runMutation(api.design_templates.updateTemplateMutation, {
+      templateId,
+      templateName,
+      shirtTypeId,
+      templateImage: storageId,
+    });
+  },
+});
+
+export const updateTemplateMutation = mutation({
+  args: {
+    templateId: v.id("design_templates"),
+    templateName: v.optional(v.string()),
+    shirtTypeId: v.optional(v.id("shirt_types")),
+    templateImage: v.optional(v.id("_storage")),
+  },
+  handler: async (ctx, { templateId, templateName, shirtTypeId, templateImage }) => {
     const template = await ctx.db.get(templateId);
     if (!template) throw new Error("Template not found");
 
-    const updateFields: any = {};
+    const updateFields: Record<string, any> = {};
+
     if (templateName !== undefined) updateFields.template_name = templateName;
-    if (templateImage !== undefined) updateFields.template_image = templateImage;
     if (shirtTypeId !== undefined) updateFields.shirt_type_id = shirtTypeId;
+    if (templateImage !== undefined) updateFields.template_image = templateImage;
+
+    if (Object.keys(updateFields).length === 0)
+      throw new Error("No fields provided to update");
 
     await ctx.db.patch(templateId, updateFields);
     return templateId;
   },
 });
+
 
 // ============================
 // Delete template
@@ -180,10 +135,68 @@ export const update = mutation({
 export const remove = mutation({
   args: { templateId: v.id("design_templates") },
   handler: async (ctx, { templateId }) => {
+    // 1️⃣ Fetch the template record
     const template = await ctx.db.get(templateId);
     if (!template) throw new Error("Template not found");
 
+    // 2️⃣ Delete associated image from Convex storage (if exists)
+    if (template.template_image) {
+      try {
+        await ctx.storage.delete(template.template_image);
+      } catch (err) {
+        console.warn("⚠️ Failed to delete template image from storage:", err);
+      }
+    }
+
+    // 3️⃣ Delete the DB record
     await ctx.db.delete(templateId);
-    return { success: true };
+
+    // 4️⃣ Return success confirmation
+    return { success: true, deletedId: templateId };
+  },
+});
+
+// Action: Handles file upload + DB record creation
+export const saveDesignTemplate = action({
+  args: {
+    designerId: v.optional(v.string()), // kept for backward compatibility
+    templateName: v.string(),
+    shirtTypeId: v.id("shirt_types"),
+    templateImage: v.bytes(), // renamed for schema consistency
+  },
+  handler: async (ctx, args): Promise<string> => {
+    // 1. Convert ArrayBuffer → Blob
+    const blob = new Blob([new Uint8Array(args.templateImage)], { type: "image/png" });
+
+    // 2. Upload to Convex storage
+    const storageId = await ctx.storage.store(blob);
+
+    // 3. Insert record into design_templates
+    const docId = await ctx.runMutation(api.design_templates.insertDesignTemplate, {
+      shirtTypeId: args.shirtTypeId,
+      templateName: args.templateName,
+      templateImage: storageId,
+    });
+
+    return docId;
+  },
+});
+
+// Mutation: Inserts into the design_templates table
+export const insertDesignTemplate = mutation({
+  args: {
+    shirtTypeId: v.id("shirt_types"),
+    templateName: v.string(),
+    templateImage: v.id("_storage"),
+  },
+  handler: async (ctx, args): Promise<string> => {
+    const now = Date.now();
+
+    return await ctx.db.insert("design_templates", {
+      shirt_type_id: args.shirtTypeId,
+      template_name: args.templateName,
+      template_image: args.templateImage,
+      created_at: now,
+    });
   },
 });

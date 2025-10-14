@@ -104,8 +104,6 @@ export const storeClerkUser = internalMutation({
       if (!adminProfile) {
         await ctx.db.insert("admins", {
           user_id: userId,
-          address: "",
-          notes: "",
           created_at: Date.now(),
         });
         console.log("✅ Admin profile created");

@@ -18,14 +18,8 @@ export const getBillingBreakdown = query({
     if (!request) throw new Error("Design request not found");
 
     // Get all request_sizes linked to this request
-    const sizes = await ctx.db
-      .query("request_sizes")
-      .withIndex("by_request", (q) => q.eq("request_id", design.request_id))
-      .collect();
 
     // Total shirts
-    const totalShirts = sizes.reduce((sum, s) => sum + s.quantity, 0);
-
     // Printing fee (based on print_type from request)
     
     return {
@@ -96,16 +90,7 @@ export const getBillingByDesign = query({
     const request = await ctx.db.get(design.request_id);
     if (!request) throw new Error("Design request not found");
 
-    // 4. Fetch request sizes
-    const sizes = await ctx.db
-      .query("request_sizes")
-      .withIndex("by_request", (q) => q.eq("request_id", design.request_id))
-      .collect();
-
-    
-
-    // 5. Calculate printing fee + revision fee
-    
+ 
 
     // 6. Fetch designer profile (from designers table)
     const designerProfile = await ctx.db
@@ -114,16 +99,9 @@ export const getBillingByDesign = query({
       .unique();
 
     if (!designerProfile) throw new Error("Designer profile not found");
-
     // 7. Fetch designer pricing
-    const pricing = await ctx.db
-      .query("designer_pricing")
-      .withIndex("by_designer", (q) => q.eq("designer_id", designerProfile._id))
-      .first();
+  
 
-    const designerFee = pricing?.promo_amount ?? pricing?.normal_amount ?? 0;
-
-    // 8. Calculate total
    
 
     // 9. Return billing + breakdown

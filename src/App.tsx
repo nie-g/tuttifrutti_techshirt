@@ -1,7 +1,4 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import SignUpPage from './pages/SignUpPage';
-import SignInPage from './pages/SignInPage';
-import DesignerSignUpPage from './pages/DesignerSignUpPage';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import AdminDashboardPage from './pages/AdminDashboard';
@@ -10,7 +7,6 @@ import ClientDashboardPage from './pages/ClientDashboard';
 import AboutPage from './pages/AboutPage';
 import NotificationsPage from './pages/Notifications';
 import UserRequests from './pages/UserRequests';
-import DesignerTasks from './pages/DesignerTasks';
 import Requests from './pages/Requests';
 import Templates from './pages/Templates';
 import InventoryPage from './pages/Inventory';
@@ -29,6 +25,7 @@ import RegisterDesigner from './pages/RegisterDesigner';
 import RegisterAdmin from './pages/RegisterAdmin';
 import Login from './pages/Login';
 import Reports from './pages/AdminReports';
+import AdminOrdersReport from './pages/admin/SalesReports';
 
 
 
@@ -49,7 +46,6 @@ function App() {
         <Route path="/Client" element={<ClientDashboardPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/client/requests" element={<UserRequests />} />
-        <Route path="/designer/tasks" element={<DesignerTasks />} />
         <Route path="/admin/requests" element={<Requests />} />
         <Route path="/admin/templates" element={<Templates />} />
         <Route path="/admin/inventory" element={<InventoryPage />} />
@@ -63,7 +59,7 @@ function App() {
         <Route path="/designer/designs" element={<Designs />} />
         <Route path="/admin/designs" element={<AdminDesigns />} />
         <Route path="/client/browse" element={<BrowseGallery />} />
-      
+        <Route path="/admin/orders-report" element={<AdminOrdersReport />} />
         <Route path="/admin/reports" element={<Reports />} />
       </Routes>
     </BrowserRouter>

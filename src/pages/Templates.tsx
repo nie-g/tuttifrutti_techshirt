@@ -7,11 +7,9 @@ import { api } from "../../convex/_generated/api";
 import AdminNavbar from "../components/UsersNavbar";
 import DynamicSidebar from "../components/Sidebar";
 import TemplateGallery from "../components/TemplateGallery";
-import TemplateUploader from "../components/TemplateUploader";
 import ShirtSizeManager from "../components/ShirtSizeManager";
 import PricingManager from "../components/PricingManager";
 import PrintPricingManager from "../components/PrintPricing";
-import { Shirt, Upload, Layers, Plus } from "lucide-react";
 
 interface User {
   _id: string;
@@ -88,23 +86,22 @@ const Templates: React.FC = () => {
               {/* Tabs */}
               <div className="flex flex-wrap sm:flex-nowrap gap-2 sm:gap-3 overflow-x-auto hide-scrollbar justify-center sm:justify-start">
                 {[
-                  { key: "templates", label: "Browse Templates", icon: <Layers className="w-4 h-4" /> },
-                  { key: "upload", label: "Upload Template", icon: <Upload className="w-4 h-4" /> },
-                  { key: "sizes", label: "Manage Shirt Sizes", icon: <Shirt className="w-4 h-4" /> },
-                  { key: "pricing", label: "Designer Pricing", icon: <Plus  className="w-4 h-4" /> },
-                  { key: "printpricing", label: "Print Pricing", icon: <Layers className="w-4 h-4" /> },
+                  { key: "templates", label: "Browse Templates"},
+                  { key: "sizes", label: "Manage Shirt Sizes" },
+                  { key: "pricing", label: "Designer Pricing" },
+                  { key: "printpricing", label: "Print Pricing" },
                 ].map((tab) => (
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key as TabOption)}
-                    className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors
+                    className={`flex items-center gap-2 px-3 sm:px-2 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors
                       ${
                         activeTab === tab.key
                           ? "bg-teal-100 text-teal-800"
-                          : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                          : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-50"
                       }`}
                   >
-                    {tab.icon}
+                    
                     <span className="whitespace-nowrap">{tab.label}</span>
                   </button>
                 ))}
@@ -117,11 +114,6 @@ const Templates: React.FC = () => {
                 {activeTab === "templates" && (
                   <div className="w-full">
                     <TemplateGallery />
-                  </div>
-                )}
-                {activeTab === "upload" && (
-                  <div className="w-full">
-                    <TemplateUploader />
                   </div>
                 )}
                 {activeTab === "sizes" && (

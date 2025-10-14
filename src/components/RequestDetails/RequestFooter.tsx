@@ -121,14 +121,14 @@ const RequestFooter: React.FC<Props> = ({
       {showRejectModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-800">Reject Design Request</h2>
+            <h2 className="text-lg font-semibold text-gray-800">Decline Design Request</h2>
             <p className="text-sm text-gray-600">
-              Please provide a reason for rejecting this request.
+              Please provide a reason for declining this request.
             </p>
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Enter rejection reason..."
+              placeholder="Enter your reason..."
               className="w-full border rounded-lg p-3 h-24 resize-none focus:outline-none focus:ring-2 focus:ring-red-400"
             />
             <div className="flex justify-end gap-3 mt-4">
@@ -148,7 +148,7 @@ const RequestFooter: React.FC<Props> = ({
                 ) : (
                   <XCircle size={16} />
                 )}
-                Confirm Reject
+                Confirm
               </button>
             </div>
           </div>

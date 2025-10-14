@@ -22,7 +22,7 @@ const Notifications: React.FC = () => {
   const navigate = useNavigate();
   const { user: clerkUser, isLoaded } = useUser();
   const [userId, setUserId] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<"admin" | "designer" | "client" | null>(null);
+  const [_userRole, setUserRole] = useState<"admin" | "designer" | "client" | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

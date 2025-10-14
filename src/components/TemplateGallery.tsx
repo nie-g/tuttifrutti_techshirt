@@ -1,231 +1,163 @@
-// src/components/TemplateGallery.tsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import type { ChangeEvent, FormEvent } from "react";
-import { Trash2, Edit, Search, Loader } from "lucide-react";
+import { Trash2, Edit, Search, Loader, Plus } from "lucide-react";
+import { useUser } from "@clerk/clerk-react";
+import AddTemplateModal from "./designTemplateComponents/AddTemplateModal";
+import EditTemplateModal from "./designTemplateComponents/EditTemplateModal";
 
-// ✅ Matches Convex `design_templates` schema
 interface Template {
   _id: Id<"design_templates">;
   template_name: string;
-  template_image: string;
+  template_image: Id<"_storage">;
+  shirt_type_id: Id<"shirt_types">;
   created_at?: number;
 }
 
-// ✅ Edit form state
-interface EditFormData {
-  templateName: string;
-  templateImage: string | null;
-}
+type TemplateWithUrl = Template & { imageUrl?: string | null };
 
 const TemplateGallery: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState<EditFormData>({
-    templateName: "",
-    templateImage: null,
-  });
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateWithUrl | null>(null);
+  const [localTemplates, setLocalTemplates] = useState<Template[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [localTemplates, setLocalTemplates] = useState<Template[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { user } = useUser();
+  const clerkId = user?.id;
+  const currentUser = useQuery(
+    api.userQueries.getUserByClerkId,
+    clerkId ? { clerkId } : "skip"
+  );
+  const isAdmin = currentUser?.role?.toLowerCase() === "admin";
 
-  // ✅ Query templates
   const apiTemplates = useQuery(api.design_templates.getAll) as Template[] | undefined;
-
-  // ✅ Mutations
   const removeTemplateMutation = useMutation(api.design_templates.remove);
-  const updateTemplateMutation = useMutation(api.design_templates.update);
 
-  // ✅ Update local state when API data changes
+  const storageIds = apiTemplates?.map((t) => t.template_image) ?? [];
+  const storageUrls = useQuery(api.getPreviewUrl.getPreviewUrls, { storageIds }) ?? [];
+
   useEffect(() => {
     if (apiTemplates) {
       setLocalTemplates(apiTemplates);
+      const filtered = storageUrls.map((u) => (u === null ? "" : u));
+      setImageUrls(filtered);
       setIsLoading(false);
     }
-  }, [apiTemplates]);
+  }, [apiTemplates, storageUrls]);
 
-  // ✅ Fallback sample data
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (isLoading && (!apiTemplates || apiTemplates.length === 0)) {
-        setLocalTemplates([
-          {
-            _id: "sample-template-1" as Id<"design_templates">,
-            template_name: "Sample Jersey Design",
-            template_image: "https://placehold.co/400x400?text=Jersey+Template",
-            created_at: Date.now(),
-          },
-          {
-            _id: "sample-template-2" as Id<"design_templates">,
-            template_name: "Team Uniform",
-            template_image: "https://placehold.co/400x400?text=Uniform+Template",
-            created_at: Date.now() - 86400000,
-          },
-        ]);
-        setIsLoading(false);
-      }
-    }, 5000);
-
-    return () => clearTimeout(timer);
-  }, [isLoading, apiTemplates]);
-
-  // ✅ Filter templates
-  const filteredTemplates = localTemplates.filter((template) =>
-    template.template_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // ✅ File change handler
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      setError("Please select an image file");
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError("File size should be less than 5MB");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        const result = event.target.result as string;
-        setPreviewImage(result);
-        setEditFormData((prev) => ({ ...prev, templateImage: result }));
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // ✅ Handle edit
-  const handleEditTemplate = (template: Template) => {
-    setSelectedTemplate(template);
-    setEditFormData({
-      templateName: template.template_name,
-      templateImage: null,
-    });
-    setPreviewImage(template.template_image);
-    setIsEditModalOpen(true);
-    setError(null);
-    setSuccess(null);
-  };
-
-  // ✅ Handle edit submit
-  const handleEditSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!selectedTemplate || !editFormData.templateName.trim()) return;
-
+  const handleDeleteTemplate = async (templateId: Id<"design_templates">) => {
     try {
-      await updateTemplateMutation({
-        templateId: selectedTemplate._id,
-        templateName: editFormData.templateName.trim(),
-        templateImage: editFormData.templateImage ?? undefined,
-      });
-
-      setLocalTemplates((prev) =>
-        prev.map((t) =>
-          t._id === selectedTemplate._id
-            ? {
-                ...t,
-                template_name: editFormData.templateName.trim(),
-                template_image: editFormData.templateImage || t.template_image,
-              }
-            : t
-        )
-      );
-
-      setIsEditModalOpen(false);
-      setSelectedTemplate(null);
-      setPreviewImage(null);
-      setEditFormData({ templateName: "", templateImage: null });
-      setSuccess("Template updated successfully");
-    } catch (err) {
-      setError("Failed to update template. Please try again.");
-    }
-  };
-
-  // ✅ Handle delete
-  const handleDeleteTemplate = async () => {
-    if (!selectedTemplate) return;
-    try {
-      await removeTemplateMutation({ templateId: selectedTemplate._id });
-      setLocalTemplates((prev) => prev.filter((t) => t._id !== selectedTemplate._id));
-      setSelectedTemplate(null);
-      setIsDeleteModalOpen(false);
+      await removeTemplateMutation({ templateId });
+      setLocalTemplates((prev) => prev.filter((t) => t._id !== templateId));
       setSuccess("Template deleted successfully");
-    } catch (err) {
-      setError("Failed to delete template. Please try again.");
+      setTimeout(() => setSuccess(null), 2000);
+    } catch {
+      setError("Failed to delete template");
     }
   };
+
+  const handleOpenEditModal = (template: Template) => {
+    const idx = (apiTemplates ?? []).findIndex((t) => t._id === template._id);
+    const imageUrl = idx >= 0 ? imageUrls[idx] || null : null;
+    setSelectedTemplate({ ...template, imageUrl });
+    setIsEditModalOpen(true);
+  };
+
+  const handleRefresh = () => {
+    setIsLoading(true);
+    setTimeout(() => setIsLoading(false), 300);
+  };
+
+  const filteredTemplates = localTemplates.filter((t) =>
+    t.template_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="w-full">
-      {/* 🔍 Search bar */}
-      <div className="flex items-center mb-4">
-        <Search className="w-5 h-5 text-gray-400 mr-2" />
-        <input
-          type="text"
-          placeholder="Search templates..."
-          className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-3">
+        <div className="flex items-center w-full sm:max-w-md">
+          <Search className="w-5 h-5 text-gray-400 mr-2" />
+          <input
+            type="text"
+            placeholder="Search templates..."
+            className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        {isAdmin && (
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="bg-teal-500 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-teal-600 transition w-full sm:w-auto"
+          >
+            <Plus size={18} />
+            Add Template
+          </button>
+        )}
       </div>
 
-      {/* ✅ Template List */}
+      {/* Alerts */}
+      {error && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-3 mb-4 rounded text-sm">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="bg-green-50 border-l-4 border-green-500 p-3 mb-4 rounded text-sm">
+          {success}
+        </div>
+      )}
+
+      {/* Template Grid */}
       {isLoading ? (
-        <div className="flex justify-center items-center py-10">
+        <div className="flex justify-center py-10">
           <Loader className="animate-spin h-6 w-6 text-teal-500" />
         </div>
       ) : filteredTemplates.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {filteredTemplates.map((template) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
+          {filteredTemplates.map((t, idx) => (
             <div
-              key={template._id}
-              className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition"
+              key={t._id}
+              className="bg-white rounded-xl shadow hover:shadow-lg transition p-3 flex flex-col"
             >
-              <img
-                src={template.template_image}
-                alt={template.template_name}
-                className="w-full h-48 object-cover"
-                onClick={() => {
-                  setSelectedTemplate(template);
-                  setIsViewModalOpen(true);
-                }}
-              />
-              <div className="p-4 flex justify-between items-center">
-                <h3 className="text-gray-800 font-semibold">{template.template_name}</h3>
-                <div className="flex gap-2">
-                  <button
-                    aria-label="Edit template"
-                    onClick={() => handleEditTemplate(template)}
-                    className="p-2 rounded-lg bg-indigo-100 hover:bg-indigo-200"
-                  >
-                    <Edit size={16} />
-                  </button>
-                  <button
-                    aria-label="Delete template"
-                    onClick={() => {
-                      setSelectedTemplate(template);
-                      setIsDeleteModalOpen(true);
-                    }}
-                    className="p-2 rounded-lg bg-red-100 hover:bg-red-200"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
+              <div className="relative w-full h-40 sm:h-44 md:h-48 rounded-md overflow-hidden bg-gray-100">
+                <img
+                  src={imageUrls[idx] || "https://placehold.co/400x400?text=No+Image"}
+                  alt={t.template_name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              <div className="flex justify-between items-center mt-3">
+                <h3 className="font-medium text-gray-800 truncate">
+                  {t.template_name}
+                </h3>
+                {isAdmin && (
+                  <div className="flex gap-2">
+                    <button
+                      aria-label="Edit template"
+                      onClick={() => handleOpenEditModal(t)}
+                      className="p-2 bg-blue-100 hover:bg-blue-200 rounded transition"
+                    >
+                      <Edit size={15} />
+                    </button>
+                    <button
+                      aria-label="Delete template"
+                      onClick={() => handleDeleteTemplate(t._id)}
+                      className="p-2 bg-red-100 hover:bg-red-200 rounded transition"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -234,7 +166,25 @@ const TemplateGallery: React.FC = () => {
         <p className="text-gray-500 text-center py-10">No templates found</p>
       )}
 
-      {/* ⚡️ Modals (view, edit, delete) remain same — omitted for brevity */}
+      {/* Modals */}
+      <AddTemplateModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={handleRefresh}
+      />
+
+      {selectedTemplate && (
+        <EditTemplateModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          templateId={selectedTemplate._id}
+          existingName={selectedTemplate.template_name}
+          existingShirtTypeId={selectedTemplate.shirt_type_id}
+          existingImageUrl={selectedTemplate.imageUrl ?? undefined}
+          existingImageStorageId={selectedTemplate.template_image}
+          onSuccess={handleRefresh}
+        />
+      )}
     </div>
   );
 };

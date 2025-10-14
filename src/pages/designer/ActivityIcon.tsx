@@ -1,5 +1,3 @@
-import React from "react";
-
 interface Activity {
   message: string;
   created_at: number;

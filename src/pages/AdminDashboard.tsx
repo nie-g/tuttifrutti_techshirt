@@ -3,16 +3,17 @@ import { useEffect, useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useQuery, useAction } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useUser } from "@clerk/clerk-react"; // ✅ Clerk hook
 
 import AdminNavbar from "../components/UsersNavbar";
 import DynamicSidebar from "../components/Sidebar";
 import HeaderSection from "./admin/HeaderSection";
-import StatsCards from "./admin/StatsCard";
 import ProjectsSection from "./admin/ProjectsSection";
 import ActivitySection from "./admin/ActivitySection";
+import AdminMetricsCards from "./admin/AdminMetricsCard";
+
 
 interface User {
   full_name: string;
@@ -138,8 +139,7 @@ const AdminDashboard: React.FC = () => {
         <AdminNavbar />
         <main className="p-6 md:p-8 flex flex-col gap-6 overflow-auto">
           <HeaderSection />
-
-          <StatsCards stats={stats} />
+          <AdminMetricsCards />
           <ProjectsSection projects={projects} isLoading={isLoading} />
           <ActivitySection activities={stats.recentActivity} isLoading={isLoading} />
         </main>

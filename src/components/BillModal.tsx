@@ -16,7 +16,6 @@ interface BillModalProps {
     status?: string;
   };
   onClose: () => void;
-  onApprove: () => void;
   onNegotiate: () => void;
 }
 
@@ -24,12 +23,20 @@ const BillModal: React.FC<BillModalProps> = ({
   designId,
   billing,
   onClose,
-  onApprove,
-  onNegotiate,
 }) => {
   const clientInfo = useQuery(api.billing.getClientInfoByDesign, { designId });
   const billingDoc = useQuery(api.billing.getBillingByDesign, { designId });
-
+  const approveBill = useMutation(api.billing.approveBill);
+  
+    const handleApproveBill = async () => {
+      if (!designId) return;
+      try {
+       await approveBill({ designId });
+        alert("✅ Bill approved successfully!");
+      } catch (err) {
+        console.error("Failed to approve bill:", err);
+      }
+    };
   if (!billingDoc && !billing) return null;
 
   // Normalize shape
@@ -144,7 +151,7 @@ const BillModal: React.FC<BillModalProps> = ({
                     ₱{(breakdown.printFee * breakdown.shirtCount).toLocaleString()}
                   </td>
                 </tr>
-                {breakdown.revisionFee > 0 && (
+                {breakdown.revisionFee >= 0 && (
                   <tr className="border-t border-gray-200">
                     <td className="py-2">Revision Fee</td>
                     <td className="text-center">-</td>
@@ -152,7 +159,7 @@ const BillModal: React.FC<BillModalProps> = ({
                     <td className="text-right">₱{breakdown.revisionFee}</td>
                   </tr>
                 )}
-                {breakdown.designerFee > 0 && (
+                {breakdown.designerFee >= 0 && (
                   <tr className="border-t border-gray-200">
                     <td className="py-2">Designer Fee</td>
                     <td className="text-center">-</td>
@@ -240,7 +247,7 @@ const BillModal: React.FC<BillModalProps> = ({
                 <HandCoins size={18} /> Negotiate Price
               </button>
               <button
-                onClick={onApprove}
+                onClick={handleApproveBill}
                 className="flex items-center gap-2 px-5 py-2 rounded-lg bg-teal-500 text-white hover:bg-teal-600 transition"
               >
                 <CheckCircle size={18} /> Approve

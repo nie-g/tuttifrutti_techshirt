@@ -32,8 +32,6 @@ export default defineSchema({
   // --- ADMINS ---
   admins: defineTable({
     user_id: v.id("users"),
-    address: v.optional(v.string()),
-    notes: v.optional(v.string()),
     created_at: v.number(),
   }).index("by_user", ["user_id"]),
 
@@ -140,7 +138,7 @@ export default defineSchema({
     tshirt_type: v.optional(v.string()),
     gender: v.optional(v.string()),
     description: v.optional(v.string()),
-    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected"), v.literal("cancelled")),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("declined"), v.literal("cancelled")),
     textile_id: v.id("inventory_items"),
     preferred_designer_id: v.optional(v.id("users")),
     print_type: v.optional(
@@ -178,7 +176,7 @@ export default defineSchema({
   
 
   design_templates: defineTable({
-    template_image: v.string(),
+    template_image: v.id("_storage"),
     template_name: v.string(),
     shirt_type_id: v.id("shirt_types"),
     created_at: v.optional(v.number()),

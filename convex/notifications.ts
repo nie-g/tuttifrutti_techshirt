@@ -16,7 +16,7 @@ export const createNotification = mutation({
       const userRecord = await ctx.db.get(userId);
       if (!userRecord) throw new Error(`User ${userId} not found`);
 
-      const notificationId = await ctx.db.insert("notifications", {
+      await ctx.db.insert("notifications", {
         recipient_user_id: userId,
         recipient_user_type: userType,
         notif_content: message,

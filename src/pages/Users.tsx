@@ -6,12 +6,13 @@ import { motion } from "framer-motion";
 // ✅ Shared components
 import ClientNavbar from "../components/UsersNavbar";
 import ClientSidebar from "../components/Sidebar";
-import { User2 } from "lucide-react";
+import { useUser } from "@clerk/clerk-react"; // 👈 add this import at the top
 
 const Users: React.FC = () => {
   const users = useQuery(api.users.listAllUsers);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+   const { user: clerkUser } = useUser();
 
   // ✅ Convex actions
   const updateUserMutation = useAction(api.functions.updateClerkUser.updateClerkUser);
@@ -112,13 +113,15 @@ const Users: React.FC = () => {
   }
 
   // ✅ Filtered users
-  const filteredUsers = users.filter((user: any) => {
-    const matchesSearch =
-      user.firstName?.toLowerCase().includes(search.toLowerCase()) ||
-      user.lastName?.toLowerCase().includes(search.toLowerCase()) ||
-      user.email?.toLowerCase().includes(search.toLowerCase());
-    const matchesRole = roleFilter === "all" ? true : user.role === roleFilter;
-    return matchesSearch && matchesRole;
+  const filteredUsers = users
+    .filter((u: any) => u.clerkId !== clerkUser?.id) // 👈 exclude current admin
+    .filter((u: any) => {
+      const matchesSearch =
+        u.firstName?.toLowerCase().includes(search.toLowerCase()) ||
+        u.lastName?.toLowerCase().includes(search.toLowerCase()) ||
+        u.email?.toLowerCase().includes(search.toLowerCase());
+      const matchesRole = roleFilter === "all" ? true : u.role === roleFilter;
+      return matchesSearch && matchesRole;
   });
 
   return (

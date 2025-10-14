@@ -26,19 +26,10 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
   const design = useQuery(api.designs.getDesignByRequestId, { requestId });
 
   // Fetch previews
-  const previewsResult = useQuery(
-    api.design_preview.getByDesign,
-    design ? { designId: design._id } : "skip"
-  );
 
   // Fetch Convex user by Clerk ID
   useQuery(api.userQueries.getUserByClerkId, user ? { clerkId: user.id } : "skip");
 
-  const previews = previewsResult
-    ? Array.isArray(previewsResult)
-      ? previewsResult
-      : [previewsResult]
-    : [];
 
   const totalSteps = 3;
   const handleNext = () => setStep((prev) => Math.min(prev + 1, totalSteps));

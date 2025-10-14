@@ -177,9 +177,9 @@ const UserDesigns: React.FC = () => {
           >
           <div className="p-6 bg-white rounded-2xl shadow-md w-full">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-              My Designs
+              My Orders
             </h1>
-            <p className="text-gray-600">View and manage your designs</p>
+            <p className="text-gray-600">View and manage your orders</p>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-6 gap-4">
               <div className="relative w-full sm:w-auto">
                 <input

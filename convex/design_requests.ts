@@ -431,7 +431,8 @@ export const updateDesignRequestStatus = mutation({
     status: v.union(
       v.literal("pending"),
       v.literal("approved"),
-      v.literal("rejected")
+      v.literal("declined"),
+      v.literal("cancelled")
     ),
   },
   handler: async (ctx, { requestId, status }) => {
@@ -489,7 +490,7 @@ export const rejectDesignRequestWithReason = mutation({
     if (!request) throw new Error("Request not found");
 
     // Update request status
-    await ctx.db.patch(requestId, { status: "rejected" });
+    await ctx.db.patch(requestId, { status: "declined" });
 
     // Notify client
     await ctx.db.insert("notifications", {

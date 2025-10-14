@@ -24,15 +24,6 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
 
   const convexUser = useQuery(api.userQueries.getUserByClerkId, user ? { clerkId: user.id } : "skip");
   const design = useQuery(api.designs.getDesignByRequestId, { requestId });
-  const previewsResult = useQuery(
-    api.design_preview.getByDesign,
-    design ? { designId: design._id } : "skip"
-  );
-  const billing = useQuery(
-    api.billing.getBillingByDesign,
-    design ? { designId: design._id } : "skip"
-  );
-
   const markCompleted = useMutation(api.designs.markAsCompleted);
   const markPendingPickup = useMutation(api.designs.pendingPickup);
    // ✅ add this mutation
@@ -109,12 +100,7 @@ const UserDesignModal: React.FC<UserDesignModalProps> = ({ requestId, onClose })
       };
 
 
-  const previews = previewsResult
-    ? Array.isArray(previewsResult)
-      ? previewsResult
-      : [previewsResult]
-    : [];
-
+ 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <motion.div

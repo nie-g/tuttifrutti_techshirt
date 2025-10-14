@@ -8,8 +8,6 @@ import {
   Calendar,
   User,
   CheckCircle,
-  Layers,
-  Package,
   Clock,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";

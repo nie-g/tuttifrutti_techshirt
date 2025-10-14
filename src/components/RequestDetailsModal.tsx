@@ -36,7 +36,7 @@ export interface RequestType {
   request_title: string;
   description?: string;
   tshirt_type?: string;
-  status: "pending" | "approved" | "completed" | "rejected"  | "in_progress"| "cancelled";
+  status: "pending" | "approved" | "completed" | "declined"| "in_progress"| "cancelled";
   created_at?: number;
   designer?: Designer;
   client?: Client;

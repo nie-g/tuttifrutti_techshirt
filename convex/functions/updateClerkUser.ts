@@ -10,7 +10,7 @@ export const updateClerkUser = action({
     lastName: v.optional(v.string()),
     email: v.optional(v.string()),
   },
-  handler: async (ctx, { userId, firstName, lastName, email }) => {
+  handler: async (_ctx, { userId, firstName, lastName, email }) => {
     try {
       // 1️⃣ Update allowed fields
       if (firstName || lastName) {

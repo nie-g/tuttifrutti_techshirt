@@ -225,23 +225,13 @@ const handleAddComment = async () => {
   const [isRevisionInProgressModalOpen, setIsRevisionInProgressModalOpen] =useState(false);
   const billing = useQuery(api.billing.getBillingBreakdown,designId ? { designId } : "skip");
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
-  const approveBill = useMutation(api.billing.approveBill);
-
+ 
   const reviewer = useQuery(
     api.userQueries.getUserByClerkId,
     user ? { clerkId: user.id } : "skip"
   );
-    const handleApproveBill = async () => {
-    if (!designId) return;
-    try {
-      const res = await approveBill({ designId });
-      alert("✅ Bill approved successfully!");
-      window.location.reload();
-    } catch (err) {
-      console.error("Failed to approve bill:", err);
-      alert("⚠️ Failed to approve bill.");
-    }
-  };
+
+  
 // Fetch designer info for the current design
 const designer = useQuery(api.designers.getByUserId,design?.designer_id ? { userId: design.designer_id } : "skip");
 const portfolios = useQuery(api.portfolio.getByDesignerId,designer?._id ? { designer_id: designer._id } : "skip");
@@ -697,7 +687,7 @@ function createWhiteFallbackCanvas(): HTMLCanvasElement {
       {isNotReadyModalOpen && <NotReadyModal />}
       {isRevisionInProgressModalOpen && <RevisionInProgressModal />}
       {isBillModalOpen && billing && (
-      <BillModal designId={design!._id} billing={billing} onClose={() => setIsBillModalOpen(false)} onApprove={handleApproveBill} onNegotiate={() => console.log("negotiate bill")}/>
+      <BillModal designId={design!._id} billing={billing} onClose={() => setIsBillModalOpen(false)} onNegotiate={() => console.log("negotiate bill")}/>
        )}
        {isRatingModalOpen && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

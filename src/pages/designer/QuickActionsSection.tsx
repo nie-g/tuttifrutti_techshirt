@@ -1,4 +1,3 @@
-import React from "react";
 import { PlusCircle, Upload, Folder } from "lucide-react";
 
 const actions = [

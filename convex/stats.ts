@@ -26,7 +26,7 @@ export const getDashboardStats = query({
       pending: designRequests.filter((r) => r.status === "pending").length,
       approved: designRequests.filter((r) => r.status === "approved").length,
       cancelled: designRequests.filter((r) => r.status === "cancelled").length,
-      rejected: designRequests.filter((r) => r.status === "rejected").length,
+      rejected: designRequests.filter((r) => r.status === "declined").length,
     };
 
     // Recent activity

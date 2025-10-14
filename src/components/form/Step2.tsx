@@ -29,11 +29,26 @@ const Step2: React.FC<Step2Props> = ({
   const undoStack = useRef<string[]>([]);
   const redoStack = useRef<string[]>([]);
 
+  // ✅ Fetch design templates (with storage IDs)
   const templates = useQuery(api.design_templates.getDesignTemplates, {
     shirtType: shirtType || undefined,
   });
 
-  // initialize fabric canvas once
+  // ✅ Extract storage IDs for all template images
+  const storageIds = templates?.map((t) => t.template_image) ?? [];
+
+  // ✅ Fetch actual image URLs from storage
+  const storageUrls =
+    useQuery(api.getPreviewUrl.getPreviewUrls, { storageIds }) ?? [];
+
+  // ✅ Combine templates with resolved image URLs
+  const templatesWithUrls =
+    templates?.map((t, idx) => ({
+      ...t,
+      imageUrl: storageUrls[idx] || null,
+    })) ?? [];
+
+  // ---------------- CANVAS INITIALIZATION ----------------
   useEffect(() => {
     if (!canvasElRef.current) return;
 
@@ -75,7 +90,7 @@ const Step2: React.FC<Step2Props> = ({
     canvas.on("object:modified", updateState);
     canvas.on("object:removed", updateState);
 
-    // restore from localStorage if present
+    // Load saved canvas from localStorage
     const savedCanvas = localStorage.getItem("savedCanvas");
     if (savedCanvas) {
       try {
@@ -98,15 +113,13 @@ const Step2: React.FC<Step2Props> = ({
       canvas.dispose();
       canvasRef.current = null;
       setLocalCanvas(null);
-
-      // 🧹 clear local storage when form closes
       localStorage.removeItem("savedCanvas");
       localStorage.removeItem("savedCanvasImage");
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // sync canvas state from parent
+  // ---------------- STATE SYNC ----------------
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !canvasState) return;
@@ -133,7 +146,7 @@ const Step2: React.FC<Step2Props> = ({
     }
   }, [canvasState, setCanvasState, canvasRef]);
 
-  // ✅ Save canvas JSON + snapshot locally + notify parent
+  // ---------------- TOOLBAR FUNCTIONS ----------------
   const handleSaveCanvas = () => {
     if (!localCanvas) return;
     try {
@@ -143,14 +156,11 @@ const Step2: React.FC<Step2Props> = ({
       const snapshot = localCanvas.toDataURL({
         format: "png",
         quality: 0.8,
-        multiplier: 1,
+        multiplier: 1, // ✅ required by TypeScript
       });
       localStorage.setItem("savedCanvasImage", snapshot);
 
-      if (onSaveSnapshot) {
-        onSaveSnapshot(snapshot);
-      }
-
+      if (onSaveSnapshot) onSaveSnapshot(snapshot);
       alert("Canvas & snapshot saved locally ✅");
     } catch (err) {
       console.error("Error saving canvas:", err);
@@ -192,12 +202,11 @@ const Step2: React.FC<Step2Props> = ({
     }
   };
 
-  const filteredTemplates = templates || [];
-
+  // ---------------- TEMPLATE APPLICATION ----------------
   const handleApplyTemplate = async (template: any) => {
-    if (!localCanvas) return;
+    if (!localCanvas || !template.imageUrl) return;
     try {
-      const blob = await fetch(template.template_image).then((r) => r.blob());
+      const blob = await fetch(template.imageUrl).then((r) => r.blob());
       const compressed = await compressImageFile(
         new File([blob], "template.jpg", { type: blob.type })
       );
@@ -211,10 +220,7 @@ const Step2: React.FC<Step2Props> = ({
           selectable: true,
           erasable: true,
         });
-
         imgInstance.scaleToWidth(400);
-
-        // 👉 Add only when clicked (no auto-clear)
         localCanvas.add(imgInstance);
         localCanvas.centerObject(imgInstance);
         localCanvas.setActiveObject(imgInstance);
@@ -230,20 +236,25 @@ const Step2: React.FC<Step2Props> = ({
     }
   };
 
+  // ---------------- UI ----------------
   return (
     <div className="flex flex-col w-full h-full gap-4 p-4 overflow-y-auto">
+      {/* Templates Section */}
       <div>
         <h3 className="text-sm font-semibold mb-2 text-teal-600">Design Templates</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
-          {filteredTemplates.length > 0 ? (
-            filteredTemplates.map((template: any) => (
+          {templatesWithUrls.length > 0 ? (
+            templatesWithUrls.map((template: any) => (
               <div
                 key={template._id}
                 className="cursor-pointer border rounded hover:shadow-md"
                 onClick={() => handleApplyTemplate(template)}
               >
                 <img
-                  src={template.template_image}
+                  src={
+                    template.imageUrl ||
+                    "https://placehold.co/300x300?text=No+Image"
+                  }
                   alt={template.template_name}
                   className="w-full h-30 object-cover rounded-t"
                 />
@@ -260,6 +271,7 @@ const Step2: React.FC<Step2Props> = ({
         </div>
       </div>
 
+      {/* Canvas and Tools */}
       <div className="flex flex-col md:flex-row w-full gap-4 flex-1">
         <div className="flex-1 flex justify-center items-center relative">
           <canvas

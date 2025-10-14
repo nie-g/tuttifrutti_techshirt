@@ -1,6 +1,5 @@
 // src/pages/Requests.tsx
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { motion } from "framer-motion";
@@ -34,7 +33,7 @@ export interface RequestType {
   _id: Id<"design_requests">;
   request_title: string;
   tshirt_type?: string;
-  status: "pending" | "approved" | "completed" | "rejected" | "cancelled";
+  status: "pending" | "approved" | "completed" | "declined" | "cancelled";
   created_at?: number;
   client?: Client;
   designer?: Designer;
@@ -49,8 +48,8 @@ const StatusBadge: React.FC<{ status: RequestType["status"] }> = ({ status }) =>
       return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" /> Pending</span>;
     case "approved":
       return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><CheckCircle className="w-3 h-3 mr-1" /> Approved</span>;
-    case "rejected":
-      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" /> Rejected</span>;
+    case "declined":
+      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" /> declined</span>;
     case "cancelled":
       return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800"><CheckCircle className="w-3 h-3 mr-1" /> Cancelled</span>;
     default:
@@ -62,8 +61,7 @@ const StatusBadge: React.FC<{ status: RequestType["status"] }> = ({ status }) =>
    Main Component
 ------------------------- */
 const Requests: React.FC = () => {
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "pending" | "approved" | "declined">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{ key: keyof RequestType | "client" | "designer"; direction: "asc" | "desc" }>({ key: "created_at", direction: "desc" });
   const [selectedRequest, setSelectedRequest] = useState<RequestType | null>(null);

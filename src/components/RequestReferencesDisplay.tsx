@@ -1,5 +1,5 @@
 // src/components/RequestReferencesDisplay.tsx
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Loader, Image, ExternalLink, Download, Info } from "lucide-react";
@@ -16,7 +16,6 @@ interface RequestReferencesDisplayProps {
 
 const RequestReferencesDisplay: React.FC<RequestReferencesDisplayProps> = ({
   requestId,
-  compact = false,
 }) => {
   // Fetch references (storage IDs + meta)
   const designReferences = useQuery(api.designReferences.getByRequestId, {

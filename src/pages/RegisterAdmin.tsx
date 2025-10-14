@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar"; 
@@ -22,8 +22,7 @@ const Register = () => {
   const [error, setError] = useState("");
 
   // 🔑 persist signup attempt ID across renders
-  const signUpIdRef = useRef<string | null>(null);
-
+ 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };

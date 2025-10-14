@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { Upload, Trash2, ImageIcon, TriangleAlert, CircleCheck, CircleAlert } from "lucide-react";
+import { Upload, Trash2, ImageIcon, TriangleAlert, CircleCheck } from "lucide-react";
 import ColorPalette from "../ColorPalettes";
 
 interface Step3Props {
@@ -57,11 +57,7 @@ const Step3: React.FC<Step3Props> = ({
   setDateError,
 }) => {
   const [isUploadingReference, setIsUploadingReference] = useState(false);
-  const [showNewPaletteForm, setShowNewPaletteForm] = useState(false);
-  const [paletteName, setPaletteName] = useState("");
-  const [searchPalette, setSearchPalette] = useState("");
-  const [filteredPalettes, setFilteredPalettes] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+ 
 
   // ✅ Fetch sizes, textiles, designers (with fallbacks)
   const shirtSizes = useQuery(api.shirt_sizes.getAll) || [];
@@ -195,15 +191,6 @@ const Step3: React.FC<Step3Props> = ({
   };
 
   // ✅ Palettes
-  const handlePaletteSelect = (palette: any) => {
-    setNewPaletteColors(palette.colors.slice(0, 5));
-    setPaletteName(palette.title + " (Copy)");
-  };
-
-  const removeColorFromPalette = (color: string) => {
-    setNewPaletteColors(newPaletteColors.filter((c) => c !== color));
-  };
-
   const handleSetNewPaletteColors = (colors: string[]) => {
     setNewPaletteColors(colors);
   };
@@ -312,18 +299,8 @@ const Step3: React.FC<Step3Props> = ({
 
       {/* Color Palettes */}
       <ColorPalette
-        searchPalette={searchPalette}
-        setSearchPalette={setSearchPalette}
-        filteredPalettes={filteredPalettes}
-        isSearching={isSearching}
-        handlePaletteSelect={handlePaletteSelect}
-        showNewPaletteForm={showNewPaletteForm}
-        setShowNewPaletteForm={setShowNewPaletteForm}
-        paletteName={paletteName}
-        setPaletteName={setPaletteName}
         newPaletteColors={newPaletteColors}
         setNewPaletteColors={handleSetNewPaletteColors as any}
-        removeColorFromPalette={removeColorFromPalette}
       />
 
       {/* Shirt Sizes & Gender */}

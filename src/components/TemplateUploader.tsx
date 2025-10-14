@@ -1,8 +1,8 @@
 import React, { useState, useRef } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Loader, Upload, Activity } from "lucide-react";
+import { Upload, Activity } from "lucide-react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useUser } from "@clerk/clerk-react";
 
@@ -17,6 +17,7 @@ const TemplateUploader: React.FC = () => {
     shirtTypeId: "",
   });
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [fileData, setFileData] = useState<ArrayBuffer | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -33,9 +34,9 @@ const TemplateUploader: React.FC = () => {
   );
   const isAdmin = currentUser?.role?.toLowerCase() === "admin";
 
-  // Convex queries/mutations
+  // Convex queries/actions
   const shirtTypes = useQuery(api.shirt_types.getAll) ?? [];
-  const createTemplateMutation = useMutation(api.design_templates.create);
+  const saveDesignTemplate = useAction(api.design_templates.saveDesignTemplate);
 
   // Handle text & select input
   const handleChange = (
@@ -49,7 +50,7 @@ const TemplateUploader: React.FC = () => {
   };
 
   // Handle file selection
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -64,8 +65,14 @@ const TemplateUploader: React.FC = () => {
     }
 
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setPreviewImage(ev.target?.result as string);
+    reader.onload = async (ev) => {
+      const result = ev.target?.result as string;
+      setPreviewImage(result);
+
+      // Convert to ArrayBuffer for Convex upload
+      const response = await fetch(result);
+      const buffer = await response.arrayBuffer();
+      setFileData(buffer);
     };
     reader.readAsDataURL(file);
   };
@@ -79,7 +86,7 @@ const TemplateUploader: React.FC = () => {
       return;
     }
 
-    if (!previewImage) {
+    if (!fileData) {
       setError("Please select an image for the template");
       return;
     }
@@ -99,17 +106,16 @@ const TemplateUploader: React.FC = () => {
     setSuccess(null);
 
     try {
-      await createTemplateMutation({
+      await saveDesignTemplate({
         templateName: formData.templateName.trim(),
-        templateImage: previewImage,
         shirtTypeId: formData.shirtTypeId as Id<"shirt_types">,
+        templateImage: fileData,
       });
 
       setFormData({ templateName: "", shirtTypeId: "" });
       setPreviewImage(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+      setFileData(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
 
       setSuccess("Template uploaded successfully");
     } catch (err: any) {
@@ -131,163 +137,95 @@ const TemplateUploader: React.FC = () => {
         </h2>
       </div>
 
-      {/* Error Alert */}
       {error && (
-        <div className="bg-white border-l-4 border-red-500 text-gray-800 p-4 mb-6 rounded-md shadow-md">
-          <div className="flex items-center">
-            <p>{error}</p>
-            <button
-              className="ml-auto pl-3 text-gray-400 hover:text-gray-600 focus:outline-none"
-              onClick={() => setError(null)}
-            >
-              ✕
-            </button>
-          </div>
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded">
+          {error}
         </div>
       )}
 
-      {/* Loading State */}
       {isLoading && (
-        <div className="bg-white border-l-4 border-blue-500 text-gray-800 p-4 mb-6 rounded-md shadow-md">
-          <div className="flex items-center">
-            <Activity className="h-5 w-5 mr-3 text-blue-500 animate-spin" />
-            <p className="font-medium">Uploading template...</p>
-          </div>
+        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
+          <Activity className="animate-spin inline-block mr-2" />
+          Uploading template...
         </div>
       )}
 
-      {/* Success Alert */}
       {success && (
-        <div className="bg-white border-l-4 border-teal-500 text-gray-800 p-4 mb-6 rounded-md shadow-md">
-          <div className="flex items-center">
-            <p>{success}</p>
-            <button
-              className="ml-auto pl-3 text-gray-400 hover:text-gray-600 focus:outline-none"
-              onClick={() => setSuccess(null)}
-            >
-              ✕
-            </button>
-          </div>
+        <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4 rounded">
+          {success}
         </div>
       )}
 
-      {/* Upload Form */}
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 gap-6 mb-6">
-          {/* Template Name */}
-          <div>
-            <label className="block text-gray-900 font-medium mb-2">
-              Template Name
-            </label>
-            <input
-              type="text"
-              name="templateName"
-              value={formData.templateName}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-              placeholder="Enter a name for your template"
-              required
-            />
-          </div>
+        {/* Template Name */}
+        <label className="block font-medium mb-2">Template Name</label>
+        <input
+          type="text"
+          name="templateName"
+          value={formData.templateName}
+          onChange={handleChange}
+          className="w-full p-3 border rounded-md mb-4"
+          placeholder="Enter template name"
+          required
+        />
 
-          {/* Shirt Type */}
-          <div>
-            <label className="block text-gray-900 font-medium mb-2">
-              Shirt Type
-            </label>
-            <select
-              aria-label="Select a shirt type"
-              name="shirtTypeId"
-              value={formData.shirtTypeId}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-              required
-            >
-              <option value="">Select template shirt type</option>
-              {shirtTypes.map((st) => (
-                <option key={st._id} value={st._id}>
-                  {st.type_name}
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* Shirt Type */}
+        <label className="block font-medium mb-2">Shirt Type</label>
+        <select
+          aria-label="Select a shirt type"
+          name="shirtTypeId"
+          value={formData.shirtTypeId}
+          onChange={handleChange}
+          className="w-full p-3 border rounded-md mb-4"
+          required
+        >
+          <option value="">Select a shirt type</option>
+          {shirtTypes.map((st) => (
+            <option key={st._id} value={st._id}>
+              {st.type_name}
+            </option>
+          ))}
+        </select>
 
-          {/* Template Image */}
-          <div>
-            <label className="block text-gray-900 font-medium mb-2">
-              Template Image
-            </label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-teal-500 transition-colors">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                accept="image/*"
-                id="template-image-upload"
-                name="template-image-upload"
-                required={previewImage === null}
+        {/* Template Image */}
+        <label className="block font-medium mb-2">Template Image</label>
+        <div className="border-2 border-dashed p-6 rounded-lg text-center mb-6">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+            accept="image/*"
+            id="template-image-upload"
+          />
+          <label
+            htmlFor="template-image-upload"
+            className="cursor-pointer flex flex-col items-center"
+          >
+            {previewImage ? (
+              <img
+                src={previewImage}
+                alt="Preview"
+                className="max-h-64 rounded-md object-contain"
               />
-              <label
-                htmlFor="template-image-upload"
-                className="cursor-pointer flex flex-col items-center justify-center"
-              >
-                {previewImage ? (
-                  <img
-                    src={previewImage}
-                    alt="Template Preview"
-                    className="max-w-full max-h-64 object-contain rounded-md"
-                  />
-                ) : (
-                  <>
-                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="mt-2 text-sm text-gray-600">
-                      Click to upload or drag and drop
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      PNG, JPG, GIF up to 5MB
-                    </p>
-                  </>
-                )}
-                {previewImage && (
-                  <span className="text-sm text-teal-600 font-medium">
-                    Click to change image
-                  </span>
-                )}
-              </label>
-            </div>
-          </div>
+            ) : (
+              <>
+                <Upload className="h-10 w-10 text-gray-400" />
+                <p className="text-gray-600 text-sm mt-2">
+                  Click to upload or drag and drop
+                </p>
+              </>
+            )}
+          </label>
         </div>
 
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            className="bg-teal-500 text-white px-6 py-3 rounded-md hover:bg-teal-600 transition-colors font-medium disabled:bg-teal-300 disabled:cursor-not-allowed"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <span className="flex items-center">
-                <Loader className="animate-spin mr-2" size={18} />
-                Uploading...
-              </span>
-            ) : (
-              "Upload Template"
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setFormData({ templateName: "", shirtTypeId: "" });
-              setPreviewImage(null);
-              if (fileInputRef.current) fileInputRef.current.value = "";
-              setError(null);
-              setSuccess(null);
-            }}
-            className="bg-gray-200 text-gray-800 px-6 py-3 rounded-md hover:bg-gray-300 transition-colors font-medium"
-          >
-            Clear
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="bg-teal-500 text-white px-6 py-3 rounded-md hover:bg-teal-600 disabled:bg-teal-300"
+        >
+          {isLoading ? "Uploading..." : "Upload Template"}
+        </button>
       </form>
     </div>
   );

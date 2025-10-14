@@ -46,10 +46,10 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
           <CheckCircle className="w-3 h-3 mr-1" /> Approved
         </span>
       );
-    case "rejected":
+    case "declined":
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-          <XCircle className="w-3 h-3 mr-1" /> Rejected
+          <XCircle className="w-3 h-3 mr-1" /> Declined
         </span>
       );
     case "cancelled":
@@ -83,9 +83,9 @@ const UserRequests: React.FC = () => {
   const cancelRequest = useMutation(api.design_requests.cancelDesignRequest);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, _setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "pending" | "approved" | "declined">("all");
 
   useEffect(() => {
     if (currentUser && currentUser.role !== "client") navigate("/sign-in");

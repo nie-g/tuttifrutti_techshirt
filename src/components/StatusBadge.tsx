@@ -49,13 +49,6 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
           Completed
         </span>
       );
-    case "in_production":
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          <AlertTriangle className="w-3 h-3 mr-1" />
-          In Production
-        </span>
-      );
      case "pending_pickup":
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">
@@ -64,11 +57,11 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
         </span>
       );
     
-    case "rejected":
+    case "declined":
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
           <XCircle className="w-3 h-3 mr-1" />
-          Rejected
+          Declined
         </span>
       );
     default:

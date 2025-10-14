@@ -10,7 +10,6 @@ import {
   addFreeform,
   addImage,
   addBucketTool,
-  addEyedropperTool,
   disableDrawingMode,
   setBrushColor,
   setDefaultColor,
@@ -29,7 +28,6 @@ import {
   Pencil,
   MousePointer,
   PaintBucket,
-  Pipette,
   Trash2,
 } from "lucide-react";
 
@@ -250,12 +248,7 @@ const updateEraserSize = (val: number) => {
   const handleEraser = () => activateTool("eraser", () => addEraser(canvas!, eraserSize));
   const handleText = () => activateTool("text", () => addText(canvas!, "New Text", fontSize, color));
   const handleBucket = () => activateTool("bucket", () => addBucketTool(canvas!, color));
-  const handleEyedropper = () =>
-    activateTool("eyedropper", () =>
-      addEyedropperTool(canvas!, (picked) => {
-        setColor(picked);
-      })
-    );
+  
 
   return (
      <div

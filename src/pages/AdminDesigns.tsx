@@ -148,7 +148,7 @@ const AdminDesigns: React.FC = () => {
             <AdminNavbar />
             <div className="flex-1 p-6 flex items-center justify-center">
               <div className="bg-white shadow rounded-lg p-6 text-center">
-                <p className="text-gray-500">Loading Designs...</p>
+                <p className="text-gray-500">Loading Orders...</p>
               </div>
             </div>
           </div>
@@ -174,9 +174,9 @@ const AdminDesigns: React.FC = () => {
            <div className="mb-4">
           <div className="p-6 bg-white rounded-2xl shadow-md w-full">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-              All Designs
+              See Orders
             </h1>
-            <p className="text-gray-600">Admin view of all designs</p>
+            <p className="text-gray-600">Admin view of all Orders</p>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-6 gap-4">
               <div className="relative w-full sm:w-auto">
                 <input

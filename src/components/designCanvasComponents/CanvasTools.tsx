@@ -214,8 +214,7 @@ export async function addBrush(canvas: fabric.Canvas, color?: string, width?: nu
   // Flatten canvas before starting brush
   await flattenCanvasBeforeAdding(canvas);
 
-  const PencilBrush = (fabric as any).PencilBrush ?? (fabric as any).Brush;
-  const brush = new PencilBrush(canvas);
+  const brush = new fabric.PencilBrush(canvas); // directly use PencilBrush
 
   const chosenColor = color ?? c._brushColor ?? getDefaultColor(canvas);
   const chosenWidth =
@@ -278,8 +277,7 @@ export async function addEraser(canvas: fabric.Canvas, size: number = 20) {
   const chosenSize = typeof c._eraserSize === "number" ? c._eraserSize : size;
   c._eraserSize = chosenSize;
 
-  const PencilBrush = (fabric as any).PencilBrush ?? (fabric as any).Brush;
-  const whiteBrush = new PencilBrush(canvas);
+  const whiteBrush = new fabric.PencilBrush(canvas);
   whiteBrush.width = chosenSize;
   (whiteBrush as any).color = "#f5f5f5"; // plain white
 
@@ -378,31 +376,6 @@ export function addBucketTool(canvas: fabric.Canvas, color?: string) {
 
 
 /* ---------- eyedropper ---------- */
-function extractColorFromTarget(target: fabric.Object): string {
-  const color = getObjectColor(target);
-  if (color) return color;
-
-  if (target.type === "image" && target instanceof fabric.Image) {
-    try {
-      const el = target.getElement() as HTMLImageElement;
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d")!;
-      canvas.width = el.width;
-      canvas.height = el.height;
-      ctx.drawImage(el, 0, 0);
-      const imgData = ctx.getImageData(
-        Math.floor(el.width / 2),
-        Math.floor(el.height / 2),
-        1,
-        1
-      ).data;
-      return `rgb(${imgData[0]}, ${imgData[1]}, ${imgData[2]})`;
-    } catch {
-      return "#000000";
-    }
-  }
-  return "#000000";
-}
 
 function pickVisibleColor(canvas: fabric.Canvas, x: number, y: number): string {
   const tempCanvas = document.createElement("canvas");

@@ -22,7 +22,7 @@ interface Request {
   tshirt_type?: string;
   description?: string;
   deadline?: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "declined" | "cancelled";
 }
 
 interface Design {

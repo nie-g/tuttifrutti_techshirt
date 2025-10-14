@@ -9,10 +9,10 @@ const StatusBadge: React.FC<{ status: RequestType["status"] }> = ({ status }) =>
         <CheckCircle className="w-3 h-3 mr-1" /> Approved
       </span>
     );
-  if (status === "rejected")
+  if (status === "declined")
     return (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-        <XCircle className="w-3 h-3 mr-1" /> Rejected
+        <XCircle className="w-3 h-3 mr-1" /> declined
       </span>
     );
   if (status === "pending")

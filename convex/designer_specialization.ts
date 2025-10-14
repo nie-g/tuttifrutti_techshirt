@@ -1,6 +1,5 @@
 // convex/queries/designer_specialization.ts
 import { query } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
 
 export const listDesignersWithSpecialization = query(async ({ db }) => {
   // Get all designers

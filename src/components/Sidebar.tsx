@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useClerk, useUser } from "@clerk/clerk-react";
 import {
-  Home, Clock, Settings, LogOut, Palette, Images, Bell as BellIcon, Users, FileText, BarChart, Layers, Box, NotebookPenIcon
+  Home, Clock, Settings, LogOut, Palette, Images, Bell as BellIcon, Users, FileText, BarChart, Layers, Box, BookText
 } from "lucide-react";
 import logoIcon from "../images/cutiepie.png";
 import { useUnreadNotificationCount } from "../hooks/UnreadNotificationsCount";
@@ -78,9 +78,8 @@ const Sidebar: React.FC = () => {
       case "designer":
         return [
           { name: "Dashboard", icon: <Home />, route: "/designer" },
-          { name: "Projects", icon: <NotebookPenIcon />, route: "/designer/tasks" },
           { name: "Gallery", icon: <Images />, route: "/designer/gallery" },
-          { name: "Designs", icon: <Palette />, route: "/designer/designs" },
+          { name: "My Designs", icon: <Palette />, route: "/designer/designs" },
           { name: "Notifications", icon: <BellIcon />, route: "/notifications" },
           { name: "Settings", icon: <Settings />, route: "/designer/settings" },
         ];
@@ -89,7 +88,7 @@ const Sidebar: React.FC = () => {
         return [
           { name: "Dashboard", icon: <Home />, route: "/client" },
           { name: "My Requests", icon: <Clock />, route: "/client/requests" },
-          { name: "My Designs", icon: <Images />, route: "/client/designs" },
+          { name: "My Orders", icon: <BookText />, route: "/client/designs" },
           { name: "Browse Galleries", icon: <Layers />, route: "/client/browse" },
           { name: "Notifications", icon: <BellIcon />, route: "/notifications" },
           { name: "Settings", icon: <Settings />, route: "/client/settings" },

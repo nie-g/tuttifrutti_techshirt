@@ -51,7 +51,6 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
   const saveCanvas = useMutation(api.fabric_canvases.saveCanvas);
   const savePreview = useAction(api.design_preview.savePreview);
   const designDoc = useQuery(api.designs.getById, { designId });
-  const isApproved = designDoc?.status === "approved";
   const isDisabled = designDoc?.status === "approved" || designDoc?.status === "completed";
   const requestId = designDoc?.request_id; 
   const [showComments, setShowComments] = useState(false);
@@ -59,10 +58,6 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
   const [showSketch, setShowSketch] = useState(false);
 
 
-  const references = useQuery(
-    api.designReferences.getByRequestId,
-    requestId ? { requestId } : "skip"
-  );
   const notifyParent = (c?: fabric.Canvas) => {
     if (notifyTimeoutRef.current) {
       window.clearTimeout(notifyTimeoutRef.current);
