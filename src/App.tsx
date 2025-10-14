@@ -26,6 +26,8 @@ import RegisterAdmin from './pages/RegisterAdmin';
 import Login from './pages/Login';
 import Reports from './pages/AdminReports';
 import AdminOrdersReport from './pages/admin/SalesReports';
+import { AuthenticateWithRedirectCallback } from "@clerk/clerk-react";
+
 
 
 
@@ -35,6 +37,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/home" element={<LandingPage />} />
+        <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
         <Route path="/register" element={<Register />} />
         <Route path="/register/designer" element={<RegisterDesigner />} />
         <Route path="/register/admin" element={<RegisterAdmin />} />
