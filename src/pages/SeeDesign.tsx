@@ -528,21 +528,22 @@ function createWhiteFallbackCanvas(): HTMLCanvasElement {
           <ThreeCanvas camera={{ position: [0, 1, 2.5], fov: 45 }}>
             <color attach="background" args={["#f5f5f5"]} />
            <PresentationControls
-              global={true}          // allow global rotation
-              snap={false}           // optional, disable snapping
-              cursor={true}          // enable cursor / touch rotation
-              rotation={[0, 0, 0]}   // initial rotation
-              polar={[-Math.PI / 2, Math.PI / 2]} // vertical rotation limits
-              azimuth={[-Math.PI, Math.PI]}       // horizontal rotation limits
-            >
-              <Stage environment="city" intensity={0.5}>
-                <TexturedTShirt
-                  fabricCanvas={fabricCanvas}
-                  canvasModifiedKey={canvasModifiedKey}
-                  shirtType={shirtType}
-                />
-              </Stage>
-            </PresentationControls>
+            global={true}
+            snap={false}
+            cursor={true}
+            rotation={[0, 0, 0]}   // initial rotation
+            polar={[-Math.PI, Math.PI]}    // allow full vertical rotation
+            azimuth={[-Infinity, Infinity]} // allow unlimited horizontal rotation
+            speed={1.0}      // increase sensitivity             // optional, for pinch zoom                    // optional, helps smooth dragging
+          >
+            <Stage environment="city" intensity={0.5}>
+              <TexturedTShirt
+                fabricCanvas={fabricCanvas}
+                canvasModifiedKey={canvasModifiedKey}
+                shirtType={shirtType}
+              />
+            </Stage>
+          </PresentationControls>
             <ThreeScreenshotHelper onReady={(fn) => (screenshotRef.current = fn)}/>
           </ThreeCanvas>
         ) : (
