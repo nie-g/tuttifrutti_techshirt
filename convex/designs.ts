@@ -96,18 +96,17 @@ export const approveDesign = mutation({
       .withIndex("by_designer", (q) => q.eq("designer_id", designerProfile._id))
       .first();
 
-     const designerFee =
-      shirtCount <= 15
-        ? pricing?.normal_amount ?? 0
-        : pricing?.revision_fee ?? 0;
+    const designerFee = pricing?.normal_amount ?? 0
+    const revisionFee = pricing?.revision_fee ?? 0
+      
     const TotalDesignerFee =  shirtCount <= 15
         ? designerFee 
         : 0;
-    let revisionFee = 0;
+    let TotalRevisionFee = 0;
     if (shirtCount >= 15) {
-      revisionFee = revisionCount > 2 ? (revisionCount - 2) * designerFee : 0;
+      TotalRevisionFee = revisionCount > 2 ? (revisionCount - 2) * revisionFee : 0;
     } else {
-      revisionFee = revisionCount * designerFee;
+      TotalRevisionFee = revisionCount * revisionFee;
     }
 
     // --- base calculation ---
