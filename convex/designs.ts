@@ -99,7 +99,7 @@ export const approveDesign = mutation({
      const designerFee =
       shirtCount <= 15
         ? pricing?.normal_amount ?? 0
-        : pricing?.promo_amount ?? 0;
+        : pricing?.revision_fee ?? 0;
     const TotalDesignerFee =  shirtCount <= 15
         ? designerFee 
         : 0;

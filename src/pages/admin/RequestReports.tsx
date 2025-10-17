@@ -85,7 +85,7 @@ const AdminRequestReports: React.FC = () => {
                 <Filter size={16} />
                 <span className="text-sm font-medium">Filter by Status:</span>
               </div>
-              {["all", "pending", "approved", "rejected", "cancelled"].map(
+              {["all", "pending", "approved", "declined", "cancelled"].map(
                 (status) => (
                   <button
                     key={status}

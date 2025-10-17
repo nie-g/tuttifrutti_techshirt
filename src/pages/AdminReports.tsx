@@ -8,6 +8,7 @@ import DynamicSidebar from "../components/Sidebar";
 import ReportsOverview from "./admin/ReportsOverview";
 import SalesReport from "./admin/SalesReports"; // ✅ Import your OrdersReport component
 import AdminRequestReports from "./admin/RequestReports";
+import AdminDesignReports from "./admin/DesignReports";
 
 
 import {
@@ -56,7 +57,7 @@ const AdminReports: React.FC = () => {
     billings === undefined || requests === undefined || designs === undefined;
 
   // UI state
-  const [activeTab, setActiveTab] = useState<"overview" | "orders"| "requests">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "orders"| "requests"|"designs">("overview");
   const [daysRange, _setDaysRange] = useState<number>(30);
   const [compare, _setCompare] = useState<boolean>(true);
   const [useCustomRange, _setUseCustomRange] = useState<boolean>(false);
@@ -284,6 +285,16 @@ const AdminReports: React.FC = () => {
               >
                 Design Request Report
               </button>
+              <button
+                onClick={() => setActiveTab("designs")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                  activeTab === "designs"
+                    ? " text-teal-600 bg-gray-100"
+                    : " text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                Design Report
+              </button>
             </div>
 
             {/* Content Switching */}
@@ -302,9 +313,12 @@ const AdminReports: React.FC = () => {
             />
           ) : activeTab === "orders" ? (
             <SalesReport />
-          ) : (
+          ) : activeTab === "requests" ? (
             <AdminRequestReports />
-          )}
+          ): (
+            <AdminDesignReports />
+          )  }
+
 
           </motion.div>
         </main>

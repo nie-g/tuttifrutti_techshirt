@@ -88,7 +88,18 @@ export const storeClerkUser = internalMutation({
     });
 
     // 3. Patch designer with portfolio reference
-    await ctx.db.patch(designerId, { portfolio_id: portfolioId });
+       // 3. Patch designer with portfolio reference
+        await ctx.db.patch(designerId, { portfolio_id: portfolioId });
+
+        // 4. 🆕 Create a default pricing record with undefined values
+        await ctx.db.insert("designer_pricing", {
+          designer_id: designerId,
+          normal_amount: undefined, // default (undefined)
+          revision_fee: undefined,  // default (undefined)
+          description: "Default pricing - to be updated by admin",
+          created_at: Date.now(),
+        });
+
 
     console.log("✅ Designer profile + portfolio created");
   }

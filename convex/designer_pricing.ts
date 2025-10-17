@@ -9,9 +9,9 @@ export const getAll = query({
 
     return pricings.map((p) => ({
       _id: p._id,
-      designerId: p.designer_id,
-      normalAmount: p.normal_amount,
-      promoAmount: p.promo_amount,
+      designer_id: p.designer_id,
+      normal_amount: p.normal_amount,
+      revision_fee: p.revision_fee,
       description: p.description,
     }));
   },
@@ -30,11 +30,12 @@ export const getByDesigner = query({
 });
 
 // Create new pricing
+// ✅ Create new pricing
 export const create = mutation({
   args: {
     designer_id: v.id("designers"),
     normal_amount: v.number(),
-    promo_amount: v.optional(v.number()),
+    revision_fee: v.optional(v.number()),
     description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -46,11 +47,12 @@ export const create = mutation({
 });
 
 // Update pricing
+// ✅ Update pricing
 export const update = mutation({
   args: {
     id: v.id("designer_pricing"),
     normal_amount: v.number(),
-    promo_amount: v.optional(v.number()),
+    revision_fee: v.optional(v.number()),
     description: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...rest }) => {
@@ -59,11 +61,44 @@ export const update = mutation({
   },
 });
 
+
 // Delete pricing
 export const remove = mutation({
   args: { id: v.id("designer_pricing") },
   handler: async (ctx, { id }) => {
     await ctx.db.delete(id);
     return { success: true };
+  },
+});
+
+
+export const upsertDefault = mutation({
+  args: {
+    normal_amount: v.float64(),
+    revision_fee: v.optional(v.float64()),
+    description: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("designer_pricing")
+      .filter((q) => q.eq(q.field("designer_id"), "default"))
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        normal_amount: args.normal_amount,
+        revision_fee: args.revision_fee,
+        description: args.description,
+      });
+      return existing._id;
+    }
+
+    return await ctx.db.insert("designer_pricing", {
+      designer_id: "default",
+      normal_amount: args.normal_amount,
+      revision_fee: args.revision_fee,
+      description: args.description,
+      created_at: Date.now(),
+    });
   },
 });

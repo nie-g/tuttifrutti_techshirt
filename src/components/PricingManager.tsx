@@ -1,43 +1,40 @@
-// src/components/PricingManager.tsx
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { Edit, Trash2, Loader, Plus, X, FileText } from "lucide-react";
+import { Edit, Loader, X, FileText, Plus } from "lucide-react";
 
 interface Designer {
-  _id: Id<"designers">;     // ✅ comes from designers table
-  user_id: Id<"users">;     // ✅ link back to users
+  _id: Id<"designers">;
+  user_id: Id<"users">;
   firstName: string;
   lastName: string;
   email: string;
 }
 
-
 interface Pricing {
   _id: Id<"designer_pricing">;
-  designerId: Id<"designers">;
-  normalAmount: number;
-  promoAmount?: number;
+  designer_id: Id<"designers"> | "default";
+  normal_amount?: number;
+  revision_fee?: number;
+  description?: string;
 }
 
 const PricingManager: React.FC = () => {
-const designers = useQuery(api.designers.listAllWithUsers) as Designer[] | undefined;
+  const designers = useQuery(api.designers.listAllWithUsers) as Designer[] | undefined;
   const pricings = useQuery(api.designer_pricing.getAll) as Pricing[] | undefined;
-
-  const addPricing = useMutation(api.designer_pricing.create);
   const updatePricing = useMutation(api.designer_pricing.update);
-  const deletePricing = useMutation(api.designer_pricing.remove);
+  const upsertDefaultPricing = useMutation(api.designer_pricing.upsertDefault);
 
   const [localPricings, setLocalPricings] = useState<Pricing[]>([]);
   const [editingPricing, setEditingPricing] = useState<Pricing | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [formData, setFormData] = useState({
-    designerId: "",
     normalAmount: "",
-    promoAmount: "",
+    revisionFee: "",
+    description: "",
   });
 
   useEffect(() => {
@@ -45,46 +42,39 @@ const designers = useQuery(api.designers.listAllWithUsers) as Designer[] | undef
   }, [pricings]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.designerId || !formData.normalAmount) return;
+  e.preventDefault();
+  if (!editingPricing) return;
 
-    const pricingData = {
-        designer_id: formData.designerId as Id<"designers">,
-        normal_amount: Number(formData.normalAmount),
-        promo_amount: formData.promoAmount ? Number(formData.promoAmount) : undefined,
-        description: undefined, // optional, you can add a field later
-        };
-    if (editingPricing) {
-     await updatePricing({
-        id: editingPricing._id,
-        normal_amount: Number(formData.normalAmount),
-        promo_amount: formData.promoAmount ? Number(formData.promoAmount) : undefined,
-        description: undefined,
-        });
-    } else {
-      await addPricing(pricingData);
-    }
+  const isDefault = editingPricing.designer_id === "default";
 
-    setFormData({ designerId: "", normalAmount: "", promoAmount: "" });
-    setEditingPricing(null);
-    setIsModalOpen(false);
-  };
+  if (isDefault) {
+    await upsertDefaultPricing({
+      normal_amount: Number(formData.normalAmount),
+      revision_fee: formData.revisionFee ? Number(formData.revisionFee) : undefined,
+      description: formData.description || undefined,
+    });
+  } else {
+    await updatePricing({
+      id: editingPricing._id,
+      normal_amount: Number(formData.normalAmount),
+      revision_fee: formData.revisionFee ? Number(formData.revisionFee) : undefined,
+      description: formData.description || undefined,
+    });
+  }
+
+  setFormData({ normalAmount: "", revisionFee: "", description: "" });
+  setEditingPricing(null);
+  setIsModalOpen(false);
+};
 
   const handleEdit = (pricing: Pricing) => {
     setEditingPricing(pricing);
     setFormData({
-      designerId: pricing.designerId,
-      normalAmount: String(pricing.normalAmount),
-      promoAmount: pricing.promoAmount ? String(pricing.promoAmount) : "",
+      normalAmount: String(pricing.normal_amount ?? ""),
+      revisionFee: pricing.revision_fee ? String(pricing.revision_fee) : "",
+      description: pricing.description ?? "",
     });
     setIsModalOpen(true);
-  };
-
-  const handleDelete = async (id: Id<"designer_pricing">) => {
-    if (window.confirm("Are you sure you want to delete this pricing?")) {
-      await deletePricing({ id });
-      setLocalPricings((prev) => prev.filter((p) => p._id !== id));
-    }
   };
 
   if (!pricings || !designers) {
@@ -95,124 +85,154 @@ const designers = useQuery(api.designers.listAllWithUsers) as Designer[] | undef
     );
   }
 
+  // 🧩 Group pricing by designer_id (including default)
+  const groupedPricings = localPricings.reduce<Record<string, Pricing[]>>((acc, pricing) => {
+    const key = pricing.designer_id === "default" ? "default" : pricing.designer_id;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(pricing);
+    return acc;
+  }, {});
+
+  // 🧱 Default pricing (if exists)
+  const defaultPricing = localPricings.find((p) => p.designer_id === "default");
+
   return (
     <div className="p-6 bg-gradient-to-br from-white to-gray-50 shadow rounded-xl">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-600">Designer Pricing Manager</h2>
-          <p className="text-gray-600">Manage pricing for each designer</p>
-        </div>
-        <button
-          onClick={() => {
-            setEditingPricing(null);
-            setFormData({ designerId: "", normalAmount: "", promoAmount: "" });
-            setIsModalOpen(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition text-sm font-medium"
-        >
-          <Plus className="h-4 w-4" /> Add Pricing
-        </button>
+      <div className="mb-4">
+        <h2 className="text-2xl font-bold text-gray-600">Designer Pricing Manager</h2>
+        <p className="text-gray-600">Manage and edit pricing for each designer</p>
       </div>
 
       {/* Table */}
-      {/* Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        {designers.length === 0 ? (
-            <div className="p-6 text-center">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        {Object.keys(groupedPricings).length === 0 && !defaultPricing ? (
+          <div className="p-6 text-center">
             <FileText className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600 text-sm">No designers found</p>
-            </div>
+            <p className="text-gray-600 text-sm">No pricing entries found</p>
+          </div>
         ) : (
-            <div className="overflow-x-auto">
+          <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <thead className="bg-gray-50">
                 <tr>
-                    {["Designer", "Email", "Normal Amount", "Promo Amount"].map((col) => (
-                    <th
+                  {["Designer", "Description", "Normal Amount", "Revision Fee", "Actions"].map(
+                    (col) => (
+                      <th
                         key={col}
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
+                      >
                         {col}
-                    </th>
-                    ))}
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                    </th>
+                      </th>
+                    )
+                  )}
                 </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                {designers.map((designer) => {
-                    const pricing = localPricings.find(
-                    (p) => p.designerId === designer._id
-                    );
+              </thead>
 
-                    return (
-                    <tr
-                        key={designer._id}
-                        className="hover:bg-gray-50 transition-colors"
-                    >
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                        {designer.firstName} {designer.lastName}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                        {designer.email}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                        {pricing
-                            ? `₱${pricing.normalAmount.toLocaleString()}`
-                            : "-"}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                        {pricing?.promoAmount
-                            ? `₱${pricing.promoAmount.toLocaleString()}`
-                            : "-"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                        {pricing ? (
-                            <>
-                            <button
+              <tbody className="bg-white divide-y divide-gray-200">
+                {/* 🩵 Default Pricing Row */}
+                <tr className="bg-blue-50 hover:bg-blue-100 transition-colors">
+                  <td className="px-4 py-4 text-sm font-semibold text-gray-900">Default</td>
+                  <td className="px-4 py-4 text-sm text-gray-600">
+                    {defaultPricing?.description || "—"}
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-600">
+                    {defaultPricing?.normal_amount
+                      ? `₱${defaultPricing.normal_amount.toLocaleString()}`
+                      : "—"}
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-600">
+                    {defaultPricing?.revision_fee
+                      ? `₱${defaultPricing.revision_fee.toLocaleString()}`
+                      : "—"}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    {defaultPricing ? (
+                      <button
+                        onClick={() => handleEdit(defaultPricing)}
+                        className="inline-flex items-center bg-teal-500 px-6 py-1 text-white hover:bg-teal-600 rounded-md"
+                      >
+                        <Edit className="h-4 w-4 mr-1" /> Edit Pricing
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() =>
+                          handleEdit({
+                            _id: "default" as any,
+                            designer_id: "default",
+                            normal_amount: 0,
+                            revision_fee: 0,
+                            description: "",
+                          })
+                        }
+                        className="inline-flex items-center px-2 py-1 text-green-600 hover:text-green-800 rounded-md hover:bg-green-50"
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Set Up Pricing
+                      </button>
+                    )}
+                  </td>
+                </tr>
+
+                {/* 👇 Designer-Specific Rows */}
+                {Object.entries(groupedPricings)
+                  .filter(([id]) => id !== "default")
+                  .map(([designerId, pricings]) => {
+                    const designer = designers.find((d) => d._id === designerId);
+                    return pricings.map((pricing) => {
+                      const isUnset =
+                        !pricing.normal_amount || pricing.normal_amount === 0;
+                      return (
+                        <tr
+                          key={pricing._id}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-4 py-4 text-sm font-medium text-gray-900">
+                            {designer
+                              ? `${designer.firstName} ${designer.lastName}`
+                              : "Unknown"}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-gray-600">
+                            {pricing.description || "-"}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-gray-600">
+                            {pricing.normal_amount
+                              ? `₱${pricing.normal_amount.toLocaleString()}`
+                              : "-"}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-gray-600">
+                            {pricing.revision_fee
+                              ? `₱${pricing.revision_fee.toLocaleString()}`
+                              : "-"}
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            {isUnset ? (
+                              <button
                                 onClick={() => handleEdit(pricing)}
-                                className="inline-flex items-center px-2 py-1 text-blue-600 hover:text-blue-800 rounded-md hover:bg-blue-50"
-                            >
+                                className="inline-flex items-center px-2 py-1 text-green-600 hover:text-green-800 rounded-md hover:bg-green-50"
+                              >
+                                <Plus className="h-4 w-4 mr-1" /> Set Up Pricing
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleEdit(pricing)}
+                                className="inline-flex items-center bg-teal-500 px-6 py-1 text-white hover:bg-teal-600 rounded-md"
+                              >
                                 <Edit className="h-4 w-4 mr-1" /> Edit Pricing
-                            </button>
-                            <button
-                                onClick={() => handleDelete(pricing._id)}
-                                className="inline-flex items-center px-2 py-1 text-red-600 hover:text-red-800 rounded-md hover:bg-red-50"
-                            >
-                                <Trash2 className="h-4 w-4 mr-1" /> Delete
-                            </button>
-                            </>
-                        ) : (
-                            <button
-                            onClick={() => {
-                                setEditingPricing(null);
-                                setFormData({
-                                designerId: designer._id,
-                                normalAmount: "",
-                                promoAmount: "",
-                                });
-                                setIsModalOpen(true);
-                            }}
-                            className="inline-flex items-center px-2 py-1 text-green-600 hover:text-green-800 rounded-md hover:bg-green-50"
-                            >
-                            <Plus className="h-4 w-4 mr-1" /> Set Up Pricing
-                            </button>
-                        )}
-                        </td>
-                    </tr>
-                    );
-                })}
-                </tbody>
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })}
+              </tbody>
             </table>
-            </div>
+          </div>
         )}
-        </div>
+      </div>
 
-
-      {/* Add/Edit Modal */}
-      {isModalOpen && (
+      {/* Edit Modal */}
+      {isModalOpen && editingPricing && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 px-4">
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
@@ -229,31 +249,22 @@ const designers = useQuery(api.designers.listAllWithUsers) as Designer[] | undef
               <X className="h-5 w-5" />
             </button>
 
-            <h2 className="text-lg font-semibold mb-4">
-              {editingPricing ? "Edit Pricing" : "Add Pricing"}
-            </h2>
+            <h2 className="text-lg font-semibold mb-4">Edit Pricing</h2>
 
             <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                 <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Designer
+                  Description
                 </label>
-                <select
-                  aria-label="Select a designer"
-                  value={formData.designerId}
+                <input
+                  aria-label="Description"
+                  type="text"
+                  value={formData.description}
                   onChange={(e) =>
-                    setFormData({ ...formData, designerId: e.target.value })
+                    setFormData({ ...formData, description: e.target.value })
                   }
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500"
-                  required
-                >
-                  <option value="">Select Designer</option>
-                  {designers.map((d) => (
-                    <option key={d._id} value={d._id}>
-                      {d.firstName} {d.lastName} ({d.email})
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div>
@@ -274,14 +285,14 @@ const designers = useQuery(api.designers.listAllWithUsers) as Designer[] | undef
 
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Promo Amount (Optional)
+                  Revision Fee (Optional)
                 </label>
                 <input
-                  aria-label="Promo amount"
+                  aria-label="Revision fee"
                   type="number"
-                  value={formData.promoAmount}
+                  value={formData.revisionFee}
                   onChange={(e) =>
-                    setFormData({ ...formData, promoAmount: e.target.value })
+                    setFormData({ ...formData, revisionFee: e.target.value })
                   }
                   className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500"
                 />
@@ -299,7 +310,7 @@ const designers = useQuery(api.designers.listAllWithUsers) as Designer[] | undef
                   type="submit"
                   className="px-3 py-1.5 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700"
                 >
-                  {editingPricing ? "Save" : "Add"}
+                  Save
                 </button>
               </div>
             </form>

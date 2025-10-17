@@ -280,17 +280,17 @@ export default defineSchema({
     .index("by_client", ["client_id"])
     .index("by_designer", ["designer_id"])
     .index("by_design", ["design_id"]),
-    designer_pricing: defineTable({
-    designer_id: v.id("designers"), // 🔗 linked to designers table
-    normal_amount: v.number(),      // regular price
-    promo_amount: v.optional(v.number()), // discounted/promo price
+  designer_pricing: defineTable({
+    designer_id: v.union(v.id("designers"), v.literal("default")), // ✅ allow default record
+    normal_amount:v.optional(v.number()),// regular price
+    revision_fee: v.optional(v.number()), // discounted/promo price
     description: v.optional(v.string()), // e.g. "Logo Design", "Full Shirt Design"
     created_at: v.number(),
     updated_at: v.optional(v.number()),
       })
       .index("by_designer", ["designer_id"])
       .index("by_normal_amount", ["normal_amount"])
-      .index("by_promo_amount", ["promo_amount"]),
+      .index("by_revision_fee", ["revision_fee"]),
       // --- PRINT PRICING ---
    print_pricing: defineTable({
     print_type: v.union(

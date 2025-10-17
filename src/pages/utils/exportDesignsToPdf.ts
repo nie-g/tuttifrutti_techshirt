@@ -1,11 +1,11 @@
 import jsPDF from "jspdf";
 
 /**
- * Exports Design Request data to a formatted PDF with summary and pagination
- * @param data - Array of design requests
- * @param fileName - Output file name (default: Design_Request_Report)
+ * Exports Design data (not requests) to a formatted PDF with summary and pagination
+ * @param data - Array of design records
+ * @param fileName - Output file name (default: Design_Report)
  */
-export const exportRequestToPDF = (data: any[], fileName = "Design_Request_Report") => {
+export const exportDesignReportToPDF = (data: any[], fileName = "Design_Report") => {
   try {
     const doc = new jsPDF({
       orientation: "landscape",
@@ -25,36 +25,35 @@ export const exportRequestToPDF = (data: any[], fileName = "Design_Request_Repor
 
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
-    doc.text("Design Request Report", margin, currentY + 20);
+    doc.text("Design Report", margin, currentY + 20);
 
     // 🗓️ Date & Summary Line
     currentY += 45;
     const currentDate = new Date().toLocaleDateString();
     doc.setFontSize(10);
-    doc.text(`Generated: ${currentDate} | Total Requests: ${data.length}`, margin, currentY);
+    doc.text(`Generated: ${currentDate} | Total Designs: ${data.length}`, margin, currentY);
 
-    // 🧾 Totals / Summary Stats
-    const completedCount = data.filter((r) => r.status?.toLowerCase() === "completed").length;
-    const pendingCount = data.filter((r) => r.status?.toLowerCase() === "pending").length;
-    const cancelledCount = data.filter((r) => r.status?.toLowerCase() === "cancelled").length;
+    // 📊 Summary counts
+    const approvedCount = data.filter((r) => r.status?.toLowerCase() === "approved").length;
+    const revisionCount = data.filter((r) => r.status?.toLowerCase() === "revision").length;
+    const draftCount = data.filter((r) => r.status?.toLowerCase() === "draft").length;
 
     doc.text(
-      `Completed: ${completedCount} | Pending: ${pendingCount} | Cancelled: ${cancelledCount}`,
-      pageWidth - 300,
+      `Approved: ${approvedCount} | Revision: ${revisionCount} | Draft: ${draftCount}`,
+      pageWidth - 310,
       currentY
     );
 
     // 🧱 Table Header
     currentY += 40;
     const rowHeight = 25;
-    const colWidths = [40, 160, 200, 100, 120, 100];
+    const colWidths = [40, 150, 180, 120, 120, 100];
     const colPositions = [margin];
-
     for (let i = 0; i < colWidths.length - 1; i++) {
       colPositions.push(colPositions[i] + colWidths[i]);
     }
 
-    const headers = ["#", "Client", "Description", "Status", "Date"];
+    const headers = ["#", "Client", "Designer",  "Status", "Date"];
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     headers.forEach((header, i) => doc.text(header, colPositions[i] + 5, currentY));
@@ -68,7 +67,7 @@ export const exportRequestToPDF = (data: any[], fileName = "Design_Request_Repor
 
     data.forEach((item, index) => {
       if (currentY + rowHeight > pageHeight - 60) {
-        // Add new page when reaching bottom
+        // New page
         doc.addPage();
         currentY = 50;
         doc.setFont("helvetica", "bold");
@@ -80,14 +79,14 @@ export const exportRequestToPDF = (data: any[], fileName = "Design_Request_Repor
       const rowData = [
         (index + 1).toString(),
         item.client ?? "N/A",
-        item.description?.substring(0, 40) ?? "N/A",
+        item.designer ?? "N/A",
         item.status ?? "N/A",
         item.createdAt ?? "N/A",
       ];
 
+      const maxLengths = [3, 18, 18, 25, 15, 12];
       rowData.forEach((cell, i) => {
         let text = cell.toString();
-        const maxLengths = [3, 18, 35, 18, 12, 12];
         if (text.length > maxLengths[i]) text = text.substring(0, maxLengths[i] - 3) + "...";
         doc.text(text, colPositions[i] + 5, currentY);
       });
@@ -95,7 +94,7 @@ export const exportRequestToPDF = (data: any[], fileName = "Design_Request_Repor
       currentY += rowHeight;
     });
 
-    // 📊 Summary Section
+    // 📈 Summary Section
     currentY += 30;
     if (currentY + 80 > pageHeight - 60) {
       doc.addPage();
@@ -109,13 +108,13 @@ export const exportRequestToPDF = (data: any[], fileName = "Design_Request_Repor
     doc.setFontSize(10);
     currentY += 20;
 
-    doc.text(`Total Requests: ${data.length}`, margin, currentY);
+    doc.text(`Total Designs: ${data.length}`, margin, currentY);
     currentY += 15;
-    doc.text(`Completed Requests: ${completedCount}`, margin, currentY);
+    doc.text(`Approved Designs: ${approvedCount}`, margin, currentY);
     currentY += 15;
-    doc.text(`Pending Requests: ${pendingCount}`, margin, currentY);
+    doc.text(`Revisions: ${revisionCount}`, margin, currentY);
     currentY += 15;
-    doc.text(`Cancelled Requests: ${cancelledCount}`, margin, currentY);
+    doc.text(`Draft Designs: ${draftCount}`, margin, currentY);
 
     // 📆 Report Period
     if (data.length > 0) {
@@ -128,7 +127,7 @@ export const exportRequestToPDF = (data: any[], fileName = "Design_Request_Repor
       doc.text(`Report Period: ${startDate} to ${endDate}`, margin, currentY);
     }
 
-    // 🦶 Footer with pagination
+    // 🦶 Footer (pagination)
     const totalPages = doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
@@ -137,12 +136,12 @@ export const exportRequestToPDF = (data: any[], fileName = "Design_Request_Repor
       doc.text("TechShirt Management System", margin, pageHeight - 20);
     }
 
-    // 💾 Save
+    // 💾 Save file
     const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
     doc.save(`${fileName}_${timestamp}.pdf`);
-    alert("Design Request PDF exported successfully!");
+    alert("Design Report PDF exported successfully!");
   } catch (err) {
     console.error("PDF export failed:", err);
-    alert(`Failed to export Design Request PDF: ${(err as Error).message}`);
+    alert(`Failed to export Design Report PDF: ${(err as Error).message}`);
   }
 };
