@@ -11,6 +11,7 @@ import ShirtSizeManager from "../components/ShirtSizeManager";
 import PricingManager from "../components/PricingManager";
 import PrintPricingManager from "../components/PrintPricing";
 
+
 interface User {
   _id: string;
   clerkId: string;
@@ -21,7 +22,7 @@ interface User {
   createdAt: number;
 }
 
-type TabOption = "templates" | "upload" | "sizes" | "pricing"|"printpricing";
+type TabOption = "templates" | "upload" | "sizes" | "pricing"|"printpricing"|"shirttypes";
 
 const Templates: React.FC = () => {
   const navigate = useNavigate();
@@ -90,6 +91,7 @@ const Templates: React.FC = () => {
                   { key: "sizes", label: "Manage Shirt Sizes" },
                   { key: "pricing", label: "Designer Pricing" },
                   { key: "printpricing", label: "Print Pricing" },
+                  
                 ].map((tab) => (
                   <button
                     key={tab.key}
@@ -131,6 +133,7 @@ const Templates: React.FC = () => {
                     <PrintPricingManager />
                   </div>
                 )}
+                
 
               </div>
             </div>

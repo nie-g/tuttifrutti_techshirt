@@ -95,9 +95,20 @@ export const approveDesign = mutation({
       .query("designer_pricing")
       .withIndex("by_designer", (q) => q.eq("designer_id", designerProfile._id))
       .first();
-
-    const designerFee = pricing?.normal_amount ?? 0
-    const revisionFee = pricing?.revision_fee ?? 0
+    const defaultPricing = await ctx.db
+    .query("designer_pricing")
+    .withIndex("by_designer", (q) => q.eq("designer_id", "default"))
+    .first();
+    if (!defaultPricing)
+    throw new Error("Default designer pricing record not found.");
+    const designerFee =
+      pricing?.normal_amount && pricing.normal_amount > 0
+      ? pricing.normal_amount
+      : defaultPricing.normal_amount ?? 0;
+    const revisionFee =
+      pricing && pricing.revision_fee && pricing.revision_fee > 0
+      ? pricing.revision_fee
+      : (defaultPricing?.revision_fee ?? 0);
       
     const TotalDesignerFee =  shirtCount <= 15
         ? designerFee 
@@ -112,9 +123,9 @@ export const approveDesign = mutation({
     // --- base calculation ---
     let startingAmount = 0;
     if (shirtCount >= 15) {
-      startingAmount = shirtCount * printFee + revisionFee;
+      startingAmount = shirtCount * printFee + TotalRevisionFee;
     } else {
-      startingAmount = shirtCount * printFee + revisionFee + designerFee;
+      startingAmount = shirtCount * printFee + TotalRevisionFee + TotalDesignerFee;
     }
 
     // --- Update design status ---
@@ -130,7 +141,7 @@ export const approveDesign = mutation({
       await ctx.db.insert("billing", {
         starting_amount: startingAmount,
         total_shirts: shirtCount,
-        revision_fee: revisionFee,
+        revision_fee: TotalRevisionFee,
         designer_fee: TotalDesignerFee,
         printing_fee: printFee,
         final_amount: 0,

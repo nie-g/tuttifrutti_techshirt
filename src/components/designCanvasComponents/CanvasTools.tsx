@@ -353,6 +353,7 @@ export function addBucketTool(canvas: fabric.Canvas, color?: string) {
         hasControls: true,
         hasBorders: true,
         erasable: true,
+        _isBucket: true, // <-- custom flag
       });
 
       // Step 5: Track the bucket image so it can be removed/replaced later

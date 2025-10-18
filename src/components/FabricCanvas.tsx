@@ -13,6 +13,7 @@ import { addImageFromUrl } from "./designCanvasComponents/CanvasTools";
 import CommentsModal from "./designCanvasComponents/CanvasComments";
 import ReferencesGallery from "./designCanvasComponents/CanvasDesignReferences";
 import CanvasSketch from "./designCanvasComponents/CanvasSketchModal";
+import { motion } from "framer-motion";
 // 🔹 Bigger canvas size
 const CANVAS_WIDTH = 730;
 const CANVAS_HEIGHT = 515;
@@ -194,32 +195,38 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
       {/* Top row: Back button + Controls */}
       <div className="flex justify-between items-center mb-4">
         {/* Back button on the left */}
-       <button
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
           type="button"
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 px-3 py-2 bg-gray-100  border border-gray-300 rounded hover:bg-gray-300"
         >
           <ArrowLeft size={18} />
           <span className="text-sm font-medium">Back</span>
-        </button>
+        </motion.button>
 
 
         {/* Right-side controls: Details, Tools, Save, Post */}
         <div className="flex gap-2">
           {/* See Bill button – only show if billing exists */}
           {billingDoc && (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
               type="button"
               onClick={() => setIsDesignerBillOpen(true)}
               className="p-2 rounded bg-zinc-500 hover:bg-zinc-600 text-white"
               title="See Bill"
             >
               <ReceiptText size={18} />
-            </button>
+            </motion.button>
           )}
 
           {/*See Sketch*/}
-           <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             type="button"
             onClick={() => setShowSketch(true)}
             className={`p-2 rounded ${
@@ -229,10 +236,12 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
           >
           <Notebook size={18} />
          
-          </button>
+          </motion.button>
           {/* Comments button */}
 
-          <button
+           <motion.button
+            whileHover={{ scale: 1.1 }}              
+            whileTap={{ scale: 0.95 }}
             type="button"
             onClick={() => setShowComments(true)}
             className={`p-2 rounded ${
@@ -241,9 +250,11 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
             title="Comments"
           >
           <MessageCircleMore size={18} />
-          </button>
+          </motion.button>
           {/* References button */}
-          <button
+           <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             type="button"
             onClick={() => setShowReferences(true)}
             className={`p-2 rounded ${
@@ -252,41 +263,47 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
             title="See References"
           >
             <Image size={18} />
-          </button>
+          </motion.button>
 
           {/* Details button */}
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             type="button"
             onClick={() =>
               setActiveTab(activeTab === "details" ? "none" : "details")
             }
             className={`p-2 rounded ${
-              activeTab === "details" ? "bg-blue-500 text-white" : "bg-gray-200"
+              activeTab === "details" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
             }`}
             title="Details"
           >
             <Info size={18} />
-          </button>
+          </motion.button>
 
           {/* Tools button */}
           {!isDisabled &&  (
-            <button
+             <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
               type="button"
               onClick={() =>
                 setActiveTab(activeTab === "tools" ? "none" : "tools")
               }
               className={`p-2 rounded ${
-                activeTab === "tools" ? "bg-blue-500 text-white" : "bg-gray-200"
+                activeTab === "tools" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
               }`}
               title="Tools"
             >
               <Wrench size={18} />
-            </button>
+            </motion.button>
           )}
 
           {/* Save button */}
           {!isDisabled && (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
               type="button"
               title="Save design"
               className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600"
@@ -294,12 +311,14 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
             >
               <Save size={18} />
               <span className="text-sm font-medium">Save</span>
-            </button>
+            </motion.button>
           )}
 
           {/* Post button */}
           {!isDisabled && (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
               type="button"
               title="Post update"
               className="flex items-center gap-2 px-3 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
@@ -307,7 +326,7 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
             >
               <Upload size={18} />
               <span className="text-sm font-medium">Post</span>
-            </button>
+            </motion.button>
           )}
 
         </div>

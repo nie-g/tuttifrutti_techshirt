@@ -94,8 +94,8 @@ export const storeClerkUser = internalMutation({
         // 4. 🆕 Create a default pricing record with undefined values
         await ctx.db.insert("designer_pricing", {
           designer_id: designerId,
-          normal_amount: undefined, // default (undefined)
-          revision_fee: undefined,  // default (undefined)
+          normal_amount: 0, // default (undefined)
+          revision_fee: 0,  // default (undefined)
           description: "Default pricing - to be updated by admin",
           created_at: Date.now(),
         });

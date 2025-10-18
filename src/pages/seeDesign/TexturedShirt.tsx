@@ -12,7 +12,7 @@ interface Props {
 
 const shirtModels: Record<string, string> = {
   tshirt: "/assets/tshirt.glb",
-  long_sleeve: "/assets/long_sleeve.glb",
+  long_sleeve: "/assets/long_sleeve_t-_shirt.glb",
   polo: "/assets/polo.glb",
   hoodie: "/assets/hoodie.glb",
   jersey: "/assets/jersey_uv.glb",
@@ -22,7 +22,6 @@ const shirtRotations: Record<string, [number, number, number]> = {
   tshirt: [0, 0, 0],
   long_sleeve: [0, 0, 0],
   polo: [0, 0, 0],
-  hoodie: [0, 0, 0],
   jersey: [0, 0, 0],
 };
 
@@ -30,7 +29,6 @@ const shirtPositions: Record<string, [number, number, number]> = {
   tshirt: [0, -1.2, 0],
   long_sleeve: [0, -1.2, 0],
   polo: [0, -1.2, 0],
-  hoodie: [0, -1.2, 0],
   jersey: [0, -1.2, 0],
 };
 
@@ -41,7 +39,6 @@ const shirtTextureAlignments: Record<
   tshirt: { repeat: [0.5, 0.5], offset: [0.25, 0.0] },
   long_sleeve: { repeat: [0.45, 0.6], offset: [0.28, 0.05] },
   polo: { repeat: [0.48, 0.52], offset: [0.26, 0.02] },
-  hoodie: { repeat: [0.43, 0.55], offset: [0.27, 0.1] },
   jersey: { repeat: [0.5, 0.5], offset: [-0.3, 0.5] },
 };
 

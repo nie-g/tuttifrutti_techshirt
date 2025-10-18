@@ -68,7 +68,7 @@ const Step3: React.FC<Step3Props> = ({
     "V-neck": "tshirt",      // V-neck is still a tshirt in schema
     "Polo": "polo",
     "Jersey": "jersey",
-    "Long Sleeves": "long sleeves",
+    "Long Sleeves": "long_sleeve",
   };
 
   const filteredShirtSizes = useMemo(() => {
@@ -100,65 +100,76 @@ const Step3: React.FC<Step3Props> = ({
 
   // ✅ Reference images
   async function compressImageFile(
-    file: File,
-    maxWidth = 800,
-    maxHeight = 800,
-    quality = 0.7
-  ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
+  file: File,
+  maxWidth = 800,
+  maxHeight = 800,
+  quality = 0.7
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
 
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
 
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          let { width, height } = img;
+      img.onload = () => {
+        let { width, height } = img;
 
-          if (width > height) {
-            if (width > maxWidth) {
-              height *= maxWidth / width;
-              width = maxWidth;
-            }
-          } else {
-            if (height > maxHeight) {
-              width *= maxHeight / height;
-              height = maxHeight;
-            }
+        // Resize keeping aspect ratio
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
           }
-
-          canvas.width = width;
-          canvas.height = height;
-
-          const ctx = canvas.getContext("2d");
-          if (!ctx) {
-            reject(new Error("Canvas context not available"));
-            return;
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
           }
+        }
 
-          ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL("image/jpeg", quality));
-        };
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
 
-        img.onerror = (err) => reject(err);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Canvas context not available"));
+          return;
+        }
+
+        // Draw image
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Determine output type
+        const isPng = file.type === "image/png";
+        const mimeType = isPng ? "image/png" : "image/jpeg";
+        const dataUrl = canvas.toDataURL(mimeType, isPng ? undefined : quality);
+
+        resolve(dataUrl);
       };
 
-      reader.onerror = (err) => reject(err);
-    });
-  }
+      img.onerror = (err) => reject(err);
+    };
 
-  const handleReferenceImageUpload = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+    reader.onerror = (err) => reject(err);
+  });
+}
 
-    setIsUploadingReference(true);
-    const newImages = [...referenceImages];
+// ✅ Upload handler supporting multiple PNG/JPEG files
+const handleReferenceImageUpload = async (
+  e: React.ChangeEvent<HTMLInputElement>
+) => {
+  const files = Array.from(e.target.files || []);
+  if (files.length === 0) return;
 
-    files.forEach(async (file) => {
+  setIsUploadingReference(true);
+
+  try {
+    const newImages: typeof referenceImages = [];
+
+    for (const file of files) {
       try {
         const compressedDataUrl = await compressImageFile(file, 800, 800, 0.7);
 
@@ -168,15 +179,18 @@ const Step3: React.FC<Step3Props> = ({
           description: "",
           file,
         });
-
-        setReferenceImages([...newImages]);
       } catch (err) {
-        console.error("Compression failed", err);
-      } finally {
-        setIsUploadingReference(false);
+        console.error("Compression failed for file:", file.name, err);
       }
-    });
-  };
+    }
+
+    // ❌ Functional updater removed; use current prop value
+    setReferenceImages([...referenceImages, ...newImages]);
+  } finally {
+    setIsUploadingReference(false);
+  }
+};
+
 
   const removeReferenceImage = (id: string) => {
     setReferenceImages(referenceImages.filter((img) => img.id !== id));

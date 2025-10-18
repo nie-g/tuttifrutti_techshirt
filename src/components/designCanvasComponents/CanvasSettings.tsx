@@ -107,45 +107,47 @@ export default function CanvasSettings({ canvas }: CanvasSettingsProps) {
 
   // === APPLY SELECTION ===
   function applySelection(obj: FabricObject | null) {
-    if (!obj) {
-      setSelectedObject(null);
-      setWidth("");
-      setHeight("");
-      setDiameter("");
-      setObjectColorState("#000000");
-      return;
-    }
-
-    setSelectedObject(obj);
-
-    let objColor =
-      ((obj as any).fill as string) ??
-      ((obj as any).stroke as string);
-
-    if (obj.type === "rect" || obj.type === "rectangle") {
-      const w = Math.round(((obj as Rect).width ?? 0) * ((obj as Rect).scaleX ?? 1));
-      const h = Math.round(((obj as Rect).height ?? 0) * ((obj as Rect).scaleY ?? 1));
-      setWidth(w.toString());
-      setHeight(h.toString());
-      setDiameter("");
-      if (objColor) setObjectColorState(objColor);
-    } else if (obj.type === "circle") {
-      const radius = (obj as Circle).radius ?? 0;
-      const dia = Math.round(radius * 2 * ((obj as any).scaleX ?? 1));
-      setDiameter(dia.toString());
-      setWidth("");
-      setHeight("");
-      if (objColor) setObjectColorState(objColor);
-    } else if (obj.type === "textbox") {
-      setFontSize((obj as Textbox).fontSize ?? 24);
-      if (objColor) setObjectColorState(objColor);
-    } else {
-      setWidth("");
-      setHeight("");
-      setDiameter("");
-      if (objColor) setObjectColorState(objColor);
-    }
+  // Ignore bucket objects
+  if (!obj || (obj as any)._isBucket) {
+    setSelectedObject(null);
+    setWidth("");
+    setHeight("");
+    setDiameter("");
+    setObjectColorState("#000000");
+    return;
   }
+
+  setSelectedObject(obj);
+
+  let objColor =
+    ((obj as any).fill as string) ??
+    ((obj as any).stroke as string);
+
+  if (obj.type === "rect" || obj.type === "rectangle") {
+    const w = Math.round(((obj as Rect).width ?? 0) * ((obj as Rect).scaleX ?? 1));
+    const h = Math.round(((obj as Rect).height ?? 0) * ((obj as Rect).scaleY ?? 1));
+    setWidth(w.toString());
+    setHeight(h.toString());
+    setDiameter("");
+    if (objColor) setObjectColorState(objColor);
+  } else if (obj.type === "circle") {
+    const radius = (obj as Circle).radius ?? 0;
+    const dia = Math.round(radius * 2 * ((obj as any).scaleX ?? 1));
+    setDiameter(dia.toString());
+    setWidth("");
+    setHeight("");
+    if (objColor) setObjectColorState(objColor);
+  } else if (obj.type === "textbox") {
+    setFontSize((obj as Textbox).fontSize ?? 24);
+    if (objColor) setObjectColorState(objColor);
+  } else {
+    setWidth("");
+    setHeight("");
+    setDiameter("");
+    if (objColor) setObjectColorState(objColor);
+  }
+}
+
 
   // === UPDATE FUNCTIONS ===
   const updateColor = (val: string) => {
@@ -306,6 +308,8 @@ const updateEraserSize = (val: number) => {
         </div>
       </div>
 
+      
+
       {/* Per-object color fill */}
       {selectedObject && (
         <div className="space-y-2">
@@ -319,6 +323,7 @@ const updateEraserSize = (val: number) => {
           />
         </div>
       )}
+      
 
       {selectedObject?.type === "rect" && (
         <>

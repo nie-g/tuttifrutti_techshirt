@@ -14,7 +14,6 @@ const shirtModels: Record<string, string> = {
   tshirt: "/assets/tshirt.glb",
   long_sleeve: "/assets/long_sleeve.glb",
   polo: "/assets/polo.glb",
-  hoodie: "/assets/hoodie.glb",
   jersey: "/assets/jersey_uv.glb",
 };
 
@@ -46,7 +45,6 @@ const shirtTextureAlignments: Record<
   tshirt: { repeat: [0.5, 0.5], offset: [0.25, 0.0] },
   long_sleeve: { repeat: [0.45, 0.6], offset: [0.28, 0.05] },
   polo: { repeat: [0.48, 0.52], offset: [0.26, 0.02] },
-  hoodie: { repeat: [0.43, 0.55], offset: [0.27, 0.1] },
   jersey: { repeat: [0.5, 0.5], offset: [-0.3, 0.5] },
 };
 

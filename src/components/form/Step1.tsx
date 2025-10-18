@@ -7,8 +7,8 @@ function TShirtModel({ shirtType }: { shirtType: string }) {
   let modelPath = "/assets/tshirt.glb"; // default Round Neck model
   if (shirtType === "Polo") {
     modelPath = "/assets/polo.glb";
-  } else if (shirtType === "V-neck") {
-    modelPath = "/assets/tshirt.glb"; // swap later if you have a dedicated V-neck model
+  } else if (shirtType === "Long Sleeves") {
+    modelPath = "/assets/long_sleeve_t-_shirt.glb"; // swap later if you have a dedicated V-neck model
   } else if (shirtType === "Jersey") {
     modelPath = "/assets/jersey_uv.glb"; // swap later if you have a jersey model
   }
@@ -24,8 +24,8 @@ interface Step1Props {
 // ✅ Label → normalized value mapping
 const shirtOptions = [
   { label: "Round Neck tshirt", value: "Round Neck" },
-  { label: "V-Neck tshirt", value: "V-neck" },
-  { label: "Polo Shirt (Short Sleeve)", value: "Polo" },
+  { label: "Long Sleeves", value: "Long Sleeves" },
+  { label: "Polo Shirt", value: "Polo" },
   { label: "Jersey", value: "Jersey" },
 ];
 
