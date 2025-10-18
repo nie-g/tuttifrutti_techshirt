@@ -78,33 +78,19 @@ const AdminDashboard: React.FC = () => {
     else return new Date(timestamp).toLocaleDateString();
   };
 
-  const formatStatus = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "Planning";
-      case "approved":
-        return "Approved";
-      case "cancelled":
-        return "Cancelled";
-      case "rejected":
-        return "Rejected";
-      default:
-        return "Review";
-    }
-  };
 
-  const projects: Project[] = requests.map((request: any) => ({
-    id: request._id?.toString() || "",
-    name: request.request_title,
-    lastUpdate: formatTimeAgo(request.created_at),
-    status: formatStatus(request.status),
-    client: request.client
-      ? `${request.client.firstName || ""} ${request.client.lastName || ""}`.trim()
-      : "Unknown Client",
-    designer: request.designer
-      ? `${request.designer.firstName || ""} ${request.designer.lastName || ""}`.trim()
-      : "Unassigned",
-  }));
+ const projects: Project[] = requests.map((request: any) => ({
+  id: request._id?.toString() || "",
+  name: request.request_title,
+  lastUpdate: formatTimeAgo(request.created_at),
+  status: request.status?.toLowerCase() || "pending", // keep lowercase for StatusBadge
+  client: request.client
+    ? `${request.client.firstName || ""} ${request.client.lastName || ""}`.trim()
+    : "Unknown Client",
+  designer: request.designer
+    ? `${request.designer.firstName || ""} ${request.designer.lastName || ""}`.trim()
+    : "Unassigned",
+}));
 
   // ✅ Check Clerk authentication instead of localStorage
   useEffect(() => {

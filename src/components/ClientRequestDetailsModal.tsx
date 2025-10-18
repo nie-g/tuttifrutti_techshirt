@@ -48,6 +48,8 @@ interface ClientRequestDetailsModalProps {
   request: any;
   onClose: () => void;
   isOpen: boolean;
+  onStartProject?: () => void; // <- add this line
+   userType?: "client" | "designer"; // add this
 }
 
 const ClientRequestDetailsModal: React.FC<ClientRequestDetailsModalProps> = ({

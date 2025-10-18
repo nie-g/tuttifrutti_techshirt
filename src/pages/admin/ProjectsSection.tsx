@@ -1,3 +1,4 @@
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { TrendingUp, FileText, Activity } from "lucide-react";
 import StatusBadge from "../../components/StatusBadge";
@@ -18,6 +19,7 @@ interface ProjectsSectionProps {
 
 const ProjectsSection: React.FC<ProjectsSectionProps> = ({ projects, isLoading }) => {
   const navigate = useNavigate();
+
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-md">
@@ -64,18 +66,16 @@ const ProjectsSection: React.FC<ProjectsSectionProps> = ({ projects, isLoading }
               </p>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-500">{project.lastUpdate}</span>
-                <button
-                  onClick={() => navigate(`/admin/requests/${project.id}`)}
-                  className="px-3 py-1.5 text-sm font-medium text-teal-600 hover:text-teal-800 hover:bg-teal-50 rounded-lg transition-colors"
-                >
-                  View Details →
-                </button>
+              
               </div>
             </div>
           ))}
         </div>
       )}
+      
     </div>
+    
+
   );
 };
 

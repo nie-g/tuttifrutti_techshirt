@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { useUser } from "@clerk/clerk-react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useNavigate } from "react-router-dom";
 import DynamicSidebar from "../components/Sidebar";
 import HeaderSection from "./designer/HeaderSection";
 import StatsSection from "./designer/StatsSection";
@@ -54,12 +53,24 @@ const DesignerDashboard: React.FC = () => {
     ) || [];
 
   // ✅ Fetch global counts
-  const navigate = useNavigate();
+  
   const allUsers: User[] = useQuery(api.userQueries.listAllUsers) || [];
   const totalClients = allUsers.filter((u) => u.role === "client").length;
   const totalDesigns = designs.filter((d) => d !== null).length; // still safe counting
   const totalRequests =
     (useQuery(api.design_requests.listAllRequests) || []).length;
+  // Map and filter requests
+  const mappedRequests = requests
+  .filter((r): r is Request => r !== null)
+  .map((r) => ({
+    _id: r._id,
+    request_title: r.description || "No Title",
+    status: r.status,
+    tshirt_type: r.tshirt_type || "N/A",
+    client: { full_name: "Me" }, // update if you have real client info
+  }));
+  
+  const isLoadingRequests = !currentUser || !requests;
 
   if (!clerkUser || !currentUser) {
     return (
@@ -88,7 +99,7 @@ const DesignerDashboard: React.FC = () => {
           />
 
           {/* Pass requests (nullable) to ProjectsSection */}
-          <ProjectsSection requests={requests} navigate={navigate} />
+         <ProjectsSection requests={mappedRequests} isLoading={!!isLoadingRequests} />
 
           <QuickActionsSection />
         </main>

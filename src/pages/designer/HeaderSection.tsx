@@ -22,7 +22,7 @@ return (
 
     <div className="flex flex-wrap mt-6 gap-4">
       <button
-        onClick={() => navigate("/designer/gallery/add")}
+        onClick={() => navigate("/designer/gallery")}
         className="px-6 py-3 border-2 border-purple-500 rounded-lg text-purple-500 hover:bg-purple-500 hover:text-white flex items-center gap-2"
       >
         <ImagePlus size={18} /> Add Image to Gallery
@@ -34,10 +34,10 @@ return (
         <Images size={18} /> View Gallery
       </button>
       <button
-        onClick={() => navigate("/designer/tasks")}
+        onClick={() => navigate("/designer/designs")}
         className="px-6 py-3 border-2 border-teal-500 rounded-lg text-teal-500 hover:bg-teal-500 hover:text-white flex items-center gap-2"
       >
-        <FileText size={18} /> View Assigned Requests
+        <FileText size={18} /> View Assigned Designs
       </button>
     </div>
   </div>
