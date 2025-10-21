@@ -5,6 +5,8 @@ import CanvasSettings from "../designCanvasComponents/CanvasSettings";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { compressImageFile } from "../designCanvasComponents/CanvasTools";
+import toast from "react-hot-toast";
+import { BadgeCheck } from "lucide-react";
 
 interface Step2Props {
   canvasRef: React.RefObject<fabric.Canvas | null>;
@@ -161,7 +163,19 @@ const Step2: React.FC<Step2Props> = ({
       localStorage.setItem("savedCanvasImage", snapshot);
 
       if (onSaveSnapshot) onSaveSnapshot(snapshot);
-      alert("Canvas & snapshot saved locally ✅");
+     toast.custom((t) => (
+        <div
+          className={`${
+            t.visible ? "animate-enter" : "animate-leave"
+          } bg-green-100/40 text-green-700 mt-7 px-6 py-3 rounded-lg shadow-lg flex items-center`}
+        >
+          <BadgeCheck className="mr-2" size={20} />
+          <span>Canvas successfully saved!</span>
+        </div>
+      ), {
+        duration: 2000, // 4 seconds
+        position: "top-center", // optional: overrides default Toaster
+      });
     } catch (err) {
       console.error("Error saving canvas:", err);
     }

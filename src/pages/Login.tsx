@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar"; 
 import cutie from "../images/tuttifruitties.png";
 import { useSignIn } from "@clerk/clerk-react";
+import { Loader2 } from "lucide-react";
 
 const Login = () => {
   const { isLoaded, signIn, setActive } = useSignIn();
@@ -12,6 +13,7 @@ const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [oathLoading, setOauthLoading] = useState(false); 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -46,16 +48,19 @@ const Login = () => {
   };
 
   // OAuth login
-  const handleOAuth = async (provider: "oauth_google") => {
+   const handleOAuth = async (provider: "oauth_google") => {
     if (!isLoaded || !signIn) return;
+    setOauthLoading(true);
     try {
       await signIn.authenticateWithRedirect({
         strategy: provider,
         redirectUrl: "/sso-callback",
         redirectUrlComplete: "/dashboard",
       });
+      setOauthLoading(false);
     } catch (err: any) {
       console.error("OAuth login error:", err);
+      setOauthLoading(false);
       setError(err.errors ? err.errors[0].message : "Google login failed");
     }
   };
@@ -122,13 +127,15 @@ const Login = () => {
 
               {error && <p className="text-red-500 text-sm">{error}</p>}
 
-              <button
+            <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.95 }}
                 type="submit"
                 disabled={loading}
                 className="w-full py-2 bg-teal-500 text-white rounded-md font-medium hover:bg-teal-600 transition"
               >
                 {loading ? "Logging in..." : "Login"}
-              </button>
+              </motion.button>
             </form>
 
             {/* Divider */}
@@ -139,17 +146,30 @@ const Login = () => {
             </div>
 
             {/* Google OAuth */}
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => handleOAuth("oauth_google")}
-              className="w-full py-2 border border-gray-400 flex items-center justify-center gap-2 rounded-md hover:bg-gray-100"
+              disabled={oathLoading}
+              className={`w-full py-2 border border-gray-400 flex items-center justify-center gap-2 rounded-md transition 
+                ${oathLoading ? "bg-gray-100 cursor-not-allowed opacity-70" : "hover:bg-gray-100"}`}
             >
-              <img
-                src="https://www.svgrepo.com/show/475656/google-color.svg"
-                alt="Google"
-                className="w-5 h-5"
-              />
-              Continue with Google
-            </button>
+              {oathLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin text-gray-600" />
+                  <span>Signing in...</span>
+                </>
+              ) : (
+                <>
+                  <img
+                    src="https://www.svgrepo.com/show/475656/google-color.svg"
+                    alt="Google"
+                    className="w-5 h-5"
+                  />
+                  Continue with Google
+                </>
+              )}
+            </motion.button>
 
             <p className="text-sm text-gray-500 mt-4 text-center">
               Don’t have an account?{" "}

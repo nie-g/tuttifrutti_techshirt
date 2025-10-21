@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar"; 
 import cutie from "../images/tuttifruitties.png";
 import { useSignUp } from "@clerk/clerk-react";
+import { Loader2 } from "lucide-react";
 
 const Register = () => {
   const { isLoaded, signUp, setActive } = useSignUp();
@@ -20,6 +21,7 @@ const Register = () => {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [oauthLoading, setOauthLoading] = useState(false);
 
   // 🔑 persist signup attempt ID across renders
  
@@ -84,25 +86,28 @@ const handleVerification = async (e: React.FormEvent) => {
   }
 };
 
-  // Google OAuth
-  const handleOAuth = async (provider: "oauth_google") => {
+   const handleOAuth = async (provider: "oauth_google") => {
     if (!isLoaded || !signUp) return;
+    setOauthLoading(true);
+    setError("");
+
     try {
-      await signUp.authenticateWithRedirect({
+        await signUp.authenticateWithRedirect({
         strategy: provider,
         redirectUrl: "/sso-callback",
         redirectUrlComplete: "/dashboard",
         unsafeMetadata: { userType: "client" },
-      });
+        });
     } catch (err: any) {
-      console.error("OAuth signup error:", err);
-      if (err.errors && err.errors.length > 0) {
-        setError(err.errors[0].message);
-      } else {
-        setError("Google signup failed");
-      }
+        console.error("OAuth signup error:", err);
+        setError(
+        err.errors?.[0]?.message || "Google signup failed"
+        );
+    } finally {
+        setOauthLoading(false);
     }
-  };
+    };
+
 
   if (!isLoaded) return <div>Loading...</div>;
 
@@ -195,13 +200,15 @@ const handleVerification = async (e: React.FormEvent) => {
 
                   {error && <p className="text-red-500 text-sm">{error}</p>}
 
-                  <button
+                 <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.95 }}
                     type="submit"
                     disabled={loading}
                     className="w-full py-2 bg-teal-500 text-white rounded-md font-medium hover:bg-teal-600 transition"
                   >
                     {loading ? "Signing up..." : "Signup"}
-                  </button>
+                  </motion.button>
                 </form>
 
                 {/* Divider */}
@@ -212,17 +219,30 @@ const handleVerification = async (e: React.FormEvent) => {
                 </div>
 
                 {/* Google OAuth */}
-                <button
-                  onClick={() => handleOAuth("oauth_google")}
-                  className="w-full py-2 border border-gray-400 flex items-center justify-center gap-2 rounded-md hover:bg-gray-100"
-                >
-                  <img
-                    src="https://www.svgrepo.com/show/475656/google-color.svg"
-                    alt="Google"
-                    className="w-5 h-5"
-                  />
-                  Continue with Google
-                </button>
+                {/* Google OAuth */}
+                <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleOAuth("oauth_google")}
+                    disabled={oauthLoading || !isLoaded}
+                    className="w-full py-2 border border-gray-400 flex items-center justify-center gap-2 rounded-md hover:bg-gray-100 disabled:opacity-60 disabled:cursor-not-allowed transition"
+                    >
+                    {oauthLoading ? (
+                        <div className="flex items-center gap-2 text-gray-700">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span>Connecting...</span>
+                        </div>
+                    ) : (
+                        <>
+                        <img
+                            src="https://www.svgrepo.com/show/475656/google-color.svg"
+                            alt="Google"
+                            className="w-5 h-5"
+                        />
+                        Continue with Google
+                        </>
+                    )}
+                </motion.button>
 
                 <p className="text-sm text-gray-500 mt-4 text-center">
                   Already have an account?{" "}

@@ -8,6 +8,8 @@ import type { Id } from "../../convex/_generated/dataModel";
 import Step1 from "./form/Step1";
 import Step2 from "./form/Step2";
 import Step3 from "./form/Step3";
+import toast from "react-hot-toast";
+import { BadgeCheck } from "lucide-react";
 
 interface ShirtDesignFormProps {
   onClose: () => void;
@@ -165,6 +167,19 @@ const ShirtDesignForm: React.FC<ShirtDesignFormProps> = ({ onClose, onSubmit }) 
       console.error("Error saving design:", error);
       alert("Failed to save design: " + (error as Error).message);
     } finally {
+       toast.custom((t) => (
+              <div
+                className={`${
+                  t.visible ? "animate-enter" : "animate-leave"
+                } bg-green-100/40 text-green-700 px-6 py-3 rounded-lg shadow-lg flex items-center`}
+              >
+                <BadgeCheck className="mr-2" size={20} />
+                <span>Canvas successfully saved!</span>
+              </div>
+            ), {
+              duration: 1000, // 4 seconds
+              position: "top-center", // optional: overrides default Toaster
+      });
       setIsSubmitting(false);
     }
   };

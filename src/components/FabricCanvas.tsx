@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
 import CanvasSettings from "./designCanvasComponents/CanvasSettings";
 import DesignDetails from "./designCanvasComponents/CanvasDesignDetails";
-import { Save, Upload, Info, Wrench, ArrowLeft, ReceiptText, Image, MessageCircleMore, Notebook } from "lucide-react"; // added Back icon
+import { Save, Upload, Info, Wrench, ArrowLeft, ReceiptText, Image, MessageCircleMore, Notebook, Loader2, BadgeCheck } from "lucide-react"; // added Back icon
 import { useQuery } from "convex/react";
+import toast from "react-hot-toast";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useMutation, useAction } from "convex/react";
@@ -57,7 +58,9 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
   const [showComments, setShowComments] = useState(false);
   const previewDoc = useQuery(api.design_preview.getByDesign, { designId });
   const [showSketch, setShowSketch] = useState(false);
-
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
+  
 
   const notifyParent = (c?: fabric.Canvas) => {
     if (notifyTimeoutRef.current) {
@@ -149,14 +152,25 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
   const handleSave = async () => {
     if (!canvas) return;
     const json = JSON.stringify(canvas.toJSON());
-
+     setIsSaving(true);
     try {
       await saveCanvas({ designId, canvasJson: json, thumbnail: undefined });
-      alert("Canvas saved successfully!");
+      setIsSaving(false);
       notifyParent(canvas);
+      toast.custom((t) => (
+      <div
+        className={`${
+          t.visible ? "animate-enter" : "animate-leave"
+        }  text-green-700 px-8 py-2 flex items-center`}
+          >
+            <BadgeCheck className="mr-2" size={20} />
+            <span>Design Sucessfully saved!</span>
+          </div>
+              
+          ));
     } catch (err) {
       console.error("Failed to save canvas", err);
-      alert("Error saving canvas. Check console.");
+     toast.error("Error saving canvas");
     }
   };
  const updateDesignStatus = useMutation(api.designs.updateStatus);
@@ -166,7 +180,7 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
     alert("3D preview screenshot function not provided.");
     return;
   }
-
+     setIsPosting(true);
     try {
       const dataUrl = getThreeScreenshot();
       const blob = await (await fetch(dataUrl)).blob();
@@ -178,15 +192,29 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
 
       // 2️⃣ Notify the client & update status
       await notifyClientUpdate({ designId });
-
-      alert("Update posted successfully! The client has been notified.");
+      toast.custom((t) => (
+      <div
+        className={`${
+          t.visible ? "animate-enter" : "animate-leave"
+        }  text-green-700 px-8 py-2 flex items-center`}
+          >
+            <BadgeCheck className="mr-2" size={20} />
+            <span>Update sucessfully posted!</span>
+          </div>
+              
+      ));
+      setIsPosting(false);
     } catch (err) {
       console.error("Failed to post update", err);
-      alert("Error posting update. Check console.");
+    toast.error("Error posting update");
     }
   };
   const billingDoc = useQuery(api.billing.getBillingByDesign, { designId });
   const [isDesignerBillOpen, setIsDesignerBillOpen] = useState(false);
+  const comments = useQuery(
+  api.comments.listByPreview,
+  previewDoc?._id ? { preview_id: previewDoc._id } : "skip"
+  );
 
   
 
@@ -237,20 +265,21 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
           <Notebook size={18} />
          
           </motion.button>
-          {/* Comments button */}
-
-           <motion.button
-            whileHover={{ scale: 1.1 }}              
-            whileTap={{ scale: 0.95 }}
-            type="button"
-            onClick={() => setShowComments(true)}
-            className={`p-2 rounded ${
-              showComments ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
-            }`}
-            title="Comments"
-          >
-          <MessageCircleMore size={18} />
-          </motion.button>
+          {/* Comments button – only show if comments exist */}
+          {comments && comments.length > 0 && (
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              type="button"
+              onClick={() => setShowComments(true)}
+              className={`p-2 rounded ${
+                showComments ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"
+              }`}
+              title="Comments"
+            >
+              <MessageCircleMore size={18} />
+            </motion.button>
+          )}
           {/* References button */}
            <motion.button
             whileHover={{ scale: 1.1 }}
@@ -300,34 +329,70 @@ const FabricCanvas: React.FC<FabricCanvasProps> = ({
           )}
 
           {/* Save button */}
+          {/* Save button */}
           {!isDisabled && (
             <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={!isSaving ? { scale: 1.1 } : {}}
+              whileTap={!isSaving ? { scale: 0.95 } : {}}
               type="button"
+              disabled={isSaving}
               title="Save design"
-              className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              className={`flex items-center gap-2 px-3 py-2 rounded text-white transition-all ${
+                isSaving ? "bg-green-400 opacity-70 cursor-not-allowed" : "bg-green-500 hover:bg-green-600"
+              }`}
               onClick={handleSave}
             >
-              <Save size={18} />
-              <span className="text-sm font-medium">Save</span>
+              {isSaving ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                  >
+                    <Loader2 size={18} className="animate-spin" />
+                  </motion.div>
+                  <span className="text-sm font-medium">Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Save size={18} />
+                  <span className="text-sm font-medium">Save</span>
+                </>
+              )}
             </motion.button>
           )}
 
-          {/* Post button */}
+          {/* Post Update button */}
           {!isDisabled && (
             <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={!isPosting ? { scale: 1.1 } : {}}
+              whileTap={!isPosting ? { scale: 0.95 } : {}}
               type="button"
+              disabled={isPosting}
               title="Post update"
-              className="flex items-center gap-2 px-3 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
+              className={`flex items-center gap-2 px-3 py-2 rounded text-white transition-all ${
+                isPosting ? "bg-teal-400 opacity-70 cursor-not-allowed" : "bg-teal-500 hover:bg-teal-600"
+              }`}
               onClick={handlePostUpdate}
             >
-              <Upload size={18} />
-              <span className="text-sm font-medium">Post</span>
+              {isPosting ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+                  >
+                    <Loader2 size={18} className="animate-spin" />
+                  </motion.div>
+                  <span className="text-sm font-medium">Posting...</span>
+                </>
+              ) : (
+                <>
+                  <Upload size={18} />
+                  <span className="text-sm font-medium">Post</span>
+                </>
+              )}
             </motion.button>
           )}
+
 
         </div>
       </div>

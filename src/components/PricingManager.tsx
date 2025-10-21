@@ -116,7 +116,7 @@ const PricingManager: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {["Designer", "Description", "Normal Amount", "Revision Fee", "Actions"].map(
+                  {["Designer", "Description", "Designer Fee", "Revision Fee", "Actions"].map(
                     (col) => (
                       <th
                         key={col}

@@ -27,13 +27,20 @@ import Login from './pages/Login';
 import Reports from './pages/AdminReports';
 import AdminOrdersReport from './pages/admin/SalesReports';
 import { AuthenticateWithRedirectCallback } from "@clerk/clerk-react";
-
+import { Toaster } from "react-hot-toast";
 
 
 
 function App() {
   return (
     <BrowserRouter>
+       <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 2000, // 5 seconds instead of default 4000
+        }}
+      />
+      
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/home" element={<LandingPage />} />

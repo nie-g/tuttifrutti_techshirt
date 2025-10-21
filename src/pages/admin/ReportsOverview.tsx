@@ -66,7 +66,7 @@ const ReportsOverview: React.FC<ReportsOverviewProps> = ({
               </div>
             </div>
           </div>
-
+    
           <div style={{ height: 300 }}>
             <Line ref={chartRef} data={chartData} options={lineChartOptions} />
           </div>
